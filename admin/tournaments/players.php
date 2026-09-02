@@ -113,13 +113,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$hasMatches) {
             $player_id = (int)($_POST['player_id'] ?? 0);
             $stmt = $pdo->prepare('DELETE FROM tournament_players WHERE tournament_id = ? AND player_id = ?');
             $stmt->execute([$id, $player_id]);
-            flash_set('tournament_players', 'Player removed from tournament roster.', 'info');
+            flash_set('tournament_players', 'Player removed from tournament.', 'info');
         }
         // 5. Clear Entire Roster
         elseif ($action === 'clear_all') {
             $stmt = $pdo->prepare('DELETE FROM tournament_players WHERE tournament_id = ?');
             $stmt->execute([$id]);
-            flash_set('tournament_players', 'Tournament roster cleared.', 'info');
+            flash_set('tournament_players', 'Tournament players cleared.', 'info');
         }
         
         AppCache::flush();
@@ -169,7 +169,7 @@ include __DIR__ . '/../includes/header.php';
                 <i class="ph-bold ph-arrow-left"></i> Back to Tournament Dashboard
             </a>
             <div class="flex items-center gap-3">
-                <h2 class="text-3xl font-black font-display text-[#0f2044]">Tournament Roster</h2>
+                <h2 class="text-3xl font-black font-display text-[#0f2044]">Tournament Players</h2>
                 <span class="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-200">
                     <?= e($tournament['gender']) ?>
                 </span>
@@ -205,8 +205,8 @@ include __DIR__ . '/../includes/header.php';
         <div class="bg-yellow-50 text-yellow-800 p-4 rounded-2xl mb-6 text-sm border border-yellow-200 flex items-center gap-3 shadow-xs">
             <i class="ph-fill ph-lock-key text-yellow-500 text-2xl flex-shrink-0"></i>
             <div>
-                <strong class="font-black text-base">Tournament Roster Locked</strong>
-                <p class="text-yellow-700/90 text-xs mt-0.5">Fixtures and matches have already been generated for this tournament. Roster modifications are disabled.</p>
+                <strong class="font-black text-base">Tournament Players Locked</strong>
+                <p class="text-yellow-700/90 text-xs mt-0.5">Fixtures and matches have already been generated for this tournament. Player modifications are disabled.</p>
             </div>
         </div>
     <?php endif; ?>
@@ -224,7 +224,7 @@ include __DIR__ . '/../includes/header.php';
                             <i class="ph-fill ph-users-three text-xl"></i>
                         </div>
                         <div>
-                            <h3 class="font-black text-[#0f2044]">Enrolled Roster</h3>
+                            <h3 class="font-black text-[#0f2044]">Enrolled Players</h3>
                             <p class="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Tournament participants</p>
                         </div>
                     </div>
@@ -238,7 +238,7 @@ include __DIR__ . '/../includes/header.php';
                             <form action="" method="POST" class="inline" @submit.prevent="if(confirm('Are you sure you want to remove ALL players from this tournament?')) $el.submit()">
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="action" value="clear_all">
-                                <button type="submit" class="text-xs font-bold text-red-500 hover:text-red-700 hover:bg-red-50 px-2.5 py-1 rounded-lg transition" title="Clear Roster">
+                                <button type="submit" class="text-xs font-bold text-red-500 hover:text-red-700 hover:bg-red-50 px-2.5 py-1 rounded-lg transition" title="Clear Players">
                                     Clear All
                                 </button>
                             </form>
@@ -266,7 +266,7 @@ include __DIR__ . '/../includes/header.php';
                                                 <i class="ph-fill ph-user-plus text-3xl"></i>
                                             </div>
                                             <p class="font-black text-base text-slate-700">No players enrolled yet</p>
-                                            <p class="text-xs text-slate-400 mt-1">Use the quick selector on the right or click "Quick Multi-Select Studio" to enroll your roster in seconds.</p>
+                                            <p class="text-xs text-slate-400 mt-1">Use the quick selector on the right or click "Quick Multi-Select Studio" to enroll your players in seconds.</p>
                                             
                                             <?php if (count($available) > 0): ?>
                                                 <button type="button" 
@@ -459,7 +459,7 @@ include __DIR__ . '/../includes/header.php';
                         <i class="ph-bold ph-squares-four text-2xl"></i>
                     </div>
                     <div>
-                        <h3 class="text-xl font-black font-display text-[#0f2044]">Multi-Select Roster Studio</h3>
+                        <h3 class="text-xl font-black font-display text-[#0f2044]">Multi-Select Players Studio</h3>
                         <p class="text-xs text-slate-500 font-medium">Select multiple players and enroll them in a single batch.</p>
                     </div>
                 </div>
@@ -511,7 +511,7 @@ include __DIR__ . '/../includes/header.php';
                     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                         <template x-for="p in filteredStudioList" :key="p.id">
                             <label class="relative flex items-center gap-3 p-3 rounded-2xl border-2 cursor-pointer transition-all duration-150 select-none group"
-                                   :class="selectedIds.includes(p.id) ? 'border-blue-600 bg-blue-50/70 shadow-sm ring-2 ring-blue-500/20' : 'border-slate-100 bg-slate-50/50 hover:border-slate-300 hover:bg-white'">
+                                   :class="isSelected(p.id) ? 'border-blue-600 bg-blue-50/70 shadow-sm ring-2 ring-blue-500/20' : 'border-slate-100 bg-slate-50/50 hover:border-slate-300 hover:bg-white'">
                                 
                                 <input type="checkbox" 
                                        name="player_ids[]" 
@@ -521,8 +521,8 @@ include __DIR__ . '/../includes/header.php';
 
                                 <!-- Custom Checkbox Circle -->
                                 <div class="w-5 h-5 rounded-lg border-2 flex items-center justify-center flex-shrink-0 transition-colors"
-                                     :class="selectedIds.includes(p.id) ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-300 bg-white group-hover:border-slate-400'">
-                                    <i class="ph-bold ph-check text-xs" x-show="selectedIds.includes(p.id)"></i>
+                                     :class="isSelected(p.id) ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-300 bg-white group-hover:border-slate-400'">
+                                    <i class="ph-bold ph-check text-xs" x-show="isSelected(p.id)"></i>
                                 </div>
 
                                 <div class="min-w-0 flex-1">
@@ -580,6 +580,10 @@ function rosterEnrollmentManager() {
         availableList: availableRaw,
         selectedIds: [],
         isProcessing: false,
+
+        isSelected(id) {
+            return this.selectedIds.some(sId => String(sId) === String(id));
+        },
 
         get filteredAvailable() {
             if (!this.quickSearch.trim()) return this.availableList;
