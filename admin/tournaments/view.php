@@ -344,10 +344,13 @@ function getStatusTailwind($status) {
                                         <?= e($r['round_label']) ?>
                                     </td>
                                     <td class="px-4 py-4 text-center">
-                                        <input type="hidden" name="rounds[<?= $r['id'] ?>][best_of]" value="3">
-                                        <div class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-500 text-xs font-bold rounded-lg border border-slate-200 cursor-not-allowed">
-                                            <i class="ph-fill ph-lock-key"></i> Best of 3
-                                        </div>
+                                        <select name="rounds[<?= $r['id'] ?>][best_of]" 
+                                                class="w-32 mx-auto block bg-slate-50 border border-slate-200 text-slate-800 text-sm font-bold rounded-lg focus:ring-blue-500 focus:border-blue-500 py-2 px-3 text-center" 
+                                                <?= $tournament['status'] !== 'structure_ready' ? 'disabled' : '' ?>>
+                                            <option value="1" <?= $r['best_of'] == 1 ? 'selected' : '' ?>>Best of 1</option>
+                                            <option value="3" <?= $r['best_of'] == 3 ? 'selected' : '' ?>>Best of 3</option>
+                                            <option value="5" <?= $r['best_of'] == 5 ? 'selected' : '' ?>>Best of 5</option>
+                                        </select>
                                     </td>
                                     <td class="px-4 py-4">
                                         <input type="number" name="rounds[<?= $r['id'] ?>][points]" value="<?= $r['points_per_game'] ?>" 
