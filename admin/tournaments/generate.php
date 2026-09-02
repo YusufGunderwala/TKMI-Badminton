@@ -89,13 +89,22 @@ try {
     }
     
     AppCache::flush();
-    // Redirect back to view page on success
-    header('Location: ' . BASE_URL . '/admin/tournaments/view.php?id=' . $id);
+    $returnTo = $_POST['return_to'] ?? '';
+    if ($returnTo === 'scoring') {
+        header('Location: ' . BASE_URL . '/admin/scoring/index.php?tournament_id=' . $id);
+    } else {
+        header('Location: ' . BASE_URL . '/admin/tournaments/view.php?id=' . $id);
+    }
     exit;
 
 } catch (Exception $e) {
     // If the matchmaker throws a controlled exception (e.g., "Round 1 not completed"), catch it
     flash_set('tournament_view', $e->getMessage(), 'error');
-    header('Location: ' . BASE_URL . '/admin/tournaments/view.php?id=' . $id);
+    $returnTo = $_POST['return_to'] ?? '';
+    if ($returnTo === 'scoring') {
+        header('Location: ' . BASE_URL . '/admin/scoring/index.php?tournament_id=' . $id);
+    } else {
+        header('Location: ' . BASE_URL . '/admin/tournaments/view.php?id=' . $id);
+    }
     exit;
 }

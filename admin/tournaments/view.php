@@ -273,6 +273,97 @@ function getStatusTailwind($status) {
     </div>
 <?php endif; ?>
 
+<?php
+if ($tournament['format'] === FORMAT_SWISS_KNOCKOUT && $tournament['status'] === 'live'):
+    $hasR2 = (int)db()->query("SELECT COUNT(*) FROM matches WHERE tournament_id = $id AND round_key = '" . ROUND_STAGE1_R2 . "'")->fetchColumn() > 0;
+    $hasSurvival = (int)db()->query("SELECT COUNT(*) FROM matches WHERE tournament_id = $id AND round_key = '" . ROUND_STAGE1_SURVIVAL . "'")->fetchColumn() > 0;
+    $hasStage2 = (int)db()->query("SELECT COUNT(*) FROM matches WHERE tournament_id = $id AND stage = 'stage2'")->fetchColumn() > 0;
+
+    $r1Done = Matchmaker::isRoundComplete($id, ROUND_STAGE1_R1);
+    $r2Done = $hasR2 && Matchmaker::isRoundComplete($id, ROUND_STAGE1_R2);
+    $survDone = $hasSurvival && Matchmaker::isRoundComplete($id, ROUND_STAGE1_SURVIVAL);
+?>
+    <?php if ($r1Done && !$hasR2): ?>
+        <div class="bg-gradient-to-r from-[#0f2044] via-[#16306e] to-[#0f2044] border-2 border-[#c9a84c] rounded-3xl p-6 sm:p-7 mb-8 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-5 relative overflow-hidden">
+            <div class="flex items-center gap-4 relative z-10">
+                <div class="w-14 h-14 rounded-2xl bg-[#c9a84c] text-[#080e1e] flex items-center justify-center font-black text-2xl shadow-lg flex-shrink-0 animate-bounce">
+                    <i class="ph-fill ph-trophy"></i>
+                </div>
+                <div>
+                    <div class="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#c9a84c]/20 text-[#ffd978] text-[10px] font-black uppercase tracking-widest mb-1 border border-[#c9a84c]/30">
+                        <span class="w-1.5 h-1.5 rounded-full bg-[#c9a84c] animate-ping"></span>
+                        ROUND 1 COMPLETED
+                    </div>
+                    <h3 class="text-xl sm:text-2xl font-black text-white font-display">All Round 1 Matches Finished!</h3>
+                    <p class="text-xs sm:text-sm text-blue-200/90 mt-0.5">Winners (1-0) and Losers (0-1) are ready. Click below to generate Round 2 fixtures.</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3 flex-wrap relative z-10 w-full md:w-auto justify-end flex-shrink-0">
+                <form action="generate.php" method="POST" class="inline w-full sm:w-auto">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="tournament_id" value="<?= $id ?>">
+                    <input type="hidden" name="action" value="generate_r2">
+                    <button type="submit" class="w-full sm:w-auto bg-[#c9a84c] hover:bg-amber-400 text-[#080e1e] font-black px-6 py-3.5 rounded-2xl shadow-xl transition flex items-center justify-center gap-2 text-sm cursor-pointer">
+                        <i class="ph-bold ph-lightning text-lg"></i> Auto-Generate Round 2
+                    </button>
+                </form>
+                <a href="pairings.php?id=<?= $id ?>&round=r2" class="w-full sm:w-auto bg-white/10 hover:bg-white/20 text-white border border-white/20 font-bold px-5 py-3.5 rounded-2xl transition text-sm flex items-center justify-center gap-2 text-center">
+                    <i class="ph-bold ph-hand-pointing text-base text-[#c9a84c]"></i> Manual Match Setup (R2)
+                </a>
+            </div>
+        </div>
+
+    <?php elseif ($r2Done && !$hasSurvival): ?>
+        <div class="bg-gradient-to-r from-[#0f2044] via-[#16306e] to-[#0f2044] border-2 border-cyan-400 rounded-3xl p-6 sm:p-7 mb-8 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-5 relative overflow-hidden">
+            <div class="flex items-center gap-4 relative z-10">
+                <div class="w-14 h-14 rounded-2xl bg-cyan-400 text-[#080e1e] flex items-center justify-center font-black text-2xl shadow-lg flex-shrink-0 animate-bounce">
+                    <i class="ph-fill ph-shield-check"></i>
+                </div>
+                <div>
+                    <div class="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-cyan-400/20 text-cyan-200 text-[10px] font-black uppercase tracking-widest mb-1 border border-cyan-400/30">
+                        <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping"></span>
+                        ROUND 2 COMPLETED
+                    </div>
+                    <h3 class="text-xl sm:text-2xl font-black text-white font-display">Round 2 Is Finished!</h3>
+                    <p class="text-xs sm:text-sm text-blue-200/90 mt-0.5">2-0 players qualified for Stage 2. 1-1 players must battle in the Survival Round.</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3 relative z-10 w-full md:w-auto justify-end flex-shrink-0">
+                <a href="survival.php?id=<?= $id ?>" class="w-full sm:w-auto bg-cyan-400 hover:bg-cyan-300 text-[#080e1e] font-black px-6 py-3.5 rounded-2xl shadow-xl transition flex items-center justify-center gap-2 text-sm text-center">
+                    <i class="ph-bold ph-strategy text-lg"></i> Configure Survival Round (1-1)
+                </a>
+            </div>
+        </div>
+
+    <?php elseif ($survDone && !$hasStage2): ?>
+        <div class="bg-gradient-to-r from-[#0f2044] via-[#16306e] to-[#0f2044] border-2 border-emerald-400 rounded-3xl p-6 sm:p-7 mb-8 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-5 relative overflow-hidden">
+            <div class="flex items-center gap-4 relative z-10">
+                <div class="w-14 h-14 rounded-2xl bg-emerald-400 text-[#080e1e] flex items-center justify-center font-black text-2xl shadow-lg flex-shrink-0 animate-bounce">
+                    <i class="ph-fill ph-crown"></i>
+                </div>
+                <div>
+                    <div class="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-400/20 text-emerald-200 text-[10px] font-black uppercase tracking-widest mb-1 border border-emerald-400/30">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                        STAGE 1 QUALIFIERS COMPLETE
+                    </div>
+                    <h3 class="text-xl sm:text-2xl font-black text-white font-display">All Qualifiers Determined!</h3>
+                    <p class="text-xs sm:text-sm text-blue-200/90 mt-0.5">Tier 1 &amp; Tier 2 qualifiers are ready for the Stage 2 Knockout Bracket.</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3 relative z-10 w-full md:w-auto justify-end flex-shrink-0">
+                <form action="generate.php" method="POST" class="inline w-full sm:w-auto">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="tournament_id" value="<?= $id ?>">
+                    <input type="hidden" name="action" value="generate_stage2">
+                    <button type="submit" class="w-full sm:w-auto bg-emerald-400 hover:bg-emerald-300 text-[#080e1e] font-black px-6 py-3.5 rounded-2xl shadow-xl transition flex items-center justify-center gap-2 text-sm cursor-pointer">
+                        <i class="ph-bold ph-trophy text-lg"></i> Generate Stage 2 Knockouts
+                    </button>
+                </form>
+            </div>
+        </div>
+    <?php endif; ?>
+<?php endif; ?>
+
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
     <!-- Left Column: Settings -->
     <div class="lg:col-span-2 space-y-6">

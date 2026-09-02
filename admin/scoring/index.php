@@ -6,6 +6,7 @@ require_once __DIR__ . '/../../config/constants.php';
 require_once __DIR__ . '/../../config/db.php';
 require_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/functions.php';
+require_once __DIR__ . '/../../includes/matchmaker.php';
 
 requireLogin();
 
@@ -136,6 +137,110 @@ include __DIR__ . '/../includes/header.php';
             </a>
         </div>
     </div>
+
+    <?php
+    $tId = (int)$selectedTourney['id'];
+    $isSwiss = ($selectedTourney['format'] === 'swiss_knockout');
+    
+    if ($isSwiss):
+        $hasR1 = isset($groupedMatches[ROUND_STAGE1_R1]);
+        $hasR2 = isset($groupedMatches[ROUND_STAGE1_R2]);
+        $hasSurvival = isset($groupedMatches[ROUND_STAGE1_SURVIVAL]);
+        $hasStage2 = false;
+        foreach (['r16', 'qf', 'sf', 'final', '3rd_place'] as $s2k) {
+            if (isset($groupedMatches[$s2k])) { $hasStage2 = true; break; }
+        }
+
+        $r1Done = $hasR1 && Matchmaker::isRoundComplete($tId, ROUND_STAGE1_R1);
+        $r2Done = $hasR2 && Matchmaker::isRoundComplete($tId, ROUND_STAGE1_R2);
+        $survivalDone = $hasSurvival && Matchmaker::isRoundComplete($tId, ROUND_STAGE1_SURVIVAL);
+    ?>
+
+    <?php if ($r1Done && !$hasR2): ?>
+        <!-- Round 1 Complete Action Banner -->
+        <div class="bg-gradient-to-r from-[#0f2044] via-[#16306e] to-[#0f2044] border-2 border-[#c9a84c] rounded-3xl p-6 sm:p-7 mb-8 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-5 relative overflow-hidden">
+            <div class="flex items-center gap-4 relative z-10">
+                <div class="w-14 h-14 rounded-2xl bg-[#c9a84c] text-[#080e1e] flex items-center justify-center font-black text-2xl shadow-lg flex-shrink-0 animate-bounce">
+                    <i class="ph-fill ph-trophy"></i>
+                </div>
+                <div>
+                    <div class="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#c9a84c]/20 text-[#ffd978] text-[10px] font-black uppercase tracking-widest mb-1 border border-[#c9a84c]/30">
+                        <span class="w-1.5 h-1.5 rounded-full bg-[#c9a84c] animate-ping"></span>
+                        ROUND 1 COMPLETED
+                    </div>
+                    <h3 class="text-xl sm:text-2xl font-black text-white font-display">All Round 1 Matches Finished!</h3>
+                    <p class="text-xs sm:text-sm text-blue-200/90 mt-0.5">Winners (1-0) and Losers (0-1) are ready. Generate Round 2 to continue tournament play.</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3 flex-wrap relative z-10 w-full md:w-auto justify-end flex-shrink-0">
+                <form action="<?= BASE_URL ?>/admin/tournaments/generate.php" method="POST" class="inline w-full sm:w-auto">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="tournament_id" value="<?= $tId ?>">
+                    <input type="hidden" name="action" value="generate_r2">
+                    <input type="hidden" name="return_to" value="scoring">
+                    <button type="submit" class="w-full sm:w-auto bg-[#c9a84c] hover:bg-amber-400 text-[#080e1e] font-black px-6 py-3.5 rounded-2xl shadow-xl transition flex items-center justify-center gap-2 text-sm cursor-pointer">
+                        <i class="ph-bold ph-lightning text-lg"></i> Auto-Generate Round 2
+                    </button>
+                </form>
+                <a href="<?= BASE_URL ?>/admin/tournaments/pairings.php?id=<?= $tId ?>&round=r2" class="w-full sm:w-auto bg-white/10 hover:bg-white/20 text-white border border-white/20 font-bold px-5 py-3.5 rounded-2xl transition text-sm flex items-center justify-center gap-2 text-center">
+                    <i class="ph-bold ph-hand-pointing text-base text-[#c9a84c]"></i> Manual Setup
+                </a>
+            </div>
+        </div>
+
+    <?php elseif ($r2Done && !$hasSurvival): ?>
+        <!-- Round 2 Complete Action Banner -->
+        <div class="bg-gradient-to-r from-[#0f2044] via-[#16306e] to-[#0f2044] border-2 border-cyan-400 rounded-3xl p-6 sm:p-7 mb-8 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-5 relative overflow-hidden">
+            <div class="flex items-center gap-4 relative z-10">
+                <div class="w-14 h-14 rounded-2xl bg-cyan-400 text-[#080e1e] flex items-center justify-center font-black text-2xl shadow-lg flex-shrink-0 animate-bounce">
+                    <i class="ph-fill ph-shield-check"></i>
+                </div>
+                <div>
+                    <div class="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-cyan-400/20 text-cyan-200 text-[10px] font-black uppercase tracking-widest mb-1 border border-cyan-400/30">
+                        <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping"></span>
+                        ROUND 2 COMPLETED
+                    </div>
+                    <h3 class="text-xl sm:text-2xl font-black text-white font-display">Round 2 Finished!</h3>
+                    <p class="text-xs sm:text-sm text-blue-200/90 mt-0.5">2-0 players qualified for Stage 2. 1-1 players must battle in the Survival Round.</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3 relative z-10 w-full md:w-auto justify-end flex-shrink-0">
+                <a href="<?= BASE_URL ?>/admin/tournaments/survival.php?id=<?= $tId ?>" class="w-full sm:w-auto bg-cyan-400 hover:bg-cyan-300 text-[#080e1e] font-black px-6 py-3.5 rounded-2xl shadow-xl transition flex items-center justify-center gap-2 text-sm text-center">
+                    <i class="ph-bold ph-strategy text-lg"></i> Configure Survival Round (1-1)
+                </a>
+            </div>
+        </div>
+
+    <?php elseif ($survivalDone && !$hasStage2): ?>
+        <!-- Survival Round Complete Action Banner -->
+        <div class="bg-gradient-to-r from-[#0f2044] via-[#16306e] to-[#0f2044] border-2 border-emerald-400 rounded-3xl p-6 sm:p-7 mb-8 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-5 relative overflow-hidden">
+            <div class="flex items-center gap-4 relative z-10">
+                <div class="w-14 h-14 rounded-2xl bg-emerald-400 text-[#080e1e] flex items-center justify-center font-black text-2xl shadow-lg flex-shrink-0 animate-bounce">
+                    <i class="ph-fill ph-crown"></i>
+                </div>
+                <div>
+                    <div class="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-400/20 text-emerald-200 text-[10px] font-black uppercase tracking-widest mb-1 border border-emerald-400/30">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                        STAGE 1 QUALIFIERS COMPLETE
+                    </div>
+                    <h3 class="text-xl sm:text-2xl font-black text-white font-display">All 16 Qualifiers Determined!</h3>
+                    <p class="text-xs sm:text-sm text-blue-200/90 mt-0.5">Tier 1 &amp; Tier 2 qualifiers are ready for the Stage 2 Knockout Bracket.</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3 relative z-10 w-full md:w-auto justify-end flex-shrink-0">
+                <form action="<?= BASE_URL ?>/admin/tournaments/generate.php" method="POST" class="inline w-full sm:w-auto">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="tournament_id" value="<?= $tId ?>">
+                    <input type="hidden" name="action" value="generate_stage2">
+                    <input type="hidden" name="return_to" value="scoring">
+                    <button type="submit" class="w-full sm:w-auto bg-emerald-400 hover:bg-emerald-300 text-[#080e1e] font-black px-6 py-3.5 rounded-2xl shadow-xl transition flex items-center justify-center gap-2 text-sm cursor-pointer">
+                        <i class="ph-bold ph-trophy text-lg"></i> Generate Stage 2 Knockouts
+                    </button>
+                </form>
+            </div>
+        </div>
+    <?php endif; ?>
+    <?php endif; ?>
 
     <?php if (empty($matches)): ?>
         <div class="bg-white border border-slate-200 rounded-2xl p-16 text-center shadow-sm">
