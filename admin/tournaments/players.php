@@ -58,14 +58,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$hasMatches) {
                     foreach ($player_ids as $pid) {
                         $pid = (int)$pid;
                         if ($pid > 0) {
-                            $stmt->execute([$id, $pid]);
-                            $count++;
+                            $p = getPlayer($pid);
+                            if ($p && ($tournament['gender'] === 'Mixed' || $p['gender'] === $tournament['gender'])) {
+                                $stmt->execute([$id, $pid]);
+                                if ($stmt->rowCount() > 0) $count++;
+                            }
                         }
                     }
                     $pdo->commit();
-                    flash_set('tournament_players', "Successfully enrolled {$count} players in bulk!", 'success');
+                    flash_set('tournament_players', "Successfully enrolled $count player(s).", 'success');
                 } catch (Exception $e) {
-                    if ($pdo->inTransaction()) $pdo->rollBack();
+                    $pdo->rollBack();
                     flash_set('tournament_players', 'Error enrolling players: ' . $e->getMessage(), 'error');
                 }
             } else {

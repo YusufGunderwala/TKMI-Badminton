@@ -37,45 +37,73 @@ class Matchmaker {
         try {
             $pdo->beginTransaction();
 
-            // 1. Get all enrolled players
-            $stmt = $pdo->prepare('SELECT player_id FROM tournament_players WHERE tournament_id = ?');
+            // 1. Get tournament match_type
+            $stmt = $pdo->prepare('SELECT match_type FROM tournaments WHERE id = ?');
             $stmt->execute([$tournamentId]);
-            $players = $stmt->fetchAll(PDO::FETCH_COLUMN);
-            $totalPlayers = count($players);
+            $isDoubles = $stmt->fetchColumn() === 'doubles';
 
-            // 2. Initialize player tournament records (wins=0, losses=0)
+            // 2. Get participants (Teams or Players)
+            if ($isDoubles) {
+                $stmt = $pdo->prepare('SELECT id, player1_id, player2_id FROM teams WHERE tournament_id = ?');
+                $stmt->execute([$tournamentId]);
+                $participants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            } else {
+                $stmt = $pdo->prepare('SELECT player_id as id FROM tournament_players WHERE tournament_id = ?');
+                $stmt->execute([$tournamentId]);
+                $participants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            }
+            
+            $totalParticipants = count($participants);
+
+            // 3. Initialize player tournament records (wins=0, losses=0) for ALL players
             $insertRecord = $pdo->prepare('
                 INSERT INTO player_tournament_records (tournament_id, player_id, wins, losses, tier, is_eliminated) 
                 VALUES (?, ?, 0, 0, ?, false)
                 ON CONFLICT (tournament_id, player_id) DO NOTHING
             ');
-            foreach ($players as $pid) {
+            $stmt = $pdo->prepare('SELECT player_id FROM tournament_players WHERE tournament_id = ?');
+            $stmt->execute([$tournamentId]);
+            $allPlayers = $stmt->fetchAll(PDO::FETCH_COLUMN);
+            foreach ($allPlayers as $pid) {
                 $insertRecord->execute([$tournamentId, $pid, TIER_ACTIVE]);
             }
 
-            // 3. Shuffle players securely for random draw
-            shuffle($players);
+            // 4. Shuffle participants securely for random draw
+            shuffle($participants);
 
-            // 4. Handle BYE if odd number of players
-            $byePlayer = null;
-            if ($totalPlayers % 2 !== 0) {
-                $byePlayer = array_pop($players);
-                // Give BYE player an automatic win
+            // 5. Handle BYE if odd number of participants
+            $byeParticipant = null;
+            if ($totalParticipants % 2 !== 0) {
+                $byeParticipant = array_pop($participants);
+                // Give BYE participant an automatic win in their record
                 $updateRecord = $pdo->prepare('UPDATE player_tournament_records SET wins = wins + 1 WHERE tournament_id = ? AND player_id = ?');
-                $updateRecord->execute([$tournamentId, $byePlayer]);
+                
+                if ($isDoubles) {
+                    $updateRecord->execute([$tournamentId, $byeParticipant['player1_id']]);
+                    $updateRecord->execute([$tournamentId, $byeParticipant['player2_id']]);
+                } else {
+                    $updateRecord->execute([$tournamentId, $byeParticipant['id']]);
+                }
             }
 
-            // 5. Create matches for paired players
-            $insertMatch = $pdo->prepare('
-                INSERT INTO matches (tournament_id, round_key, stage, match_number, participant_a_id, participant_b_id, status)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            ');
+            // 6. Create matches for paired participants
+            if ($isDoubles) {
+                $insertMatch = $pdo->prepare('
+                    INSERT INTO matches (tournament_id, round_key, stage, match_number, team_a_id, team_b_id, status)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ');
+            } else {
+                $insertMatch = $pdo->prepare('
+                    INSERT INTO matches (tournament_id, round_key, stage, match_number, participant_a_id, participant_b_id, status)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ');
+            }
 
             $matchNumber = 1;
-            $pairedCount = count($players);
+            $pairedCount = count($participants);
             for ($i = 0; $i < $pairedCount; $i += 2) {
-                $pA = $players[$i];
-                $pB = $players[$i + 1];
+                $pA = $participants[$i]['id'];
+                $pB = $participants[$i + 1]['id'];
                 
                 $insertMatch->execute([
                     $tournamentId, 
@@ -107,11 +135,16 @@ class Matchmaker {
     public static function isRoundComplete(int $tournamentId, string $roundKey): bool {
         $pdo = db();
         $stmt = $pdo->prepare('
-            SELECT COUNT(*) FROM matches 
-            WHERE tournament_id = ? AND round_key = ? AND status NOT IN (?, ?, ?)
+            SELECT 
+                COUNT(*) as total,
+                SUM(CASE WHEN status IN (?, ?, ?, ?) THEN 1 ELSE 0 END) as completed
+            FROM matches 
+            WHERE tournament_id = ? AND round_key = ?
         ');
-        $stmt->execute([$tournamentId, $roundKey, MATCH_COMPLETED, MATCH_WALKOVER, MATCH_RETIRED]);
-        return (int)$stmt->fetchColumn() === 0;
+        $stmt->execute([MATCH_COMPLETED, MATCH_WALKOVER, MATCH_RETIRED, MATCH_CANCELLED, $tournamentId, $roundKey]);
+        $row = $stmt->fetch();
+        
+        return (int)$row['total'] > 0 && (int)$row['total'] === (int)$row['completed'];
     }
 
     /**

@@ -407,9 +407,16 @@ function getStatusTailwind($status) {
                 </div>
                 <div class="text-slate-400 font-bold uppercase tracking-widest text-xs mb-8">Players Enrolled</div>
                 
-                <a href="players.php?id=<?= $id ?>" class="w-full block bg-white border-2 border-slate-200 hover:border-[#0f2044] hover:text-[#0f2044] text-slate-600 font-bold py-3 px-4 rounded-xl transition-all">
+                <a href="players.php?id=<?= $id ?>" class="w-full text-center block bg-white border-2 border-slate-200 hover:border-[#0f2044] hover:text-[#0f2044] text-slate-600 font-bold py-3 px-4 rounded-xl transition-all mb-2">
                     Manage Players
                 </a>
+                
+                <?php if ($tournament['match_type'] === 'doubles'): ?>
+                    <?php $tCount = db()->query("SELECT COUNT(*) FROM teams WHERE tournament_id = $id")->fetchColumn(); ?>
+                    <a href="teams.php?id=<?= $id ?>" class="w-full text-center block bg-gradient-to-r from-[#0f2044] to-[#1e3a8a] hover:from-[#1a365d] hover:to-[#2563eb] text-[#c9a84c] font-bold py-3 px-4 rounded-xl shadow-lg transition-all mt-3 border border-transparent flex items-center justify-center gap-2">
+                        <i class="ph-bold ph-users-three text-lg"></i> Manage Teams (<?= $tCount ?>)
+                    </a>
+                <?php endif; ?>
             </div>
         </div>
 
