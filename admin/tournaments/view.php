@@ -371,12 +371,12 @@ function getStatusTailwind($status) {
                                         <?= e($r['round_label']) ?>
                                     </td>
                                     <td class="px-4 py-4 text-center">
-                                        <select name="rounds[<?= $r['id'] ?>][best_of]" 
-                                                class="w-full min-w-[200px] bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold rounded-lg focus:ring-blue-500 focus:border-blue-500 py-2 px-3">
-                                            <option value="1" <?= (int)$r['best_of'] === 1 ? 'selected' : '' ?>>⚡ 1 Single Game</option>
-                                            <option value="3" <?= (int)$r['best_of'] === 3 ? 'selected' : '' ?>>🏸 Best of 3 Games (First to 2)</option>
-                                            <option value="5" <?= (int)$r['best_of'] === 5 ? 'selected' : '' ?>>🏆 Best of 5 Games (First to 3)</option>
-                                        </select>
+                                        <!-- Locked by TKMI Rules: Best of 3 -->
+                                        <input type="hidden" name="rounds[<?= $r['id'] ?>][best_of]" value="3">
+                                        <div class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-500 text-xs font-bold rounded-lg border border-slate-200 cursor-not-allowed" title="Match format is locked to Best of 3 Games by TKMI Rules">
+                                            <i class="ph-fill ph-lock-key"></i>
+                                            🏸 Best of 3 Games
+                                        </div>
                                     </td>
                                     <td class="px-4 py-4">
                                         <input type="number" name="rounds[<?= $r['id'] ?>][points]" value="<?= $r['points_per_game'] ?>" 
