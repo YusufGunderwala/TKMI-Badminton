@@ -411,20 +411,74 @@ function getStatusTailwind($status) {
                         <div class="h-8 w-px bg-slate-300 border-l-2 border-dashed border-slate-300 -my-0.5"></div>
                         
                         <!-- Stage 1 Block -->
-                        <div class="bg-blue-50 border border-blue-200 rounded-3xl p-6 w-full max-w-xl text-center relative">
-                            <h4 class="font-black text-blue-900 mb-4 uppercase tracking-wider text-sm flex justify-center items-center gap-2">
+                        <div class="bg-blue-50 border border-blue-200 rounded-3xl p-6 w-full max-w-2xl text-center relative mx-auto">
+                            <h4 class="font-black text-blue-900 mb-6 uppercase tracking-wider text-sm flex justify-center items-center gap-2">
                                 <i class="ph-bold ph-strategy text-blue-500"></i> Stage 1: Swiss Qualifiers
                             </h4>
                             
-                            <div class="flex flex-col items-center gap-3">
-                                <?php foreach ($manifest['stage_1']['rounds'] as $roundKey): ?>
-                                    <div class="bg-white border border-blue-100 rounded-xl px-4 py-2 text-sm font-bold text-blue-800 shadow-sm w-48">
-                                        <?= strtoupper(str_replace('_', ' ', $roundKey)) ?>
+                            <!-- Round 1 -->
+                            <div class="flex flex-col items-center mb-0 relative z-10">
+                                <div class="text-[10px] font-black tracking-widest text-blue-400 mb-1">ROUND 1</div>
+                                <div class="bg-white border border-blue-200 rounded-xl px-6 py-2.5 text-sm font-bold text-blue-900 shadow-sm">
+                                    All <?= $manifest['participants'] ?> Participants Play
+                                </div>
+                            </div>
+                            
+                            <!-- Split to R2 -->
+                            <div class="flex w-full max-w-sm mx-auto h-8 relative">
+                                <div class="w-1/2 border-b-2 border-l-2 border-blue-200 rounded-bl-xl h-full translate-x-1/2"></div>
+                                <div class="w-1/2 border-b-2 border-r-2 border-blue-200 rounded-br-xl h-full -translate-x-1/2"></div>
+                            </div>
+                            
+                            <!-- Round 2 -->
+                            <div class="flex justify-between max-w-lg mx-auto relative pt-2">
+                                <div class="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-4 text-[10px] font-black tracking-widest text-blue-400 bg-blue-50 px-2 z-10">ROUND 2</div>
+                                
+                                <!-- Winners Path -->
+                                <div class="flex flex-col items-center w-1/2 px-3 relative z-10">
+                                    <span class="text-[10px] uppercase tracking-wider font-bold text-emerald-600 mb-1">1-0 Winners</span>
+                                    <div class="bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2.5 text-xs font-bold text-emerald-800 w-full text-center shadow-sm">
+                                        Play Winners
                                     </div>
-                                    <?php if (end($manifest['stage_1']['rounds']) !== $roundKey): ?>
-                                        <i class="ph-bold ph-arrow-down text-blue-300 text-lg"></i>
-                                    <?php endif; ?>
-                                <?php endforeach; ?>
+                                    <!-- Split to R3 -->
+                                    <div class="flex w-full h-10 relative">
+                                        <div class="w-1/2 border-l-2 border-emerald-200 h-full border-dashed mt-0"></div>
+                                        <div class="w-1/2 border-r-2 border-b-2 border-blue-200 rounded-br-xl h-6 mt-0"></div>
+                                        <span class="absolute top-4 left-0 -translate-x-6 text-[9px] font-bold text-emerald-600 bg-blue-50 px-1">2-0 (Tier 1)</span>
+                                        <span class="absolute top-2 right-1/4 text-[9px] font-bold text-blue-500 bg-blue-50 px-1">1-1</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Losers Path -->
+                                <div class="flex flex-col items-center w-1/2 px-3 relative z-10">
+                                    <span class="text-[10px] uppercase tracking-wider font-bold text-red-600 mb-1">0-1 Losers</span>
+                                    <div class="bg-red-50 border border-red-200 rounded-xl px-3 py-2.5 text-xs font-bold text-red-800 w-full text-center shadow-sm">
+                                        Play Losers
+                                    </div>
+                                    <!-- Split to R3 -->
+                                    <div class="flex w-full h-10 relative">
+                                        <div class="w-1/2 border-l-2 border-b-2 border-blue-200 rounded-bl-xl h-6 mt-0"></div>
+                                        <div class="w-1/2 border-r-2 border-red-200 h-full border-dashed mt-0"></div>
+                                        <span class="absolute top-2 left-1/4 text-[9px] font-bold text-blue-500 bg-blue-50 px-1">1-1</span>
+                                        <span class="absolute top-4 right-0 translate-x-10 text-[9px] font-bold text-red-500 bg-blue-50 px-1 whitespace-nowrap">0-2 (Eliminated)</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Survival Merge -->
+                            <div class="flex flex-col items-center -mt-4 relative z-10">
+                                <div class="w-px h-4 bg-blue-300 mb-1"></div>
+                                <div class="text-[10px] font-black tracking-widest text-blue-500 mb-1">SURVIVAL ROUND</div>
+                                <div class="bg-white border-2 border-blue-400 rounded-xl px-6 py-2.5 text-sm font-bold text-blue-900 shadow-md">
+                                    All 1-1 Participants Play
+                                </div>
+                                <!-- Split to End -->
+                                <div class="flex w-full max-w-sm h-10 relative">
+                                    <div class="w-1/2 border-l-2 border-emerald-200 h-full border-dashed"></div>
+                                    <div class="w-1/2 border-r-2 border-red-200 h-full border-dashed"></div>
+                                    <span class="absolute top-4 left-1/4 -translate-x-4 text-[9px] font-bold text-emerald-600 bg-blue-50 px-1">2-1 (Tier 2)</span>
+                                    <span class="absolute top-4 right-1/4 translate-x-4 text-[9px] font-bold text-red-500 bg-blue-50 px-1 whitespace-nowrap">1-2 (Eliminated)</span>
+                                </div>
                             </div>
                         </div>
                         
@@ -451,9 +505,24 @@ function getStatusTailwind($status) {
                             </p>
                             
                             <div class="flex flex-col items-center gap-3">
-                                <?php foreach ($manifest['stage_2']['rounds'] as $roundKey): ?>
-                                    <div class="bg-white border border-[#c9a84c]/30 rounded-xl px-4 py-2 text-sm font-bold text-[#8a722f] shadow-sm w-48">
-                                        <?= strtoupper(str_replace('_', ' ', $roundKey)) ?>
+                                <?php 
+                                    // Generate matches per round text
+                                    $s2_matches = [
+                                        'r32' => '16 Matches',
+                                        'r16' => '8 Matches',
+                                        'qf' => '4 Matches',
+                                        'sf' => '2 Matches',
+                                        '3rd_place' => '1 Match (Bronze)',
+                                        'final' => '1 Match (Gold)'
+                                    ];
+                                    foreach ($manifest['stage_2']['rounds'] as $roundKey): 
+                                        $matchText = $s2_matches[$roundKey] ?? '';
+                                ?>
+                                    <div class="flex flex-col items-center w-full max-w-xs">
+                                        <div class="bg-white border border-[#c9a84c]/30 rounded-xl px-4 py-2 text-sm font-bold text-[#8a722f] shadow-sm w-full flex justify-between items-center">
+                                            <span><?= strtoupper(str_replace('_', ' ', $roundKey)) ?></span>
+                                            <span class="text-[10px] text-[#c9a84c] uppercase tracking-wider"><?= $matchText ?></span>
+                                        </div>
                                     </div>
                                     <?php if (end($manifest['stage_2']['rounds']) !== $roundKey): ?>
                                         <i class="ph-bold ph-arrow-down text-[#c9a84c]/40 text-lg"></i>
