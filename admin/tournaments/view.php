@@ -754,15 +754,20 @@ function getStatusTailwind($status) {
                         echo '<div><div class="font-black text-sm">Ready to Start</div><div class="text-emerald-700/80 mt-0.5">Rules and players are locked. Ready to draw Round 1.</div></div>';
                         echo '</div>';
                         
-                        echo '<form action="generate.php" method="POST">';
+                        echo '<form action="generate.php" method="POST" class="mb-3">';
                         echo csrf_field();
                         echo '<input type="hidden" name="tournament_id" value="'.$id.'">';
                         echo '<input type="hidden" name="action" value="generate_r1">';
                         echo '<button type="submit" class="w-full bg-gradient-to-r from-[#0f2044] to-[#1e3a8a] text-white font-black p-4 rounded-2xl shadow-xl transition-all text-sm flex items-center justify-center gap-2">';
                         echo '<i class="ph-bold ph-shuffle text-xl text-[#c9a84c]"></i>';
-                        echo '<span>Generate Round 1 Matches</span>';
+                        echo '<span>Auto-Generate Round 1 Matches</span>';
                         echo '</button>';
                         echo '</form>';
+
+                        echo '<a href="pairings.php?id='.$id.'&round=r1" class="w-full block text-center bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-bold p-3 rounded-2xl shadow-sm transition-all text-sm flex items-center justify-center gap-2">';
+                        echo '<i class="ph-bold ph-hand-pointing"></i>';
+                        echo '<span>Manual Match Setup</span>';
+                        echo '</a>';
                         
                     } elseif ($tStatus === 'live') {
                         // Dynamic engine: Check completion status based on structure manifest
@@ -773,14 +778,19 @@ function getStatusTailwind($status) {
                         if (!$hasR2) {
                             $r1Done = Matchmaker::isRoundComplete($id, ROUND_STAGE1_R1);
                             if ($r1Done) {
-                                echo '<form action="generate.php" method="POST">';
+                                echo '<form action="generate.php" method="POST" class="mb-3">';
                                 echo csrf_field();
                                 echo '<input type="hidden" name="tournament_id" value="'.$id.'">';
                                 echo '<input type="hidden" name="action" value="generate_r2">';
                                 echo '<button type="submit" class="w-full bg-[#0f2044] hover:bg-blue-900 text-white font-bold p-4 rounded-2xl shadow-xl transition-all text-sm flex items-center justify-center gap-2">';
-                                echo '<span>Generate Round 2 (1-0 vs 1-0, 0-1 vs 0-1)</span>';
+                                echo '<span>Auto-Generate Round 2 (1-0 vs 1-0, 0-1 vs 0-1)</span>';
                                 echo '</button>';
                                 echo '</form>';
+
+                                echo '<a href="pairings.php?id='.$id.'&round=r2" class="w-full block text-center bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-bold p-3 rounded-2xl shadow-sm transition-all text-sm flex items-center justify-center gap-2">';
+                                echo '<i class="ph-bold ph-hand-pointing"></i>';
+                                echo '<span>Manual Match Setup (R2)</span>';
+                                echo '</a>';
                             } else {
                                 echo '<div class="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-4 text-blue-900 text-xs font-bold text-center">';
                                 echo 'Round 1 Matches in Progress';
