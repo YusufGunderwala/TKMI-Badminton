@@ -332,8 +332,8 @@ function getStatusTailwind($status) {
                     <table class="w-full text-left text-sm whitespace-nowrap">
                         <thead>
                             <tr class="text-xs uppercase tracking-widest text-slate-400 border-b border-slate-100 bg-white">
-                                <th class="px-6 py-4 font-bold">Round</th>
-                                <th class="px-4 py-4 font-bold text-center">Match Format (Sets)</th>
+                                <th class="px-6 py-4 font-bold text-left">Round</th>
+                                <th class="px-4 py-4 font-bold text-center">Match Format (Games)</th>
                                 <th class="px-4 py-4 font-bold text-center">Pts/Game</th>
                                 <th class="px-4 py-4 font-bold text-center">Deuce At</th>
                                 <th class="px-4 py-4 font-bold text-center">Score Cap</th>

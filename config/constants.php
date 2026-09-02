@@ -63,9 +63,9 @@ define('ROUND_FINAL',           'final');
 
 // --- Default Swiss+Knockout Scoring Rules ---
 define('DEFAULT_ROUND_CONFIGS', [
-    ROUND_STAGE1_R1       => ['label' => 'Stage 1 – Round 1',       'best_of' => 1, 'points_per_game' => 11, 'deuce_enabled' => 1, 'deuce_trigger' => 10, 'deuce_cap' => 16, 'sort_order' => 1],
-    ROUND_STAGE1_R2       => ['label' => 'Stage 1 – Round 2',       'best_of' => 1, 'points_per_game' => 11, 'deuce_enabled' => 1, 'deuce_trigger' => 10, 'deuce_cap' => 16, 'sort_order' => 2],
-    ROUND_STAGE1_SURVIVAL => ['label' => 'Stage 1 – Survival Round','best_of' => 1, 'points_per_game' => 11, 'deuce_enabled' => 1, 'deuce_trigger' => 10, 'deuce_cap' => 16, 'sort_order' => 3],
+    ROUND_STAGE1_R1       => ['label' => 'Stage 1 – Round 1',       'best_of' => 3, 'points_per_game' => 11, 'deuce_enabled' => 1, 'deuce_trigger' => 10, 'deuce_cap' => 16, 'sort_order' => 1],
+    ROUND_STAGE1_R2       => ['label' => 'Stage 1 – Round 2',       'best_of' => 3, 'points_per_game' => 11, 'deuce_enabled' => 1, 'deuce_trigger' => 10, 'deuce_cap' => 16, 'sort_order' => 2],
+    ROUND_STAGE1_SURVIVAL => ['label' => 'Stage 1 – Survival Round','best_of' => 3, 'points_per_game' => 11, 'deuce_enabled' => 1, 'deuce_trigger' => 10, 'deuce_cap' => 16, 'sort_order' => 3],
     ROUND_R16             => ['label' => 'Round of 16',              'best_of' => 3, 'points_per_game' => 15, 'deuce_enabled' => 1, 'deuce_trigger' => 14, 'deuce_cap' => 21, 'sort_order' => 4],
     ROUND_QF              => ['label' => 'Quarter Finals',           'best_of' => 3, 'points_per_game' => 15, 'deuce_enabled' => 1, 'deuce_trigger' => 14, 'deuce_cap' => 21, 'sort_order' => 5],
     ROUND_SF              => ['label' => 'Semi Finals',              'best_of' => 3, 'points_per_game' => 15, 'deuce_enabled' => 1, 'deuce_trigger' => 14, 'deuce_cap' => 21, 'sort_order' => 6],
