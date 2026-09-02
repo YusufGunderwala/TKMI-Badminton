@@ -50,6 +50,7 @@ define('MATCH_COMPLETED',   'completed');
 define('MATCH_WALKOVER',    'walkover');
 define('MATCH_RETIRED',     'retired');
 define('MATCH_CANCELLED',   'cancelled');
+define('MATCH_BYE',         'bye');
 
 // --- Round Keys (Swiss + Knockout) ---
 define('ROUND_STAGE1_R1',       'r1');
