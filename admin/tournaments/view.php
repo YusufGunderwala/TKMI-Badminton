@@ -389,6 +389,93 @@ function getStatusTailwind($status) {
         </div>
         <?php endif; ?>
 
+        <?php if (!empty($manifest) && isset($manifest['participants'])): ?>
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] overflow-hidden">
+            <div class="px-6 py-5 border-b border-slate-100 bg-slate-50/50">
+                <h3 class="font-black text-[#0f2044] flex items-center gap-2">
+                    <i class="ph-fill ph-git-branch text-[#c9a84c] text-xl"></i>
+                    Tournament Architecture Map
+                </h3>
+            </div>
+            <div class="p-8 overflow-x-auto">
+                <div class="flex flex-col items-center min-w-[500px]">
+                    
+                    <!-- Root -->
+                    <div class="bg-slate-800 text-white font-black px-6 py-3 rounded-2xl shadow-lg border border-slate-700 text-center relative z-10 w-64">
+                        <div class="text-xs uppercase tracking-widest text-slate-400 mb-1">Starting Roster</div>
+                        <?= $manifest['participants'] ?> Participants
+                    </div>
+                    
+                    <?php if (isset($manifest['stage_1'])): ?>
+                        <!-- Down arrow -->
+                        <div class="h-8 w-px bg-slate-300 border-l-2 border-dashed border-slate-300 -my-0.5"></div>
+                        
+                        <!-- Stage 1 Block -->
+                        <div class="bg-blue-50 border border-blue-200 rounded-3xl p-6 w-full max-w-xl text-center relative">
+                            <h4 class="font-black text-blue-900 mb-4 uppercase tracking-wider text-sm flex justify-center items-center gap-2">
+                                <i class="ph-bold ph-strategy text-blue-500"></i> Stage 1: Swiss Qualifiers
+                            </h4>
+                            
+                            <div class="flex flex-col items-center gap-3">
+                                <?php foreach ($manifest['stage_1']['rounds'] as $roundKey): ?>
+                                    <div class="bg-white border border-blue-100 rounded-xl px-4 py-2 text-sm font-bold text-blue-800 shadow-sm w-48">
+                                        <?= strtoupper(str_replace('_', ' ', $roundKey)) ?>
+                                    </div>
+                                    <?php if (end($manifest['stage_1']['rounds']) !== $roundKey): ?>
+                                        <i class="ph-bold ph-arrow-down text-blue-300 text-lg"></i>
+                                    <?php endif; ?>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                        
+                        <!-- Down arrow to Stage 2 -->
+                        <div class="h-10 w-px bg-slate-300 border-l-2 border-dashed border-slate-300 -my-0.5 relative">
+                            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-2 py-0.5 text-xs font-bold text-slate-500 border border-slate-200 rounded-full whitespace-nowrap z-10 shadow-sm">
+                                <?= $manifest['stage_1']['expected_qualifiers'] ?> Advance
+                            </div>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <?php if (isset($manifest['stage_2'])): ?>
+                        <!-- Stage 2 Block -->
+                        <div class="bg-[#c9a84c]/10 border border-[#c9a84c]/30 rounded-3xl p-6 w-full max-w-xl text-center">
+                            <h4 class="font-black text-[#8a722f] mb-2 uppercase tracking-wider text-sm flex justify-center items-center gap-2">
+                                <i class="ph-bold ph-target text-[#c9a84c]"></i> Stage 2: Single Elimination
+                            </h4>
+                            
+                            <p class="text-xs text-[#8a722f]/80 font-bold mb-4 flex items-center justify-center gap-2">
+                                <?= $manifest['stage_2']['bracket_size'] ?>-Player Bracket 
+                                <?php if ($manifest['stage_2']['byes'] > 0): ?>
+                                    <span class="bg-[#c9a84c]/20 px-2 py-0.5 rounded-full text-[#8a722f]"><?= $manifest['stage_2']['byes'] ?> Byes</span>
+                                <?php endif; ?>
+                            </p>
+                            
+                            <div class="flex flex-col items-center gap-3">
+                                <?php foreach ($manifest['stage_2']['rounds'] as $roundKey): ?>
+                                    <div class="bg-white border border-[#c9a84c]/30 rounded-xl px-4 py-2 text-sm font-bold text-[#8a722f] shadow-sm w-48">
+                                        <?= strtoupper(str_replace('_', ' ', $roundKey)) ?>
+                                    </div>
+                                    <?php if (end($manifest['stage_2']['rounds']) !== $roundKey): ?>
+                                        <i class="ph-bold ph-arrow-down text-[#c9a84c]/40 text-lg"></i>
+                                    <?php endif; ?>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                        
+                        <!-- Down arrow to Champion -->
+                        <div class="h-8 w-px bg-slate-300 border-l-2 border-dashed border-slate-300 -my-0.5"></div>
+                        
+                        <div class="bg-gradient-to-br from-yellow-400 to-yellow-600 text-white font-black px-8 py-4 rounded-2xl shadow-xl shadow-yellow-500/20 text-center relative z-10 w-64 border border-yellow-300">
+                            <i class="ph-fill ph-trophy text-3xl mb-1 text-yellow-100 drop-shadow-md"></i>
+                            <div class="text-lg tracking-wide uppercase">Champion</div>
+                        </div>
+                    <?php endif; ?>
+
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+
     </div>
     
     <!-- Right Column: Stats & Actions -->
