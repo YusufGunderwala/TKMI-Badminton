@@ -136,8 +136,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-[#c9a84c]">Tournament.</span>
             </h1>
             
-            <p class="text-xl text-blue-100/70 font-light max-w-lg leading-relaxed drop-shadow-lg">
-                Welcome to the TKMI Command Center. Orchestrate draws, score matches live, and manage the entire event with absolute precision.
+            <p class="text-blue-200/70 text-lg leading-relaxed max-w-lg font-medium">
+                Welcome to the TKMI Badminton Platform. Orchestrate draws, score matches live, and manage the entire event with absolute precision.
             </p>
             
             <div class="mt-16 text-xs font-bold tracking-widest uppercase text-white/30">

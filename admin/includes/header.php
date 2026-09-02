@@ -60,7 +60,7 @@ $currentPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
                     <img src="<?= BASE_URL ?>/assets/assets/Logo.png" alt="Toloba Logo" class="w-full h-full object-cover">
                 </div>
                 <div>
-                    <h1 class="text-xl font-black font-display tracking-tight text-white leading-tight">TKMI <span class="text-[#c9a84c]">Command</span></h1>
+                    <h1 class="text-xl font-black font-display tracking-tight text-white leading-tight">TKMI <span class="text-[#c9a84c]">Badminton</span></h1>
                     <div class="text-[9px] uppercase tracking-[0.2em] text-slate-400 font-bold mt-0.5">Tournament Edition</div>
                 </div>
             </div>

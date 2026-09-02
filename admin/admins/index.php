@@ -93,8 +93,10 @@ include __DIR__ . '/../includes/header.php';
 
     <div class="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
         <div>
-            <h2 class="text-3xl font-black font-display text-[#0f2044]">Admin Accounts</h2>
-            <p class="text-slate-500 font-medium mt-1">Manage users who have access to the TKMI Command Center.</p>
+            <h1 class="text-3xl font-black text-[#0f2044] tracking-tight flex items-center gap-3">
+                <i class="ph-fill ph-shield-check text-[#c9a84c]"></i> Manage Administrators
+            </h1>
+            <p class="text-slate-500 font-medium mt-1">Manage users who have access to the TKMI Badminton Platform.</p>
         </div>
         <button @click="showAddModal = true" class="bg-[#c9a84c] hover:bg-[#b0923e] text-[#0f2044] px-6 py-2.5 rounded-xl font-black transition shadow-md flex items-center gap-2">
             <i class="ph-bold ph-user-plus text-lg"></i> Add New Admin
