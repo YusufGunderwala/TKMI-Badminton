@@ -99,6 +99,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 }
 
+// Calculate effective participant count to determine which bracket rounds to show
+$participantCount = 0;
+if ($tournament['match_type'] === 'doubles') {
+    $participantCount = (int)db()->query("SELECT COUNT(*) FROM teams WHERE tournament_id = $id")->fetchColumn();
+} else {
+    $participantCount = (int)db()->query("SELECT COUNT(*) FROM tournament_players WHERE tournament_id = $id")->fetchColumn();
+}
+// Default to 32 (max) if 0 to show all rounds initially
+$effCount = $participantCount > 0 ? $participantCount : 32;
+$maxQualifiers = ceil($effCount / 2);
+$bracketSize = 2;
+while ($bracketSize < $maxQualifiers) {
+    $bracketSize *= 2;
+}
+
+// Filter rounds dynamically
+$filteredRounds = [];
+foreach ($rounds as $r) {
+    if ($r['round_key'] === ROUND_R16 && $bracketSize < 16) continue;
+    if ($r['round_key'] === ROUND_QF && $bracketSize < 8) continue;
+    if ($r['round_key'] === ROUND_SF && $bracketSize < 4) continue;
+    $filteredRounds[] = $r;
+}
+$rounds = $filteredRounds;
+
 // Handle status updates
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_status') {
     if (verify_csrf()) {
