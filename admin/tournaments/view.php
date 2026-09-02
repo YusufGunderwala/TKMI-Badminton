@@ -519,9 +519,6 @@ function getStatusTailwind($status) {
                     }
                 } // End of else for swiss_knockout
                 ?>
-    
-
-                ?>
             </div>
         </div>
 
