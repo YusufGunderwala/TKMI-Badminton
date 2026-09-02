@@ -1,0 +1,66 @@
+/**
+ * Smooth UI — Glassmorphism 2.0, Spring Micro-Interactions & Fluid Elements
+ * Package: assets/vendor/smooth-ui/
+ */
+
+/* 1. Glassmorphism 2.0 Panels */
+.smooth-glass {
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 10px 30px -5px rgba(15, 32, 68, 0.06);
+}
+
+.smooth-glass-dark {
+  background: rgba(15, 32, 68, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.35);
+}
+
+/* 2. Fluid Micro-interactions */
+.smooth-scale-press {
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.15s ease;
+  user-select: none;
+}
+.smooth-scale-press:active {
+  transform: scale(0.95);
+}
+
+.smooth-hover-lift {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.smooth-hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 35px -10px rgba(15, 32, 68, 0.12);
+}
+
+/* 3. Smooth Pill Tab Group */
+.smooth-tabs-container {
+  position: relative;
+  display: inline-flex;
+  background: #f1f5f9;
+  padding: 0.35rem;
+  border-radius: 9999px;
+  border: 1px solid #e2e8f0;
+}
+
+.smooth-tab-item {
+  position: relative;
+  z-index: 10;
+  padding: 0.5rem 1.25rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  border-radius: 9999px;
+  transition: color 0.2s ease;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.smooth-tab-item.active {
+  color: #ffffff;
+  background: #0f2044;
+  box-shadow: 0 4px 12px rgba(15, 32, 68, 0.25);
+}

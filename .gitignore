@@ -1,0 +1,14 @@
+# OS Files
+.DS_Store
+Thumbs.db
+*.tmp
+*.log
+
+# IDE & Editor files
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Temporary scripts
+dump_codebase.php

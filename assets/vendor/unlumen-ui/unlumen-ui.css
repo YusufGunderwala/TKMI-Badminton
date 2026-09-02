@@ -1,0 +1,73 @@
+/**
+ * Unlumen UI — Spotlight Cursor Glow, Cyber Sports Gradients & Bento Layouts
+ * Package: assets/vendor/unlumen-ui/
+ */
+
+/* 1. Cursor-Tracking Spotlight Cards */
+.unlumen-spotlight-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.unlumen-spotlight-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    650px circle at var(--unlumen-x, 50%) var(--unlumen-y, 50%),
+    rgba(201, 168, 76, 0.15),
+    transparent 45%
+  );
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.unlumen-spotlight-card:hover::before {
+  opacity: 1;
+}
+
+.unlumen-spotlight-dark {
+  background: #0f2044;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.unlumen-spotlight-dark::before {
+  background: radial-gradient(
+    650px circle at var(--unlumen-x, 50%) var(--unlumen-y, 50%),
+    rgba(201, 168, 76, 0.25),
+    transparent 40%
+  );
+}
+
+/* 2. Cyber Sports Bento Grid */
+.unlumen-bento-grid {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+/* 3. Glowing Laser Badge */
+.unlumen-badge-glow {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: rgba(201, 168, 76, 0.12);
+  color: #c9a84c;
+  border: 1px solid rgba(201, 168, 76, 0.35);
+  box-shadow: 0 0 15px rgba(201, 168, 76, 0.15);
+}

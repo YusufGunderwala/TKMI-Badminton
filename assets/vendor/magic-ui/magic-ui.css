@@ -1,0 +1,141 @@
+/**
+ * Magic UI — Modern Animated Components for Tailwind & Vanilla Web
+ * Package: assets/vendor/magic-ui/
+ */
+
+/* 1. Border Beam (Glowing Laser Traveling on Card Borders) */
+.magic-border-beam-container {
+  position: relative;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.magic-border-beam {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  border: 1.5px solid transparent;
+  -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+.magic-border-beam::after {
+  content: '';
+  position: absolute;
+  aspect-ratio: 1;
+  width: calc(var(--beam-size, 160) * 1px);
+  background: linear-gradient(to right, transparent, var(--beam-color-from, #c9a84c), var(--beam-color-to, #3b82f6), transparent);
+  offset-path: rect(0 auto auto 0 round calc(var(--beam-radius, 16) * 1px));
+  animation: magic-border-beam-cycle calc(var(--beam-duration, 5) * 1s) infinite linear;
+}
+
+@keyframes magic-border-beam-cycle {
+  100% {
+    offset-distance: 100%;
+  }
+}
+
+/* 2. Shimmer Button & Text */
+.magic-shimmer-btn {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(110deg, #0f2044 45%, #1e3a78 55%, #0f2044);
+  background-size: 200% 100%;
+  transition: all 0.3s ease;
+}
+
+.magic-shimmer-btn:hover {
+  animation: magic-shimmer 1.5s infinite linear;
+  box-shadow: 0 0 25px rgba(201, 168, 76, 0.35);
+}
+
+.magic-shimmer-gold {
+  background: linear-gradient(110deg, #c9a84c 40%, #fff2b2 50%, #c9a84c 60%);
+  background-size: 200% 100%;
+  color: #0f2044;
+  font-weight: 800;
+  animation: magic-shimmer 3s infinite linear;
+}
+
+.magic-shimmer-gold:hover {
+  box-shadow: 0 0 30px rgba(201, 168, 76, 0.6);
+  transform: translateY(-2px);
+}
+
+@keyframes magic-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.magic-shimmer-text {
+  background: linear-gradient(90deg, #ffffff 0%, #c9a84c 50%, #ffffff 100%);
+  background-size: 200% auto;
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: magic-shimmer-text 4s linear infinite;
+}
+
+@keyframes magic-shimmer-text {
+  to { background-position: 200% center; }
+}
+
+/* 3. Meteors (Laser Streaks) */
+.magic-meteor {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  height: 2px;
+  width: 2px;
+  border-radius: 9999px;
+  background-color: #c9a84c;
+  box-shadow: 0 0 0 1px #ffffff10;
+  transform: rotate(215deg);
+  animation: magic-meteor-anim 6s linear infinite;
+  pointer-events: none;
+}
+
+.magic-meteor::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 60px;
+  height: 1.5px;
+  background: linear-gradient(90deg, #c9a84c, transparent);
+}
+
+@keyframes magic-meteor-anim {
+  0% { transform: rotate(215deg) translateX(0); opacity: 1; }
+  70% { opacity: 1; }
+  100% { transform: rotate(215deg) translateX(-600px); opacity: 0; }
+}
+
+/* 4. Marquee (Infinite Loop Ticker) */
+.magic-marquee-container {
+  display: flex;
+  overflow: hidden;
+  user-select: none;
+  gap: 2rem;
+  width: 100%;
+}
+
+.magic-marquee-track {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-around;
+  min-width: 100%;
+  gap: 2rem;
+  animation: magic-marquee-anim var(--marquee-speed, 25s) linear infinite;
+}
+
+.magic-marquee-container:hover .magic-marquee-track {
+  animation-play-state: paused;
+}
+
+@keyframes magic-marquee-anim {
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(-100% - 2rem)); }
+}

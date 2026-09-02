@@ -1,0 +1,280 @@
+/* ============================================================
+ * MAGIC UI + RETRO UI + SMOOTH UI + UNLUMEN DESIGN SYSTEM
+ * TKMI Badminton Tournament Platform
+ * ============================================================ */
+
+/* --- 1. MAGIC UI: BORDER BEAM (Animated Glowing Border Laser) --- */
+.border-beam-container {
+  position: relative;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.border-beam {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  border: 1.5px solid transparent;
+  -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+.border-beam::after {
+  content: '';
+  position: absolute;
+  aspect-ratio: 1;
+  width: calc(var(--size, 150) * 1px);
+  background: linear-gradient(to right, transparent, var(--color-from, #c9a84c), var(--color-to, #3b82f6), transparent);
+  offset-path: rect(0 auto auto 0 round calc(var(--radius, 16) * 1px));
+  animation: border-beam-anim calc(var(--duration, 6) * 1s) infinite linear;
+}
+
+@keyframes border-beam-anim {
+  100% {
+    offset-distance: 100%;
+  }
+}
+
+/* --- 2. RETRO UI: RETRO 3D PERSPECTIVE GRID FLOOR --- */
+.retro-grid {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  perspective: 600px;
+  pointer-events: none;
+  opacity: 0.25;
+}
+
+.retro-grid-plane {
+  position: absolute;
+  inset: -50% -50% 0 -50%;
+  height: 200%;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.15) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.15) 1px, transparent 1px);
+  background-size: 40px 40px;
+  transform: rotateX(70deg);
+  transform-origin: center top;
+  animation: retro-grid-scroll 20s linear infinite;
+}
+
+.retro-grid-dark .retro-grid-plane {
+  background-image: 
+    linear-gradient(to right, rgba(201, 168, 76, 0.2) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(59, 130, 246, 0.2) 1px, transparent 1px);
+}
+
+@keyframes retro-grid-scroll {
+  0% {
+    transform: rotateX(70deg) translateY(0);
+  }
+  100% {
+    transform: rotateX(70deg) translateY(40px);
+  }
+}
+
+/* --- 3. RETRO UI: RADIAL DOT PATTERNS & MASKS --- */
+.dot-pattern {
+  background-image: radial-gradient(rgba(15, 32, 68, 0.15) 1.5px, transparent 1.5px);
+  background-size: 20px 20px;
+}
+
+.dot-pattern-light {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.15) 1.5px, transparent 1.5px);
+  background-size: 20px 20px;
+}
+
+.mask-radial-fade {
+  mask-image: radial-gradient(ellipse at center, rgba(0, 0, 0, 1) 40%, rgba(0, 0, 0, 0) 80%);
+  -webkit-mask-image: radial-gradient(ellipse at center, rgba(0, 0, 0, 1) 40%, rgba(0, 0, 0, 0) 80%);
+}
+
+.mask-linear-fade-b {
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1) 50%, rgba(0, 0, 0, 0) 100%);
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1) 50%, rgba(0, 0, 0, 0) 100%);
+}
+
+/* --- 4. UNLUMEN / ACETERNITY: SPOTLIGHT MOUSE GLOW --- */
+.spotlight-card {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.spotlight-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(201, 168, 76, 0.12),
+    transparent 40%
+  );
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.spotlight-card:hover::before {
+  opacity: 1;
+}
+
+/* --- 5. MAGIC UI: SHIMMER BUTTON --- */
+.shimmer-btn {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  background: linear-gradient(110deg, #0f2044 45%, #1e3a78 55%, #0f2044);
+  background-size: 200% 100%;
+}
+
+.shimmer-btn:hover {
+  animation: shimmer-anim 1.5s infinite linear;
+  box-shadow: 0 0 25px rgba(201, 168, 76, 0.4);
+}
+
+@keyframes shimmer-anim {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.gold-shimmer-btn {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(110deg, #c9a84c 45%, #fce9a6 55%, #c9a84c);
+  background-size: 200% 100%;
+  color: #0f2044;
+  font-weight: 800;
+  animation: shimmer-anim 3s infinite linear;
+}
+
+.gold-shimmer-btn:hover {
+  box-shadow: 0 0 30px rgba(201, 168, 76, 0.6);
+  transform: translateY(-2px);
+}
+
+/* --- 6. SMOOTH UI: GLASSMORPHISM 2.0 --- */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 8px 32px 0 rgba(15, 32, 68, 0.05);
+}
+
+.glass-panel-dark {
+  background: rgba(15, 32, 68, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.25);
+}
+
+/* --- 7. MAGIC UI: METEORS (Falling Court Lasers) --- */
+.meteor {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  height: 2px;
+  width: 2px;
+  border-radius: 9999px;
+  background-color: #c9a84c;
+  box-shadow: 0 0 0 1px #ffffff10;
+  transform: rotate(215deg);
+  animation: meteor-anim 5s linear infinite;
+  pointer-events: none;
+}
+
+.meteor::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 50px;
+  height: 1px;
+  background: linear-gradient(90deg, #c9a84c, transparent);
+}
+
+@keyframes meteor-anim {
+  0% {
+    transform: rotate(215deg) translateX(0);
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(215deg) translateX(-500px);
+    opacity: 0;
+  }
+}
+
+/* --- 8. SMOOTH UI: SMOOTH MICRO-INTERACTIONS --- */
+.smooth-press {
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.15s ease;
+}
+.smooth-press:active {
+  transform: scale(0.96);
+}
+
+.hover-lift {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+}
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 15px 30px -10px rgba(15, 32, 68, 0.15);
+}
+
+/* --- 9. RETRO UI: ARCADE TOURNAMENT BADGE --- */
+.badge-retro {
+  box-shadow: 2px 2px 0px #0f2044;
+  border: 1.5px solid #0f2044;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.badge-retro-gold {
+  background: #c9a84c;
+  color: #0f2044;
+  box-shadow: 2px 2px 0px #0f2044;
+  border: 1.5px solid #0f2044;
+}
+
+/* --- 10. MAGIC UI: MARQUEE ACCELERATION --- */
+.marquee-container {
+  display: flex;
+  overflow: hidden;
+  user-select: none;
+  gap: 2rem;
+}
+
+.marquee-content {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-around;
+  min-width: 100%;
+  gap: 2rem;
+  animation: marquee-scroll 25s linear infinite;
+}
+
+.marquee-container:hover .marquee-content {
+  animation-play-state: paused;
+}
+
+@keyframes marquee-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(-100% - 2rem));
+  }
+}

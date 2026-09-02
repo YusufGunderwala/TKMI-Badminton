@@ -1,0 +1,79 @@
+/**
+ * Retro UI — Retro, Arcade, Neo-Brutalist & Grid Patterns
+ * Package: assets/vendor/retro-ui/
+ */
+
+/* 1. 3D Perspective Grid Floor */
+.retro-perspective-grid {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  perspective: 700px;
+  pointer-events: none;
+}
+
+.retro-perspective-grid-plane {
+  position: absolute;
+  inset: -60% -60% 0 -60%;
+  height: 220%;
+  background-image: 
+    linear-gradient(to right, rgba(201, 168, 76, 0.2) 1.5px, transparent 1.5px),
+    linear-gradient(to bottom, rgba(59, 130, 246, 0.2) 1.5px, transparent 1.5px);
+  background-size: 50px 50px;
+  transform: rotateX(72deg);
+  transform-origin: center top;
+  animation: retro-grid-pan 22s linear infinite;
+}
+
+@keyframes retro-grid-pan {
+  0% { transform: rotateX(72deg) translateY(0); }
+  100% { transform: rotateX(72deg) translateY(50px); }
+}
+
+/* 2. Dot Matrix Patterns & Masks */
+.retro-dot-matrix {
+  background-image: radial-gradient(rgba(15, 32, 68, 0.16) 1.5px, transparent 1.5px);
+  background-size: 24px 24px;
+}
+
+.retro-dot-matrix-light {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.18) 1.5px, transparent 1.5px);
+  background-size: 24px 24px;
+}
+
+.retro-mask-horizon {
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1) 40%, rgba(0, 0, 0, 0) 100%);
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1) 40%, rgba(0, 0, 0, 0) 100%);
+}
+
+.retro-mask-radial {
+  mask-image: radial-gradient(ellipse at center, rgba(0, 0, 0, 1) 30%, rgba(0, 0, 0, 0) 80%);
+  -webkit-mask-image: radial-gradient(ellipse at center, rgba(0, 0, 0, 1) 30%, rgba(0, 0, 0, 0) 80%);
+}
+
+/* 3. Neo-Brutalist & Arcade Badges / Cards */
+.retro-badge {
+  box-shadow: 2px 2px 0px #0f2044;
+  border: 2px solid #0f2044;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.retro-card {
+  box-shadow: 4px 4px 0px #0f2044;
+  border: 2px solid #0f2044;
+  background-color: #ffffff;
+  transition: all 0.2s ease;
+}
+
+.retro-card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px #0f2044;
+}
+
+.retro-card-gold {
+  box-shadow: 4px 4px 0px #0f2044;
+  border: 2px solid #0f2044;
+  background: linear-gradient(135deg, #fff 0%, #fffbe6 100%);
+}
