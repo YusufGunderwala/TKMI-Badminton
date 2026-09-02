@@ -11,8 +11,8 @@ $pageTitle = 'All Tournaments';
 $ogTitle = 'TKMI Badminton | Tournaments Directory';
 $ogDesc = 'Browse all active, upcoming, and past TKMI Badminton tournaments.';
 
-// Fetch all tournaments
-$tournaments = getAllTournaments();
+// Fetch all non-draft tournaments
+$tournaments = array_filter(getAllTournaments(), fn($t) => $t['status'] !== 'draft');
 
 include __DIR__ . '/../includes/header.php';
 ?>

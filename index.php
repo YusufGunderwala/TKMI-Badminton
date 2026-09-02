@@ -15,7 +15,7 @@ $homeData = AppCache::remember('home_portal_data', 3, function() {
     $liveMatches     = getLiveMatches();
     $upcomingMatches = empty($liveMatches) ? getUpcomingMatches(null, 6) : [];
     $liveTournaments = getLiveTournaments();
-    $allTournaments  = getAllTournaments();
+    $allTournaments  = array_filter(getAllTournaments(), fn($t) => $t['status'] !== 'draft');
     
     $pdo = db();
     $mCounts = $pdo->query("SELECT tournament_id, COUNT(*) as cnt FROM matches GROUP BY tournament_id")->fetchAll(PDO::FETCH_KEY_PAIR);
