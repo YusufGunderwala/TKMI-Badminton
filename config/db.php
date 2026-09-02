@@ -4,11 +4,11 @@
 // PostgreSQL via Supabase (High-Performance Tuned)
 // ============================================================
 
-// --- Supabase PostgreSQL Connection ---
-define('DB_HOST',     getenv('DB_HOST')     ?: 'db.zegsiotamieloewcudur.supabase.co');
-define('DB_PORT',     getenv('DB_PORT')     ?: '5432');
+// --- Supabase PostgreSQL Connection (IPv4 Connection Pooler for Cloud & Local) ---
+define('DB_HOST',     getenv('DB_HOST')     ?: 'aws-0-ap-northeast-1.pooler.supabase.com');
+define('DB_PORT',     getenv('DB_PORT')     ?: '6543');
 define('DB_NAME',     getenv('DB_NAME')     ?: 'postgres');
-define('DB_USER',     getenv('DB_USER')     ?: 'postgres');
+define('DB_USER',     getenv('DB_USER')     ?: 'postgres.zegsiotamieloewcudur');
 define('DB_PASS',     getenv('DB_PASS')     ?: 'vQU.M$bd-asw@2N');
 define('DB_SCHEMA',   getenv('DB_SCHEMA')   ?: 'public');
 define('DB_URL',      getenv('DB_URL')      ?: '');
