@@ -6,6 +6,7 @@ require_once __DIR__ . '/../../config/constants.php';
 require_once __DIR__ . '/../../config/db.php';
 require_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/functions.php';
+require_once __DIR__ . '/../../includes/matchmaker.php';
 
 requireLogin();
 
@@ -401,7 +402,36 @@ function getStatusTailwind($status) {
                         <?= $manifest['participants'] ?> Participants
                     </div>
                     
-                    <?php if (isset($manifest['stage_1'])): ?>
+                    <?php if (isset($manifest['stage_1'])): 
+                        // Map Mathematics
+                        $n = $manifest['participants'];
+                        
+                        // Round 1
+                        $r1_matches = floor($n / 2);
+                        $r1_byes = $n % 2;
+                        
+                        // Round 2
+                        $w_pool = $r1_matches + $r1_byes; // Winners + BYE recipient
+                        $l_pool = $r1_matches;            // Losers
+                        
+                        $r2_w_matches = floor($w_pool / 2);
+                        $r2_w_byes = $w_pool % 2;
+                        
+                        $r2_l_matches = floor($l_pool / 2);
+                        $r2_l_byes = $l_pool % 2;
+                        
+                        // Survival
+                        // 1-1 players = losers of R2 Winners Pool + winners of R2 Losers Pool + byes of R2 Losers pool
+                        $s_pool = $r2_w_matches + ($r2_l_matches + $r2_l_byes);
+                        $s_matches = floor($s_pool / 2);
+                        $s_byes = $s_pool % 2;
+                        
+                        // Qualifiers output text for paths
+                        $out_2_0 = $r2_w_matches + $r2_w_byes;
+                        $out_0_2 = $r2_l_matches;
+                        $out_2_1 = $s_matches + $s_byes;
+                        $out_1_2 = $s_matches;
+                    ?>
                         <!-- Down arrow -->
                         <div class="h-8 w-px bg-slate-300 border-l-2 border-dashed border-slate-300 -my-0.5"></div>
                         
@@ -414,15 +444,22 @@ function getStatusTailwind($status) {
                             <!-- Round 1 -->
                             <div class="flex flex-col items-center mb-0 relative z-10">
                                 <div class="text-[10px] font-black tracking-widest text-blue-400 mb-1">ROUND 1</div>
-                                <div class="bg-white border border-blue-200 rounded-xl px-6 py-2.5 text-sm font-bold text-blue-900 shadow-sm">
-                                    All <?= $manifest['participants'] ?> Participants Play
+                                <div class="bg-white border border-blue-200 rounded-xl px-6 py-2 text-center shadow-sm">
+                                    <div class="text-sm font-bold text-blue-900"><?= $n ?> Participants Enter</div>
+                                    <div class="text-[10px] text-blue-500 uppercase tracking-widest mt-0.5 font-bold">
+                                        <?= $r1_matches ?> Matches <?= $r1_byes > 0 ? '+ ' . $r1_byes . ' BYE' : '' ?>
+                                    </div>
                                 </div>
                             </div>
                             
                             <!-- Split to R2 -->
                             <div class="flex w-full max-w-sm mx-auto h-8 relative">
-                                <div class="w-1/2 border-b-2 border-l-2 border-blue-200 rounded-bl-xl h-full translate-x-1/2"></div>
-                                <div class="w-1/2 border-b-2 border-r-2 border-blue-200 rounded-br-xl h-full -translate-x-1/2"></div>
+                                <div class="w-1/2 border-b-2 border-l-2 border-blue-200 rounded-bl-xl h-full translate-x-1/2 relative">
+                                    <span class="absolute bottom-1 -left-12 text-[9px] font-bold text-emerald-600 bg-blue-50 px-1"><?= $w_pool ?> Players (1-0)</span>
+                                </div>
+                                <div class="w-1/2 border-b-2 border-r-2 border-blue-200 rounded-br-xl h-full -translate-x-1/2 relative">
+                                    <span class="absolute bottom-1 -right-12 text-[9px] font-bold text-red-600 bg-blue-50 px-1"><?= $l_pool ?> Players (0-1)</span>
+                                </div>
                             </div>
                             
                             <!-- Round 2 -->
@@ -431,31 +468,43 @@ function getStatusTailwind($status) {
                                 
                                 <!-- Winners Path -->
                                 <div class="flex flex-col items-center w-1/2 px-3 relative z-10">
-                                    <span class="text-[10px] uppercase tracking-wider font-bold text-emerald-600 mb-1">1-0 Winners</span>
-                                    <div class="bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2.5 text-xs font-bold text-emerald-800 w-full text-center shadow-sm">
-                                        Play Winners
+                                    <span class="text-[10px] uppercase tracking-wider font-bold text-emerald-600 mb-1">1-0 Winners Group</span>
+                                    <div class="bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 w-full text-center shadow-sm">
+                                        <div class="text-xs font-bold text-emerald-800"><?= $w_pool ?> Players</div>
+                                        <div class="text-[9px] text-emerald-600 uppercase tracking-widest mt-0.5 font-bold">
+                                            <?= $r2_w_matches ?> Matches <?= $r2_w_byes > 0 ? '+ ' . $r2_w_byes . ' BYE' : '' ?>
+                                        </div>
                                     </div>
                                     <!-- Split to R3 -->
                                     <div class="flex w-full h-10 relative">
                                         <div class="w-1/2 border-l-2 border-emerald-200 h-full border-dashed mt-0"></div>
-                                        <div class="w-1/2 border-r-2 border-b-2 border-blue-200 rounded-br-xl h-6 mt-0"></div>
-                                        <span class="absolute top-4 left-0 -translate-x-6 text-[9px] font-bold text-emerald-600 bg-blue-50 px-1">2-0 (Tier 1)</span>
-                                        <span class="absolute top-2 right-1/4 text-[9px] font-bold text-blue-500 bg-blue-50 px-1">1-1</span>
+                                        <div class="w-1/2 border-r-2 border-b-2 border-blue-200 rounded-br-xl h-6 mt-0 relative">
+                                            <span class="absolute top-1 -right-12 text-[9px] font-bold text-blue-500 bg-blue-50 px-1 text-right leading-tight whitespace-nowrap"><?= $r2_w_matches ?> Players<br>are (1-1)</span>
+                                        </div>
+                                        <span class="absolute top-4 left-0 -translate-x-6 text-[9px] font-bold text-emerald-600 bg-blue-50 px-1 text-center leading-tight">
+                                            <?= $out_2_0 ?> Players<br>2-0 (Tier 1)
+                                        </span>
                                     </div>
                                 </div>
                                 
                                 <!-- Losers Path -->
                                 <div class="flex flex-col items-center w-1/2 px-3 relative z-10">
-                                    <span class="text-[10px] uppercase tracking-wider font-bold text-red-600 mb-1">0-1 Losers</span>
-                                    <div class="bg-red-50 border border-red-200 rounded-xl px-3 py-2.5 text-xs font-bold text-red-800 w-full text-center shadow-sm">
-                                        Play Losers
+                                    <span class="text-[10px] uppercase tracking-wider font-bold text-red-600 mb-1">0-1 Losers Group</span>
+                                    <div class="bg-red-50 border border-red-200 rounded-xl px-3 py-2 w-full text-center shadow-sm">
+                                        <div class="text-xs font-bold text-red-800"><?= $l_pool ?> Players</div>
+                                        <div class="text-[9px] text-red-600 uppercase tracking-widest mt-0.5 font-bold">
+                                            <?= $r2_l_matches ?> Matches <?= $r2_l_byes > 0 ? '+ ' . $r2_l_byes . ' BYE' : '' ?>
+                                        </div>
                                     </div>
                                     <!-- Split to R3 -->
                                     <div class="flex w-full h-10 relative">
-                                        <div class="w-1/2 border-l-2 border-b-2 border-blue-200 rounded-bl-xl h-6 mt-0"></div>
+                                        <div class="w-1/2 border-l-2 border-b-2 border-blue-200 rounded-bl-xl h-6 mt-0 relative">
+                                            <span class="absolute top-1 -left-12 text-[9px] font-bold text-blue-500 bg-blue-50 px-1 text-left leading-tight whitespace-nowrap"><?= $r2_l_matches + $r2_l_byes ?> Players<br>are (1-1)</span>
+                                        </div>
                                         <div class="w-1/2 border-r-2 border-red-200 h-full border-dashed mt-0"></div>
-                                        <span class="absolute top-2 left-1/4 text-[9px] font-bold text-blue-500 bg-blue-50 px-1">1-1</span>
-                                        <span class="absolute top-4 right-0 translate-x-10 text-[9px] font-bold text-red-500 bg-blue-50 px-1 whitespace-nowrap">0-2 (Eliminated)</span>
+                                        <span class="absolute top-4 right-0 translate-x-10 text-[9px] font-bold text-red-500 bg-blue-50 px-1 text-center leading-tight">
+                                            <?= $out_0_2 ?> Players<br>0-2 (Eliminated)
+                                        </span>
                                     </div>
                                 </div>
                             </div>
@@ -464,15 +513,22 @@ function getStatusTailwind($status) {
                             <div class="flex flex-col items-center -mt-4 relative z-10">
                                 <div class="w-px h-4 bg-blue-300 mb-1"></div>
                                 <div class="text-[10px] font-black tracking-widest text-blue-500 mb-1">SURVIVAL ROUND</div>
-                                <div class="bg-white border-2 border-blue-400 rounded-xl px-6 py-2.5 text-sm font-bold text-blue-900 shadow-md">
-                                    All 1-1 Participants Play
+                                <div class="bg-white border-2 border-blue-400 rounded-xl px-6 py-2 text-center shadow-md min-w-[200px]">
+                                    <div class="text-sm font-bold text-blue-900"><?= $s_pool ?> Players Enter</div>
+                                    <div class="text-[10px] text-blue-500 uppercase tracking-widest mt-0.5 font-bold">
+                                        <?= $s_matches ?> Matches <?= $s_byes > 0 ? '+ ' . $s_byes . ' BYE' : '' ?>
+                                    </div>
                                 </div>
                                 <!-- Split to End -->
                                 <div class="flex w-full max-w-sm h-10 relative">
                                     <div class="w-1/2 border-l-2 border-emerald-200 h-full border-dashed"></div>
                                     <div class="w-1/2 border-r-2 border-red-200 h-full border-dashed"></div>
-                                    <span class="absolute top-4 left-1/4 -translate-x-4 text-[9px] font-bold text-emerald-600 bg-blue-50 px-1">2-1 (Tier 2)</span>
-                                    <span class="absolute top-4 right-1/4 translate-x-4 text-[9px] font-bold text-red-500 bg-blue-50 px-1 whitespace-nowrap">1-2 (Eliminated)</span>
+                                    <span class="absolute top-4 left-1/4 -translate-x-8 text-[9px] font-bold text-emerald-600 bg-blue-50 px-1 text-center leading-tight">
+                                        <?= $out_2_1 ?> Players<br>2-1 (Tier 2)
+                                    </span>
+                                    <span class="absolute top-4 right-1/4 translate-x-8 text-[9px] font-bold text-red-500 bg-blue-50 px-1 text-center leading-tight">
+                                        <?= $out_1_2 ?> Players<br>1-2 (Eliminated)
+                                    </span>
                                 </div>
                             </div>
                         </div>
