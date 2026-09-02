@@ -213,7 +213,7 @@ $gamesToWin = ceil($bestOf / 2);
                     x-show="!isDeuce" 
                     class="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 hover:border-[#c9a84c]/50 text-[11px] sm:text-xs font-bold shadow-inner transition cursor-pointer group"
                     title="Click to change Match Format (1, 3, 5 sets or point target)">
-                <span class="text-slate-200" x-text="bestOf === 1 ? '1 Single Set' : ('Game ' + (games_a + games_b + 1) + '/' + bestOf)"></span>
+                <span class="text-slate-200" x-text="bestOf === 1 ? '1 Single Game' : ('Game ' + (games_a + games_b + 1) + '/' + bestOf)"></span>
                 <span class="text-white/40">&bull;</span>
                 <span class="text-[#c9a84c] font-black" x-text="pointsPerGame + ' Pts'"></span>
                 <template x-if="deuceEnabled">
@@ -831,15 +831,15 @@ $gamesToWin = ceil($bestOf / 2);
             <div class="space-y-6">
                 <!-- 1. Number of Sets (1, 3, 5) -->
                 <div>
-                    <label class="block text-xs font-black text-slate-300 uppercase tracking-wider mb-2">Match Length (Sets)</label>
+                    <label class="block text-xs font-black text-slate-300 uppercase tracking-wider mb-2">Match Length (Games)</label>
                     <div class="grid grid-cols-3 gap-2">
                         <button type="button" 
                                 @click="modalBestOf = 1" 
                                 :class="modalBestOf === 1 ? 'bg-[#c9a84c] text-[#080e1e] font-black border-[#ffd978] shadow-lg' : 'bg-[#0b1b3d] text-slate-300 border-white/15 hover:bg-white/10'"
                                 class="p-3.5 rounded-2xl border transition text-center flex flex-col items-center gap-1 cursor-pointer">
                             <i class="ph-bold ph-lightning text-lg"></i>
-                            <span class="text-xs font-black">1 Single Set</span>
-                            <span class="text-[9px] opacity-75">Sudden Death</span>
+                            <span class="text-xs font-black">1 Single Game</span>
+                            <span class="text-[9px] opacity-75">Quick Match</span>
                         </button>
                         <button type="button" 
                                 @click="modalBestOf = 3" 
@@ -847,7 +847,7 @@ $gamesToWin = ceil($bestOf / 2);
                                 class="p-3.5 rounded-2xl border transition text-center flex flex-col items-center gap-1 cursor-pointer">
                             <i class="ph-bold ph-trophy text-lg"></i>
                             <span class="text-xs font-black">Best of 3</span>
-                            <span class="text-[9px] opacity-75">First to 2 Sets</span>
+                            <span class="text-[9px] opacity-75">First to 2 Games</span>
                         </button>
                         <button type="button" 
                                 @click="modalBestOf = 5" 
@@ -855,7 +855,7 @@ $gamesToWin = ceil($bestOf / 2);
                                 class="p-3.5 rounded-2xl border transition text-center flex flex-col items-center gap-1 cursor-pointer">
                             <i class="ph-bold ph-crown text-lg"></i>
                             <span class="text-xs font-black">Best of 5</span>
-                            <span class="text-[9px] opacity-75">First to 3 Sets</span>
+                            <span class="text-[9px] opacity-75">First to 3 Games</span>
                         </button>
                     </div>
                 </div>
@@ -1030,7 +1030,7 @@ $gamesToWin = ceil($bestOf / 2);
                     const response = await fetch('<?= BASE_URL ?>/api/score.php', { method: 'POST', body: fd });
                     const data = await response.json();
                     if (data.success) {
-                        this.notify("Format updated: " + (this.bestOf === 1 ? "1 Single Set" : ("Best of " + this.bestOf)) + " (" + this.pointsPerGame + " Pts)");
+                        this.notify("Format updated: " + (this.bestOf === 1 ? "1 Single Game" : ("Best of " + this.bestOf)) + " (" + this.pointsPerGame + " Pts)");
                     }
                 } catch (e) {
                     this.notify("Rules updated for this game.");

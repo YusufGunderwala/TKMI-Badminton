@@ -347,10 +347,10 @@ function getStatusTailwind($status) {
                                     </td>
                                     <td class="px-4 py-4 text-center">
                                         <select name="rounds[<?= $r['id'] ?>][best_of]" 
-                                                class="bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold rounded-lg focus:ring-blue-500 focus:border-blue-500 py-2 px-3">
-                                            <option value="1" <?= (int)$r['best_of'] === 1 ? 'selected' : '' ?>>⚡ 1 Single Set (Sudden Death)</option>
-                                            <option value="3" <?= (int)$r['best_of'] === 3 ? 'selected' : '' ?>>🏸 Best of 3 Sets (First to 2)</option>
-                                            <option value="5" <?= (int)$r['best_of'] === 5 ? 'selected' : '' ?>>🏆 Best of 5 Sets (First to 3)</option>
+                                                class="w-full min-w-[200px] bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold rounded-lg focus:ring-blue-500 focus:border-blue-500 py-2 px-3">
+                                            <option value="1" <?= (int)$r['best_of'] === 1 ? 'selected' : '' ?>>⚡ 1 Single Game</option>
+                                            <option value="3" <?= (int)$r['best_of'] === 3 ? 'selected' : '' ?>>🏸 Best of 3 Games (First to 2)</option>
+                                            <option value="5" <?= (int)$r['best_of'] === 5 ? 'selected' : '' ?>>🏆 Best of 5 Games (First to 3)</option>
                                         </select>
                                     </td>
                                     <td class="px-4 py-4">
