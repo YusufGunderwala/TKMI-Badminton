@@ -26,11 +26,7 @@ class Scorer {
 
     public static function addPoint(int $matchId, string $player, int $adminId): array {
         $pdo = db();
-        $match = self::getMatchData($matchId);
 
-        if ($match['status'] === MATCH_COMPLETED) {
-            throw new Exception("Match is already completed.");
-        }
         if (!in_array($player, ['A', 'B'])) {
             throw new Exception("Invalid player target.");
         }
@@ -38,6 +34,15 @@ class Scorer {
         try {
             $pdo->beginTransaction();
             
+            // Lock the row to prevent concurrent scoring race conditions
+            $pdo->prepare('SELECT id FROM matches WHERE id = ? FOR UPDATE')->execute([$matchId]);
+            
+            $match = self::getMatchData($matchId);
+            
+            if ($match['status'] === MATCH_COMPLETED) {
+                throw new Exception("Match is already completed.");
+            }
+
             // Mark In Progress if scheduled
             if ($match['status'] === MATCH_SCHEDULED) {
                 $pdo->prepare('UPDATE matches SET status = ?, started_at = NOW() WHERE id = ?')
@@ -118,14 +123,22 @@ class Scorer {
 
     public static function undoPoint(int $matchId, string $player, int $adminId): array {
         $pdo = db();
-        $match = self::getMatchData($matchId);
 
-        if ($match['status'] === MATCH_COMPLETED) {
-            throw new Exception("Cannot undo. Match is already completed.");
+        if (!in_array($player, ['A', 'B'])) {
+            throw new Exception("Invalid player target.");
         }
 
         try {
             $pdo->beginTransaction();
+            
+            // Lock the row to prevent concurrent scoring race conditions
+            $pdo->prepare('SELECT id FROM matches WHERE id = ? FOR UPDATE')->execute([$matchId]);
+            
+            $match = self::getMatchData($matchId);
+            
+            if ($match['status'] === MATCH_COMPLETED) {
+                throw new Exception("Cannot undo. Match is already completed.");
+            }
             
             $scoreA = (int)$match['score_a'];
             $scoreB = (int)$match['score_b'];
@@ -260,20 +273,32 @@ class Scorer {
             $isDoubles = !empty($match['team_a_id']);
             $gamesNeeded = ceil((int)$match['best_of'] / 2);
 
-            // Determine winner
-            if (!$winnerSide) {
-                if ($gamesA > $gamesB) $winnerSide = 'A';
-                elseif ($gamesB > $gamesA) $winnerSide = 'B';
-                elseif ($scoreA > $scoreB) $winnerSide = 'A';
-                else $winnerSide = 'B';
+            // Determine winner based strictly on match rules
+            $gameWonBy = self::checkGameWin($scoreA, $scoreB, $match);
+            
+            if ($gamesA >= $gamesNeeded) {
+                $winnerSide = 'A';
+            } elseif ($gamesB >= $gamesNeeded) {
+                $winnerSide = 'B';
+            } elseif ($gameWonBy) {
+                if ($gameWonBy === 'A') $gamesA++;
+                else $gamesB++;
+                
+                if ($gamesA >= $gamesNeeded) {
+                    $winnerSide = 'A';
+                } elseif ($gamesB >= $gamesNeeded) {
+                    $winnerSide = 'B';
+                } else {
+                    throw new Exception("Cannot finalize match. Not enough games won to complete match.");
+                }
+            } else {
+                throw new Exception("Cannot finalize match. The current game has not reached the target score.");
             }
 
             if ($winnerSide === 'A') {
-                if ($gamesA < $gamesNeeded) $gamesA++;
                 $winnerId = $isDoubles ? $match['team_a_id'] : $match['participant_a_id'];
                 $loserId  = $isDoubles ? $match['team_b_id'] : $match['participant_b_id'];
             } else {
-                if ($gamesB < $gamesNeeded) $gamesB++;
                 $winnerId = $isDoubles ? $match['team_b_id'] : $match['participant_b_id'];
                 $loserId  = $isDoubles ? $match['team_a_id'] : $match['participant_a_id'];
             }
@@ -354,23 +379,25 @@ class Scorer {
         // 2. Update Tournament Records (Swiss/Two-Loss Tracker)
         // Ensure we don't accidentally update 0 for teams if this table tracks players only.
         // Assuming player_tournament_records tracks individuals. For doubles, we should update both players.
-        if ($isDoubles) {
-            $stmt = $pdo->prepare('SELECT player1_id, player2_id FROM teams WHERE id = ?');
-            
-            $stmt->execute([$winnerId]);
-            $wTeam = $stmt->fetch();
-            $pdo->prepare('UPDATE player_tournament_records SET wins = wins + 1 WHERE tournament_id = ? AND player_id IN (?, ?)')
-                ->execute([$match['tournament_id'], $wTeam['player1_id'], $wTeam['player2_id']]);
+        if ($match['stage'] === 'stage1') {
+            if ($isDoubles) {
+                $stmt = $pdo->prepare('SELECT player1_id, player2_id FROM teams WHERE id = ?');
                 
-            $stmt->execute([$loserId]);
-            $lTeam = $stmt->fetch();
-            $pdo->prepare('UPDATE player_tournament_records SET losses = losses + 1 WHERE tournament_id = ? AND player_id IN (?, ?)')
-                ->execute([$match['tournament_id'], $lTeam['player1_id'], $lTeam['player2_id']]);
-        } else {
-            $pdo->prepare('UPDATE player_tournament_records SET wins = wins + 1 WHERE tournament_id = ? AND player_id = ?')
-                ->execute([$match['tournament_id'], $winnerId]);
-            $pdo->prepare('UPDATE player_tournament_records SET losses = losses + 1 WHERE tournament_id = ? AND player_id = ?')
-                ->execute([$match['tournament_id'], $loserId]);
+                $stmt->execute([$winnerId]);
+                $wTeam = $stmt->fetch();
+                $pdo->prepare('UPDATE player_tournament_records SET wins = wins + 1 WHERE tournament_id = ? AND player_id IN (?, ?)')
+                    ->execute([$match['tournament_id'], $wTeam['player1_id'], $wTeam['player2_id']]);
+                    
+                $stmt->execute([$loserId]);
+                $lTeam = $stmt->fetch();
+                $pdo->prepare('UPDATE player_tournament_records SET losses = losses + 1 WHERE tournament_id = ? AND player_id IN (?, ?)')
+                    ->execute([$match['tournament_id'], $lTeam['player1_id'], $lTeam['player2_id']]);
+            } else {
+                $pdo->prepare('UPDATE player_tournament_records SET wins = wins + 1 WHERE tournament_id = ? AND player_id = ?')
+                    ->execute([$match['tournament_id'], $winnerId]);
+                $pdo->prepare('UPDATE player_tournament_records SET losses = losses + 1 WHERE tournament_id = ? AND player_id = ?')
+                    ->execute([$match['tournament_id'], $loserId]);
+            }
         }
 
         // 3. Bracket Progression
