@@ -111,6 +111,9 @@ $formatText = 'Swiss + Knockout (Dynamic)';
 function getStatusTailwind($status) {
     switch ($status) {
         case 'draft': return 'bg-slate-100 text-slate-700';
+        case 'enrollment_locked': return 'bg-blue-100 text-blue-700 border border-blue-200';
+        case 'structure_ready': return 'bg-indigo-100 text-indigo-700 border border-indigo-200';
+        case 'rules_locked': return 'bg-violet-100 text-violet-700 border border-violet-200';
         case 'ready': return 'bg-yellow-100 text-yellow-800 border border-yellow-200';
         case 'live': return 'bg-red-100 text-red-700 border border-red-200 font-bold';
         case 'completed': return 'bg-emerald-100 text-emerald-800 border border-emerald-200';
@@ -130,7 +133,7 @@ function getStatusTailwind($status) {
         <div class="flex items-center gap-4">
             <h2 class="text-3xl font-black font-display text-[#0f2044]"><?= e($tournament['name']) ?></h2>
             <span class="px-3 py-1 text-xs uppercase tracking-widest rounded-full <?= getStatusTailwind($tournament['status']) ?>">
-                <?= e($tournament['status']) ?>
+                <?= str_replace('_', ' ', strtoupper($tournament['status'])) ?>
             </span>
         </div>
         <div class="flex items-center gap-3 mt-3">

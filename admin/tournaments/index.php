@@ -115,10 +115,10 @@ include __DIR__ . '/../includes/header.php';
                                 <span class="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider
                                     <?= $t['status'] === 'live' ? 'bg-red-50 text-red-600 border border-red-100' : '' ?>
                                     <?= $t['status'] === 'completed' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : '' ?>
-                                    <?= in_array($t['status'], ['draft','ready']) ? 'bg-blue-50 text-blue-600 border border-blue-100' : '' ?>
+                                    <?= in_array($t['status'], ['draft', 'enrollment_locked', 'structure_ready', 'rules_locked', 'ready']) ? 'bg-blue-50 text-blue-600 border border-blue-100' : '' ?>
                                     <?= $t['status'] === 'archived' ? 'bg-slate-100 text-slate-600 border border-slate-200' : '' ?>
                                 ">
-                                    <?= ucfirst($t['status']) ?>
+                                    <?= str_replace('_', ' ', strtoupper($t['status'])) ?>
                                 </span>
                             </td>
                             <td class="p-5 pr-8 text-right">
