@@ -403,10 +403,6 @@ class Matchmaker {
      * Generates Stage 2 Knockout Bracket (R16 -> QF -> SF -> Final & 3rd Place)
      * Pairs Tier 1 (2-0) vs Tier 2 (2-1).
      */
-    /**
-     * Generates Stage 2 Knockout Bracket (R16 -> QF -> SF -> Final & 3rd Place)
-     * Dynamically adapts to any number of qualifiers (e.g. 12 from 24-player tournament, 16 from 32, 8 from 16).
-     */
     public static function generateStage2Bracket(int $tournamentId, int $adminId): void {
         if (!self::isRoundComplete($tournamentId, ROUND_STAGE1_SURVIVAL)) {
             throw new Exception("Survival Round is not complete.");
@@ -420,50 +416,61 @@ class Matchmaker {
         try {
             $pdo->beginTransaction();
 
-            // Get Tier 1 (2-0 from R2)
             $stmtT1 = $pdo->prepare('SELECT player_id FROM player_tournament_records WHERE tournament_id = ? AND wins = 2 AND losses = 0');
             $stmtT1->execute([$tournamentId]);
             $tier1 = $stmtT1->fetchAll(PDO::FETCH_COLUMN);
 
-            // Get Tier 2 (2-1 from Survival - basically anyone with 2 wins and 1 loss)
             $stmtT2 = $pdo->prepare('SELECT player_id FROM player_tournament_records WHERE tournament_id = ? AND wins = 2 AND losses = 1');
             $stmtT2->execute([$tournamentId]);
             $tier2 = $stmtT2->fetchAll(PDO::FETCH_COLUMN);
 
-            $t1Count = count($tier1);
-            $t2Count = count($tier2);
-            $totalQualifiers = $t1Count + $t2Count;
-
+            $totalQualifiers = count($tier1) + count($tier2);
             if ($totalQualifiers < 2) {
                 throw new Exception("Not enough players qualified for Stage 2 ($totalQualifiers found).");
             }
 
-            // Update tiers in records
+            // Mark tiers
             $updateTier = $pdo->prepare('UPDATE player_tournament_records SET tier = ? WHERE tournament_id = ? AND player_id = ?');
             foreach ($tier1 as $p) $updateTier->execute([TIER_ONE, $tournamentId, $p]);
             foreach ($tier2 as $p) $updateTier->execute([TIER_TWO, $tournamentId, $p]);
             
-            // Mark eliminated (losses >= 2 and wins < 2)
+            // Mark eliminated
             $pdo->prepare('UPDATE player_tournament_records SET tier = ?, is_eliminated = TRUE WHERE tournament_id = ? AND losses >= 2 AND wins < 2')
                 ->execute([TIER_ELIMINATED, $tournamentId]);
 
-            // Shuffle arrays for random drawing within tiers
             shuffle($tier1);
             shuffle($tier2);
+            $allPlayers = array_merge($tier1, $tier2);
 
-            // Placeholder match insert
+            $bracketSize = 2;
+            while ($bracketSize < $totalQualifiers) $bracketSize *= 2;
+
+            $slots = array_fill(0, $bracketSize, null);
+            $byesToGive = $bracketSize - $totalQualifiers;
+            $placed = 0;
+            for ($i = 0; $i < $bracketSize; $i += 2) {
+                if ($byesToGive > 0) {
+                    $slots[$i] = $allPlayers[$placed++];
+                    $slots[$i+1] = null;
+                    $byesToGive--;
+                } else {
+                    $slots[$i] = $allPlayers[$placed++];
+                    $slots[$i+1] = $allPlayers[$placed++];
+                }
+            }
+
             $insertMatch = $pdo->prepare('
                 INSERT INTO matches (tournament_id, round_key, stage, match_number, participant_a_id, participant_b_id, status)
                 VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id
             ');
 
-            // 1. Create Final and 3rd Place (empty)
+            // 1. Create Final and 3rd Place
             $insertMatch->execute([$tournamentId, ROUND_FINAL, 'stage2', 1, null, null, MATCH_SCHEDULED]);
             $finalId = $insertMatch->fetchColumn();
             $insertMatch->execute([$tournamentId, ROUND_3RD_PLACE, 'stage2', 1, null, null, MATCH_SCHEDULED]);
             $thirdPlaceId = $insertMatch->fetchColumn();
 
-            // 2. Create SF (empty, pointing to Final/3rd)
+            // 2. Create SF
             $sfIds = [];
             for ($i = 1; $i <= 2; $i++) {
                 $insertMatch->execute([$tournamentId, ROUND_SF, 'stage2', $i, null, null, MATCH_SCHEDULED]);
@@ -472,94 +479,62 @@ class Matchmaker {
             $pdo->prepare('UPDATE matches SET next_match_id_winner = ?, next_match_id_loser = ? WHERE id = ?')->execute([$finalId, $thirdPlaceId, $sfIds[0]]);
             $pdo->prepare('UPDATE matches SET next_match_id_winner = ?, next_match_id_loser = ? WHERE id = ?')->execute([$finalId, $thirdPlaceId, $sfIds[1]]);
 
-            // Case A: 14 to 16+ Qualifiers (standard 32-player format)
-            if ($totalQualifiers >= 14) {
-                // 3. Create 4 QF (pointing to SF)
-                $qfIds = [];
-                for ($i = 1; $i <= 4; $i++) {
-                    $insertMatch->execute([$tournamentId, ROUND_QF, 'stage2', $i, null, null, MATCH_SCHEDULED]);
-                    $qfIds[] = $insertMatch->fetchColumn();
-                }
-                $pdo->prepare('UPDATE matches SET next_match_id_winner = ? WHERE id = ?')->execute([$sfIds[0], $qfIds[0]]);
-                $pdo->prepare('UPDATE matches SET next_match_id_winner = ? WHERE id = ?')->execute([$sfIds[0], $qfIds[1]]);
-                $pdo->prepare('UPDATE matches SET next_match_id_winner = ? WHERE id = ?')->execute([$sfIds[1], $qfIds[2]]);
-                $pdo->prepare('UPDATE matches SET next_match_id_winner = ? WHERE id = ?')->execute([$sfIds[1], $qfIds[3]]);
-
-                // 4. Create R16 (8 matches)
-                $r16Matches = [];
-                for ($i = 0; $i < 8; $i++) {
-                    $pA = $tier1[$i] ?? null;
-                    $pB = $tier2[$i] ?? null;
-                    $insertMatch->execute([$tournamentId, ROUND_R16, 'stage2', $i + 1, $pA, $pB, MATCH_SCHEDULED]);
-                    $r16Matches[] = $insertMatch->fetchColumn();
-                }
-                // Link R16 to QF
-                $pdo->prepare('UPDATE matches SET next_match_id_winner = ? WHERE id = ?')->execute([$qfIds[0], $r16Matches[0]]);
-                $pdo->prepare('UPDATE matches SET next_match_id_winner = ? WHERE id = ?')->execute([$qfIds[0], $r16Matches[1]]);
-                $pdo->prepare('UPDATE matches SET next_match_id_winner = ? WHERE id = ?')->execute([$qfIds[1], $r16Matches[2]]);
-                $pdo->prepare('UPDATE matches SET next_match_id_winner = ? WHERE id = ?')->execute([$qfIds[1], $r16Matches[3]]);
-                $pdo->prepare('UPDATE matches SET next_match_id_winner = ? WHERE id = ?')->execute([$qfIds[2], $r16Matches[4]]);
-                $pdo->prepare('UPDATE matches SET next_match_id_winner = ? WHERE id = ?')->execute([$qfIds[2], $r16Matches[5]]);
-                $pdo->prepare('UPDATE matches SET next_match_id_winner = ? WHERE id = ?')->execute([$qfIds[3], $r16Matches[6]]);
-                $pdo->prepare('UPDATE matches SET next_match_id_winner = ? WHERE id = ?')->execute([$qfIds[3], $r16Matches[7]]);
-            }
-            // Case B: 9 to 13 Qualifiers (e.g. 12 qualifiers from 24-player tournament: 6 Tier 1, 6 Tier 2)
-            elseif ($totalQualifiers >= 9) {
-                // Top 4 Tier 1 get BYEs straight into QF slots
-                $byes = array_splice($tier1, 0, 4);
+            // 3. Build tree upwards
+            $currentLevelIds = $sfIds;
+            $currentRoundName = ROUND_SF;
+            $matchesAtLevel = 2;
+            
+            while ($matchesAtLevel < $bracketSize / 2) {
+                $matchesAtLevel *= 2;
+                $nextRoundName = '';
+                if ($matchesAtLevel == 4) $nextRoundName = ROUND_QF;
+                elseif ($matchesAtLevel == 8) $nextRoundName = ROUND_R16;
+                elseif ($matchesAtLevel == 16) $nextRoundName = ROUND_R32;
                 
-                // Remaining players play preliminary R16
-                $r16Pool = array_merge($tier1, $tier2);
-                shuffle($r16Pool);
-                
-                $qfIds = [];
-                for ($i = 0; $i < 4; $i++) {
-                    $insertMatch->execute([$tournamentId, ROUND_QF, 'stage2', $i + 1, $byes[$i] ?? null, null, MATCH_SCHEDULED]);
-                    $qfIds[] = $insertMatch->fetchColumn();
-                }
-                $pdo->prepare('UPDATE matches SET next_match_id_winner = ? WHERE id = ?')->execute([$sfIds[0], $qfIds[0]]);
-                $pdo->prepare('UPDATE matches SET next_match_id_winner = ? WHERE id = ?')->execute([$sfIds[0], $qfIds[1]]);
-                $pdo->prepare('UPDATE matches SET next_match_id_winner = ? WHERE id = ?')->execute([$sfIds[1], $qfIds[2]]);
-                $pdo->prepare('UPDATE matches SET next_match_id_winner = ? WHERE id = ?')->execute([$sfIds[1], $qfIds[3]]);
-
-                // Create R16 matches for the remaining players
-                $r16MatchNum = 1;
-                for ($i = 0; $i < count($r16Pool); $i += 2) {
-                    $pA = $r16Pool[$i] ?? null;
-                    $pB = $r16Pool[$i + 1] ?? null;
-                    $insertMatch->execute([$tournamentId, ROUND_R16, 'stage2', $r16MatchNum, $pA, $pB, MATCH_SCHEDULED]);
-                    $r16MatchId = $insertMatch->fetchColumn();
-                    
-                    // Link winner to QF slot (fill empty participant_b_id)
-                    $qfTarget = $qfIds[($r16MatchNum - 1) % 4];
-                    $pdo->prepare('UPDATE matches SET next_match_id_winner = ? WHERE id = ?')->execute([$qfTarget, $r16MatchId]);
-                    $r16MatchNum++;
-                }
-            }
-            // Case C: 5 to 8 Qualifiers (e.g. 16-player format)
-            elseif ($totalQualifiers >= 5) {
-                // Starts at QF directly
-                $allQualifiers = array_merge($tier1, $tier2);
-                $qfIds = [];
+                $nextLevelIds = [];
                 $matchNum = 1;
-                for ($i = 0; $i < 8; $i += 2) {
-                    $pA = $allQualifiers[$i] ?? null;
-                    $pB = $allQualifiers[$i + 1] ?? null;
-                    $insertMatch->execute([$tournamentId, ROUND_QF, 'stage2', $matchNum++, $pA, $pB, MATCH_SCHEDULED]);
-                    $qfIds[] = $insertMatch->fetchColumn();
+                foreach ($currentLevelIds as $parentMatchId) {
+                    for ($c=0; $c<2; $c++) {
+                        $insertMatch->execute([$tournamentId, $nextRoundName, 'stage2', $matchNum++, null, null, MATCH_SCHEDULED]);
+                        $childId = $insertMatch->fetchColumn();
+                        $nextLevelIds[] = $childId;
+                        $pdo->prepare('UPDATE matches SET next_match_id_winner = ? WHERE id = ?')->execute([$parentMatchId, $childId]);
+                    }
                 }
-                $pdo->prepare('UPDATE matches SET next_match_id_winner = ? WHERE id = ?')->execute([$sfIds[0], $qfIds[0]]);
-                $pdo->prepare('UPDATE matches SET next_match_id_winner = ? WHERE id = ?')->execute([$sfIds[0], $qfIds[1]]);
-                $pdo->prepare('UPDATE matches SET next_match_id_winner = ? WHERE id = ?')->execute([$sfIds[1], $qfIds[2]]);
-                $pdo->prepare('UPDATE matches SET next_match_id_winner = ? WHERE id = ?')->execute([$sfIds[1], $qfIds[3]]);
+                $currentLevelIds = $nextLevelIds;
+                $currentRoundName = $nextRoundName;
             }
-            // Case D: 4 or fewer qualifiers (starts directly at Semi-Finals)
-            else {
-                $allQualifiers = array_merge($tier1, $tier2);
-                $pdo->prepare('UPDATE matches SET participant_a_id = ?, participant_b_id = ? WHERE id = ?')
-                    ->execute([$allQualifiers[0] ?? null, $allQualifiers[1] ?? null, $sfIds[0]]);
-                $pdo->prepare('UPDATE matches SET participant_a_id = ?, participant_b_id = ? WHERE id = ?')
-                    ->execute([$allQualifiers[2] ?? null, $allQualifiers[3] ?? null, $sfIds[1]]);
+
+            // 4. Fill first round
+            $slotIdx = 0;
+            foreach ($currentLevelIds as $matchId) {
+                $pA = $slots[$slotIdx++];
+                $pB = $slots[$slotIdx++];
+                
+                if (($pA && !$pB) || (!$pA && $pB)) {
+                    $winnerId = $pA ? $pA : $pB;
+                    // Auto walkover for BYEs
+                    $pdo->prepare('UPDATE matches SET participant_a_id=?, participant_b_id=?, winner_player_id=?, status=? WHERE id=?')
+                        ->execute([$pA, $pB, $winnerId, MATCH_WALKOVER, $matchId]);
+                    
+                    // Advance winner
+                    $stmt = $pdo->prepare('SELECT next_match_id_winner FROM matches WHERE id=?');
+                    $stmt->execute([$matchId]);
+                    $nextId = $stmt->fetchColumn();
+                    if ($nextId) {
+                        $stmt = $pdo->prepare('SELECT participant_a_id, participant_b_id FROM matches WHERE id=?');
+                        $stmt->execute([$nextId]);
+                        $nextMatch = $stmt->fetch();
+                        if (empty($nextMatch['participant_a_id'])) {
+                            $pdo->prepare('UPDATE matches SET participant_a_id=? WHERE id=?')->execute([$winnerId, $nextId]);
+                        } else {
+                            $pdo->prepare('UPDATE matches SET participant_b_id=? WHERE id=?')->execute([$winnerId, $nextId]);
+                        }
+                    }
+                } else {
+                    $pdo->prepare('UPDATE matches SET participant_a_id=?, participant_b_id=? WHERE id=?')
+                        ->execute([$pA, $pB, $matchId]);
+                }
             }
 
             $pdo->commit();

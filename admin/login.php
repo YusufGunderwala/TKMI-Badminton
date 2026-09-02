@@ -126,8 +126,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         <!-- Left Side: Cinematic Branding -->
         <div class="hidden lg:flex flex-col justify-end p-20 w-[55%] fade-up-slow">
-            <div class="w-18 h-18 rounded-2xl overflow-hidden shadow-[0_0_40px_rgba(201,168,76,0.3)] mb-8 border-2 border-[#c9a84c]/50 bg-[#004d26]">
-                <img src="<?= BASE_URL ?>/assets/assets/Logo.png" alt="Toloba Logo" class="w-full h-full object-cover">
+            <div class="w-24 h-24 rounded-2xl overflow-hidden shadow-[0_0_40px_rgba(201,168,76,0.3)] mb-8 border-2 border-[#c9a84c]/50 bg-[#004d26] p-2 flex items-center justify-center">
+                <img src="<?= BASE_URL ?>/assets/assets/Logo.png" alt="Toloba Logo" class="w-full h-full object-contain">
             </div>
             
             <h1 class="text-7xl font-black font-display leading-[1.05] tracking-tighter mb-6 text-white drop-shadow-2xl">
@@ -149,8 +149,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             <!-- Mobile Logo -->
             <div class="lg:hidden mb-12 flex justify-center slide-left">
-                <div class="w-20 h-20 rounded-2xl overflow-hidden border-2 border-[#c9a84c]/50 shadow-[0_0_40px_rgba(201,168,76,0.3)] bg-[#004d26]">
-                    <img src="<?= BASE_URL ?>/assets/assets/Logo.png" alt="Toloba Logo" class="w-full h-full object-cover">
+                <div class="w-20 h-20 rounded-2xl overflow-hidden border-2 border-[#c9a84c]/50 shadow-[0_0_40px_rgba(201,168,76,0.3)] bg-[#004d26] p-2 flex items-center justify-center">
+                    <img src="<?= BASE_URL ?>/assets/assets/Logo.png" alt="Toloba Logo" class="w-full h-full object-contain">
                 </div>
             </div>
 

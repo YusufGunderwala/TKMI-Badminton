@@ -35,6 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             INSERT INTO tournaments (name, gender, match_type, format, status, description)
             VALUES (?, ?, ?, ?, ?, ?)
         ');
+        $stmt->execute([$name, $gender, $matchType, $format, 'draft', $desc]);
         $tId = db()->lastInsertId();
         AppCache::flush();
         flash_set('tournaments', 'Tournament created! Next, configure scoring.', 'success');

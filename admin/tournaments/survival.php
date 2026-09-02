@@ -251,6 +251,9 @@ document.addEventListener('alpine:init', () => {
                     this.checkConflicts();
                     return;
                 }
+            } // Close the attempt for loop
+            
+            // If we couldn't find a clean one, just apply the last attempt and let user fix
             this.checkConflicts();
         },
 

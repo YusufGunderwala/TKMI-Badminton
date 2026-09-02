@@ -31,23 +31,39 @@ $standings = AppCache::remember('standings_' . $id, 2, function() use ($pdo, $id
         SELECT 
             p.id, p.full_name, p.display_name, p.mohallah, p.its_id, p.photo_path, p.gender,
             COUNT(m.id) as played,
-            SUM(CASE WHEN m.winner_player_id = p.id THEN 1 ELSE 0 END) as wins,
-            SUM(CASE WHEN m.winner_player_id IS NOT NULL AND m.winner_player_id != p.id THEN 1 ELSE 0 END) as losses,
+            SUM(
+                CASE 
+                    WHEN m.winner_player_id = p.id THEN 1 
+                    WHEN t.id IS NOT NULL AND m.winner_team_id = t.id THEN 1
+                    ELSE 0 
+                END
+            ) as wins,
+            SUM(
+                CASE 
+                    WHEN m.loser_player_id = p.id THEN 1 
+                    WHEN t.id IS NOT NULL AND m.loser_team_id = t.id THEN 1
+                    ELSE 0 
+                END
+            ) as losses,
             SUM(
                 CASE 
                     WHEN m.status IN (?, ?) THEN 0
-                    WHEN m.participant_a_id = p.id THEN (m.score_a - m.score_b)
-                    WHEN m.participant_b_id = p.id THEN (m.score_b - m.score_a)
+                    WHEN m.participant_a_id = p.id OR (t.id IS NOT NULL AND m.team_a_id = t.id) THEN (m.score_a - m.score_b)
+                    WHEN m.participant_b_id = p.id OR (t.id IS NOT NULL AND m.team_b_id = t.id) THEN (m.score_b - m.score_a)
                     ELSE 0 
                 END
             ) as net_points
         FROM tournament_players tp
         JOIN players p ON tp.player_id = p.id
+        LEFT JOIN teams t ON t.tournament_id = tp.tournament_id AND (t.player1_id = p.id OR t.player2_id = p.id)
         LEFT JOIN matches m ON m.tournament_id = tp.tournament_id 
             AND m.status IN (?, ?, ?) 
-            AND (m.participant_a_id = p.id OR m.participant_b_id = p.id)
+            AND (
+                m.participant_a_id = p.id OR m.participant_b_id = p.id OR 
+                (t.id IS NOT NULL AND (m.team_a_id = t.id OR m.team_b_id = t.id))
+            )
         WHERE tp.tournament_id = ?
-        GROUP BY p.id
+        GROUP BY p.id, p.full_name, p.display_name, p.mohallah, p.its_id, p.photo_path, p.gender
         ORDER BY wins DESC, net_points DESC, p.display_name ASC
     ');
     $stmt->execute([MATCH_WALKOVER, MATCH_RETIRED, MATCH_COMPLETED, MATCH_WALKOVER, MATCH_RETIRED, $id]);
