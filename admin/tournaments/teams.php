@@ -23,10 +23,8 @@ if ($tournament['match_type'] !== 'doubles') {
 
 $pdo = db();
 
-// Cannot modify teams if tournament has started (matches exist)
-$stmt = $pdo->prepare('SELECT COUNT(*) FROM matches WHERE tournament_id = ?');
-$stmt->execute([$id]);
-$hasMatches = (int)$stmt->fetchColumn() > 0;
+// Cannot modify teams if tournament enrollment is locked or started
+$hasMatches = ($tournament['status'] !== 'draft');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$hasMatches) {
     if (!verify_csrf()) {

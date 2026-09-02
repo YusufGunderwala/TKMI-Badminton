@@ -29,8 +29,8 @@ DROP TYPE IF EXISTS stage_type CASCADE;
 CREATE TYPE gender_type      AS ENUM ('Boys', 'Girls', 'Mixed');
 CREATE TYPE match_type_enum  AS ENUM ('singles', 'doubles');
 CREATE TYPE format_type      AS ENUM ('swiss_knockout', 'round_robin', 'pools_knockout');
-CREATE TYPE tourney_status   AS ENUM ('draft', 'ready', 'live', 'completed', 'archived');
-CREATE TYPE match_status     AS ENUM ('scheduled', 'in_progress', 'completed', 'walkover', 'retired', 'cancelled');
+CREATE TYPE tourney_status   AS ENUM ('draft', 'enrollment_locked', 'structure_ready', 'rules_locked', 'ready', 'live', 'completed', 'archived');
+CREATE TYPE match_status     AS ENUM ('scheduled', 'in_progress', 'completed', 'walkover', 'retired', 'cancelled', 'bye');
 CREATE TYPE stage_type       AS ENUM ('stage1', 'stage2');
 
 -- ------------------------------------------------------------
@@ -64,15 +64,16 @@ CREATE TABLE players (
 -- Table: tournaments
 -- ------------------------------------------------------------
 CREATE TABLE tournaments (
-  id           SERIAL PRIMARY KEY,
-  name         VARCHAR(200) NOT NULL,
-  gender       gender_type  NOT NULL,
-  match_type   match_type_enum NOT NULL DEFAULT 'singles',
-  format       format_type  NOT NULL,
-  status       tourney_status NOT NULL DEFAULT 'draft',
-  description  TEXT,
-  created_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-  updated_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+  id                 SERIAL PRIMARY KEY,
+  name               VARCHAR(200) NOT NULL,
+  gender             gender_type  NOT NULL,
+  match_type         match_type_enum NOT NULL DEFAULT 'singles',
+  format             format_type  NOT NULL,
+  status             tourney_status NOT NULL DEFAULT 'draft',
+  structure_manifest JSONB DEFAULT NULL,
+  description        TEXT,
+  created_at         TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+  updated_at         TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 
 -- Auto-update updated_at for tournaments

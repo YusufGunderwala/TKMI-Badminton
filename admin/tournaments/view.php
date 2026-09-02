@@ -20,51 +20,6 @@ if (!$tournament) {
 
 $pageTitle = 'Manage: ' . $tournament['name'];
 
-// Seed Round Configs if missing
-$stmt = db()->prepare('SELECT * FROM round_configs WHERE tournament_id = ? ORDER BY sort_order ASC');
-$stmt->execute([$id]);
-$rounds = $stmt->fetchAll();
-
-if (empty($rounds)) {
-    $insertStmt = db()->prepare('
-        INSERT INTO round_configs 
-        (tournament_id, round_key, round_label, best_of, points_per_game, deuce_enabled, deuce_trigger, deuce_cap, sort_order)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ');
-    
-    if ($tournament['format'] === FORMAT_SWISS_KNOCKOUT) {
-        foreach (DEFAULT_ROUND_CONFIGS as $key => $cfg) {
-            $insertStmt->execute([
-                $id, 
-                $key, 
-                $cfg['label'], 
-                $cfg['best_of'], 
-                $cfg['points_per_game'], 
-                $cfg['deuce_enabled'], 
-                $cfg['deuce_trigger'], 
-                $cfg['deuce_cap'], 
-                $cfg['sort_order']
-            ]);
-        }
-    } elseif ($tournament['format'] === 'pools_knockout') {
-        $poolsConfigs = [
-            ['group_stage', 'Group Stage (Pools)', 3, 15, 1, 14, 21, 1],
-            ['qf', 'Quarter-Finals', 3, 15, 1, 14, 21, 2],
-            ['sf', 'Semi-Finals', 3, 15, 1, 14, 21, 3],
-            ['3rd_place', '3rd Place Match', 3, 15, 1, 14, 21, 4],
-            ['final', 'Final', 3, 21, 1, 20, 26, 5]
-        ];
-        foreach ($poolsConfigs as $cfg) {
-            $insertStmt->execute([$id, $cfg[0], $cfg[1], $cfg[2], $cfg[3], $cfg[4], $cfg[5], $cfg[6], $cfg[7]]);
-        }
-    } else {
-        $insertStmt->execute([$id, 'round_robin', 'Round Robin', 3, 21, 1, 20, 30, 1]);
-    }
-    
-    // re-fetch
-    $stmt->execute([$id]);
-    $rounds = $stmt->fetchAll();
-}
 
 // Handle Delete Tournament Request
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_tournament') {
@@ -74,15 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $pdo->beginTransaction();
             $tName = $tournament['name'] ?? 'Tournament';
 
-            // Delete related records in cascade order
-            $pdo->prepare('DELETE FROM score_events WHERE match_id IN (SELECT id FROM matches WHERE tournament_id = ?)')->execute([$id]);
-            $pdo->prepare('DELETE FROM games WHERE match_id IN (SELECT id FROM matches WHERE tournament_id = ?)')->execute([$id]);
-            $pdo->prepare('DELETE FROM matches WHERE tournament_id = ?')->execute([$id]);
-            $pdo->prepare('DELETE FROM group_participants WHERE group_id IN (SELECT id FROM tournament_groups WHERE tournament_id = ?)')->execute([$id]);
-            $pdo->prepare('DELETE FROM tournament_groups WHERE tournament_id = ?')->execute([$id]);
-            $pdo->prepare('DELETE FROM player_tournament_records WHERE tournament_id = ?')->execute([$id]);
-            $pdo->prepare('DELETE FROM tournament_players WHERE tournament_id = ?')->execute([$id]);
-            $pdo->prepare('DELETE FROM round_configs WHERE tournament_id = ?')->execute([$id]);
+            // Delete the tournament. ON DELETE CASCADE will instantly wipe all related records.
             $pdo->prepare('DELETE FROM tournaments WHERE id = ?')->execute([$id]);
 
             $pdo->commit();
@@ -99,30 +46,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 }
 
-// Calculate effective participant count to determine which bracket rounds to show
-$participantCount = 0;
-if ($tournament['match_type'] === 'doubles') {
-    $participantCount = (int)db()->query("SELECT COUNT(*) FROM teams WHERE tournament_id = $id")->fetchColumn();
-} else {
-    $participantCount = (int)db()->query("SELECT COUNT(*) FROM tournament_players WHERE tournament_id = $id")->fetchColumn();
-}
-// Default to 32 (max) if 0 to show all rounds initially
-$effCount = $participantCount > 0 ? $participantCount : 32;
-$maxQualifiers = ceil($effCount / 2);
-$bracketSize = 2;
-while ($bracketSize < $maxQualifiers) {
-    $bracketSize *= 2;
-}
 
-// Filter rounds dynamically
-$filteredRounds = [];
-foreach ($rounds as $r) {
-    if ($r['round_key'] === ROUND_R16 && $bracketSize < 16) continue;
-    if ($r['round_key'] === ROUND_QF && $bracketSize < 8) continue;
-    if ($r['round_key'] === ROUND_SF && $bracketSize < 4) continue;
-    $filteredRounds[] = $r;
-}
-$rounds = $filteredRounds;
+$manifest = json_decode($tournament['structure_manifest'] ?? '{}', true);
+// (Round configs are now generated explicitly during Lock Enrollment step)
 
 // Handle status updates
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_status') {
@@ -341,6 +267,13 @@ function getStatusTailwind($status) {
     <!-- Left Column: Settings -->
     <div class="lg:col-span-2 space-y-6">
         
+        <?php if (in_array($tournament['status'], ['draft', 'enrollment_locked'])): ?>
+            <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-8 text-center">
+                <i class="ph-fill ph-lock-key text-4xl text-slate-300 mb-3"></i>
+                <h3 class="font-black text-xl text-slate-800">Scoring Rules Locked</h3>
+                <p class="text-slate-500 mt-2 text-sm max-w-md mx-auto">You must lock enrollment and generate the tournament structure first before you can configure the scoring rules for each round.</p>
+            </div>
+        <?php else: ?>
         <div class="bg-white border border-slate-200 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] overflow-hidden">
             <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                 <h3 class="font-black text-[#0f2044] flex items-center gap-2">
@@ -358,7 +291,7 @@ function getStatusTailwind($status) {
                         <thead>
                             <tr class="text-xs uppercase tracking-widest text-slate-400 border-b border-slate-100 bg-white">
                                 <th class="px-6 py-4 font-bold text-left">Round</th>
-                                <th class="px-4 py-4 font-bold text-center">Match Format (Games)</th>
+                                <th class="px-4 py-4 font-bold text-center">Match Format</th>
                                 <th class="px-4 py-4 font-bold text-center">Pts/Game</th>
                                 <th class="px-4 py-4 font-bold text-center">Deuce At</th>
                                 <th class="px-4 py-4 font-bold text-center">Score Cap</th>
@@ -371,43 +304,42 @@ function getStatusTailwind($status) {
                                         <?= e($r['round_label']) ?>
                                     </td>
                                     <td class="px-4 py-4 text-center">
-                                        <!-- Locked by TKMI Rules: Best of 3 -->
                                         <input type="hidden" name="rounds[<?= $r['id'] ?>][best_of]" value="3">
-                                        <div class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-500 text-xs font-bold rounded-lg border border-slate-200 cursor-not-allowed" title="Match format is locked to Best of 3 Games by TKMI Rules">
-                                            <i class="ph-fill ph-lock-key"></i>
-                                            🏸 Best of 3 Games
+                                        <div class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-500 text-xs font-bold rounded-lg border border-slate-200 cursor-not-allowed">
+                                            <i class="ph-fill ph-lock-key"></i> Best of 3
                                         </div>
                                     </td>
                                     <td class="px-4 py-4">
                                         <input type="number" name="rounds[<?= $r['id'] ?>][points]" value="<?= $r['points_per_game'] ?>" 
-                                               class="w-20 mx-auto block bg-slate-50 border border-slate-200 text-slate-800 text-sm font-bold rounded-lg focus:ring-blue-500 focus:border-blue-500 text-center py-2 px-3" min="5" max="40" required>
+                                               class="w-20 mx-auto block bg-slate-50 border border-slate-200 text-slate-800 text-sm font-bold rounded-lg focus:ring-blue-500 focus:border-blue-500 text-center py-2 px-3" min="5" max="40" required <?= $tournament['status'] !== 'structure_ready' ? 'disabled' : '' ?>>
                                     </td>
                                     <td class="px-4 py-4">
-                                        <div class="flex items-center justify-center gap-2">
-                                            <input type="number" name="rounds[<?= $r['id'] ?>][deuce_trigger]" value="<?= $r['deuce_trigger'] ?>" 
-                                                   class="w-20 bg-slate-50 border border-slate-200 text-slate-800 text-sm font-bold rounded-lg focus:ring-blue-500 focus:border-blue-500 text-center py-2 px-3" min="5" max="40" required>
-                                        </div>
+                                        <input type="number" name="rounds[<?= $r['id'] ?>][deuce_trigger]" value="<?= $r['deuce_trigger'] ?>" 
+                                               class="w-20 mx-auto block bg-slate-50 border border-slate-200 text-slate-800 text-sm font-bold rounded-lg focus:ring-blue-500 focus:border-blue-500 text-center py-2 px-3" min="5" max="40" required <?= $tournament['status'] !== 'structure_ready' ? 'disabled' : '' ?>>
                                     </td>
                                     <td class="px-4 py-4">
                                         <input type="number" name="rounds[<?= $r['id'] ?>][deuce_cap]" value="<?= $r['deuce_cap'] ?>" 
-                                               class="w-20 mx-auto block bg-slate-50 border border-slate-200 text-slate-800 text-sm font-bold rounded-lg focus:ring-blue-500 focus:border-blue-500 text-center py-2 px-3" min="5" max="40" required>
+                                               class="w-20 mx-auto block bg-slate-50 border border-slate-200 text-slate-800 text-sm font-bold rounded-lg focus:ring-blue-500 focus:border-blue-500 text-center py-2 px-3" min="5" max="40" required <?= $tournament['status'] !== 'structure_ready' ? 'disabled' : '' ?>>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
                     </table>
                     
-                    <div class="px-6 py-5 border-t border-slate-100 bg-slate-50/80 flex justify-end">
-                        <button type="submit" class="bg-[#0f2044] hover:bg-blue-900 text-white font-bold py-2.5 px-6 rounded-xl shadow-md transition-all flex items-center gap-2">
+                    <?php if ($tournament['status'] === 'structure_ready'): ?>
+                    <div class="px-6 py-5 border-t border-slate-100 bg-slate-50/80 flex justify-end gap-3">
+                        <button type="submit" class="bg-blue-100 hover:bg-blue-200 text-blue-800 font-bold py-2.5 px-6 rounded-xl shadow-sm transition-all flex items-center gap-2">
                             <i class="ph-bold ph-floppy-disk"></i> Save Rules
                         </button>
                     </div>
+                    <?php endif; ?>
                 </form>
             </div>
         </div>
+        <?php endif; ?>
 
     </div>
-
+    
     <!-- Right Column: Stats & Actions -->
     <div class="space-y-6">
         

@@ -24,15 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 $stmt->execute([$tourneyId]);
                 $tName = $stmt->fetchColumn() ?: 'Tournament';
 
-                // Delete related records in cascading order
-                $pdo->prepare('DELETE FROM score_events WHERE match_id IN (SELECT id FROM matches WHERE tournament_id = ?)')->execute([$tourneyId]);
-                $pdo->prepare('DELETE FROM games WHERE match_id IN (SELECT id FROM matches WHERE tournament_id = ?)')->execute([$tourneyId]);
-                $pdo->prepare('DELETE FROM matches WHERE tournament_id = ?')->execute([$tourneyId]);
-                $pdo->prepare('DELETE FROM group_participants WHERE group_id IN (SELECT id FROM tournament_groups WHERE tournament_id = ?)')->execute([$tourneyId]);
-                $pdo->prepare('DELETE FROM tournament_groups WHERE tournament_id = ?')->execute([$tourneyId]);
-                $pdo->prepare('DELETE FROM player_tournament_records WHERE tournament_id = ?')->execute([$tourneyId]);
-                $pdo->prepare('DELETE FROM tournament_players WHERE tournament_id = ?')->execute([$tourneyId]);
-                $pdo->prepare('DELETE FROM round_configs WHERE tournament_id = ?')->execute([$tourneyId]);
+                // Delete the tournament. ON DELETE CASCADE handles related records instantly.
                 $pdo->prepare('DELETE FROM tournaments WHERE id = ?')->execute([$tourneyId]);
 
                 $pdo->commit();
