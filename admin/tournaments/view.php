@@ -379,223 +379,148 @@ function getStatusTailwind($status) {
 
         <!-- ======================================================= -->
         <!-- LUXURY MATCH GENERATION & PAIRINGS CARD                 -->
-        <!-- ======================================================= -->
-        <div class="bg-white border border-slate-200 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] overflow-hidden">
-            <div class="px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0f2044] to-[#1e3a8a] text-[#c9a84c] flex items-center justify-center shadow-md">
-                        <i class="ph-fill ph-shuffle text-xl"></i>
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.04)] overflow-hidden relative group">
+            <div class="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+            
+            <div class="p-6 relative z-10">
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#0f2044] to-[#1e3a8a] text-white flex items-center justify-center shadow-lg shadow-blue-900/20">
+                        <i class="ph-fill ph-magic-wand text-2xl"></i>
                     </div>
                     <div>
-                        <h3 class="font-black text-[#0f2044]">Match Generation</h3>
-                        <p class="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Draws & Pairings Engine</p>
+                        <h3 class="font-black text-xl text-slate-900 tracking-tight">Tournament Engine</h3>
+                        <p class="text-sm font-medium text-slate-500">Manage structure & matchups</p>
                     </div>
                 </div>
-            </div>
 
-            <div class="p-6">
-                <?php
-                require_once __DIR__ . '/../../includes/matchmaker.php';
-                $pCount = (int)db()->query("SELECT COUNT(*) FROM tournament_players WHERE tournament_id = $id")->fetchColumn();
-                
-                if ($tournament['format'] === 'pools_knockout') {
-                    echo '<div class="text-center py-6 bg-purple-50/60 rounded-2xl border border-purple-100 mb-5 p-4">';
-                    echo '<div class="w-12 h-12 rounded-2xl bg-purple-100 text-purple-600 flex items-center justify-center mx-auto mb-2.5 shadow-xs"><i class="ph-fill ph-columns text-2xl"></i></div>';
-                    echo '<h4 class="font-black text-purple-950 text-base">Group Stage (Pools)</h4>';
-                    echo '<p class="text-xs font-medium text-purple-700/80 mt-1">Manage pool allocations and generate round-robin fixtures.</p>';
-                    echo '</div>';
-                    echo '<a href="pools.php?id='.$id.'" class="group relative w-full bg-gradient-to-r from-purple-700 to-indigo-800 hover:from-purple-800 hover:to-indigo-900 text-white p-4 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-between text-left">';
-                    echo '<div class="flex items-center gap-3.5"><div class="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center text-purple-200"><i class="ph-bold ph-columns text-xl"></i></div><div><div class="font-black text-sm text-white">Manage Pools Studio</div><div class="text-[11px] text-purple-200 font-medium">Assign players & generate group draws</div></div></div>';
-                    echo '<i class="ph-bold ph-arrow-right text-purple-200 group-hover:translate-x-1 transition-transform"></i>';
-                    echo '</a>';
-                }
-                elseif ($tournament['format'] === 'round_robin') {
-                    $hasLeagueMatches = (int)db()->query("SELECT COUNT(*) FROM matches WHERE tournament_id = $id")->fetchColumn() > 0;
-                    if ($hasLeagueMatches) {
-                        echo '<div class="text-center py-6 bg-emerald-50/60 rounded-2xl border border-emerald-100 mb-5 p-4">';
-                        echo '<div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-2.5 shadow-xs"><i class="ph-fill ph-check-circle text-2xl"></i></div>';
-                        echo '<h4 class="font-black text-emerald-950 text-base">League Fixtures Active</h4>';
-                        echo '<p class="text-xs font-medium text-emerald-700/80 mt-1">All round-robin fixtures are generated and live.</p>';
-                        echo '</div>';
-                        echo '<a href="'.BASE_URL.'/admin/scoring/index.php?tournament_id='.$id.'" class="group w-full bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white p-4 rounded-2xl shadow-lg hover:shadow-xl transition-all flex items-center justify-between text-left">';
-                        echo '<div class="flex items-center gap-3.5"><div class="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center text-emerald-200"><i class="ph-bold ph-broadcast text-xl"></i></div><div><div class="font-black text-sm text-white">Score League Matches</div><div class="text-[11px] text-emerald-100 font-medium">Live scorekeeper console & court desk</div></div></div>';
-                        echo '<i class="ph-bold ph-arrow-right text-emerald-200 group-hover:translate-x-1 transition-transform"></i>';
-                        echo '</a>';
-                    } else {
-                        echo '<div class="text-center py-6 bg-emerald-50/60 rounded-2xl border border-emerald-100 mb-5 p-4">';
-                        echo '<div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-2.5 shadow-xs"><i class="ph-fill ph-table text-2xl"></i></div>';
-                        echo '<h4 class="font-black text-emerald-950 text-base">Round Robin League</h4>';
-                        echo '<p class="text-xs font-medium text-emerald-700/80 mt-1">Every player/team plays against all other participants.</p>';
-                        echo '</div>';
-                        if ($pCount >= 2) {
-                            echo '<form action="generate.php" method="POST">';
-                            echo csrf_field();
-                            echo '<input type="hidden" name="tournament_id" value="'.$id.'">';
-                            echo '<input type="hidden" name="action" value="generate_league">';
-                            echo '<button type="submit" class="group w-full bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white p-4 rounded-2xl shadow-lg hover:shadow-xl transition-all flex items-center justify-between text-left">';
-                            echo '<div class="flex items-center gap-3.5"><div class="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center text-emerald-200"><i class="ph-bold ph-lightning text-xl"></i></div><div><div class="font-black text-sm text-white">Generate League Fixtures</div><div class="text-[11px] text-emerald-100 font-medium">Auto-generate all round robin fixtures</div></div></div>';
-                            echo '<i class="ph-bold ph-arrow-right text-emerald-200 group-hover:translate-x-1 transition-transform"></i>';
-                            echo '</button>';
-                            echo '</form>';
-                        } else {
-                            echo '<div class="bg-red-50 border border-red-200 rounded-2xl p-4 text-red-700 text-xs font-bold text-center">Enroll at least 2 participants to generate fixtures.</div>';
-                        }
-                    }
-                }
-                else {
-                    $hasR1 = (int)db()->query("SELECT COUNT(*) FROM matches WHERE tournament_id = $id AND round_key = '" . ROUND_STAGE1_R1 . "'")->fetchColumn() > 0;
-                    $hasR2 = (int)db()->query("SELECT COUNT(*) FROM matches WHERE tournament_id = $id AND round_key = '" . ROUND_STAGE1_R2 . "'")->fetchColumn() > 0;
+                <?php 
+                if ($tournament['format'] === FORMAT_SWISS_KNOCKOUT) {
+                    $tStatus = $tournament['status'];
                     
-                    if (!$hasR1) {
-                        if ($pCount >= 4) {
-                            echo '<div class="bg-emerald-50/80 border border-emerald-200 rounded-2xl p-4 mb-5 text-emerald-900 text-xs font-bold flex items-center gap-3 shadow-xs">';
-                            echo '<div class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center flex-shrink-0"><i class="ph-fill ph-check-circle text-lg"></i></div>';
-                            echo '<div><div class="font-black text-emerald-950 text-sm">'.$pCount.' players enrolled</div><div class="text-emerald-700/80 font-medium mt-0.5">Ready to pair Round 1!' . ($pCount % 2 !== 0 ? ' (1 player gets a BYE)' : '') . '</div></div>';
-                            echo '</div>';
-                            
-                            echo '<div class="space-y-3">';
-                            // LUXURY PRIMARY BUTTON: MANUAL PAIRING STUDIO
-                            echo '<a href="pairings.php?id='.$id.'&round=r1" class="group relative w-full bg-gradient-to-r from-[#0f2044] to-[#1e3a8a] hover:from-[#0a1630] hover:to-[#172e6e] text-white p-4 rounded-2xl shadow-lg hover:shadow-2xl border border-white/10 hover:border-[#c9a84c]/50 transition-all duration-200 flex items-center justify-between text-left hover:-translate-y-0.5">';
-                            echo '<div class="flex items-center gap-3.5">';
-                            echo '<div class="w-11 h-11 rounded-xl bg-[#c9a84c]/20 border border-[#c9a84c]/30 flex items-center justify-center text-[#c9a84c] shadow-inner group-hover:scale-105 transition-transform"><i class="ph-bold ph-sliders-horizontal text-xl"></i></div>';
-                            echo '<div>';
-                            echo '<div class="font-black text-sm text-white tracking-tight flex items-center gap-2">Custom Manual Pairing Studio <span class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-[#c9a84c] text-[#0f2044]">Pro</span></div>';
-                            echo '<div class="text-[11px] text-blue-200/80 font-medium mt-0.5">Drag-and-drop custom seeds & matchups</div>';
-                            echo '</div>';
-                            echo '</div>';
-                            echo '<i class="ph-bold ph-arrow-right text-[#c9a84c] group-hover:translate-x-1.5 transition-transform"></i>';
-                            echo '</a>';
-
-                            // LUXURY SECONDARY BUTTON: 1-CLICK RANDOM DRAW
-                            echo '<form action="generate.php" method="POST">';
-                            echo csrf_field();
-                            echo '<input type="hidden" name="tournament_id" value="'.$id.'">';
-                            echo '<input type="hidden" name="action" value="generate_r1">';
-                            echo '<button type="submit" class="w-full bg-slate-50 hover:bg-white text-slate-700 hover:text-slate-900 font-bold p-3.5 rounded-2xl border-2 border-slate-200 hover:border-slate-300 transition-all duration-150 text-xs flex items-center justify-center gap-2 shadow-xs group">';
-                            echo '<i class="ph-bold ph-shuffle text-slate-400 group-hover:text-blue-600 transition-colors text-base"></i>';
-                            echo '<span class="font-black">Quick 1-Click Random Draw</span>';
-                            echo '</button>';
-                            echo '</form>';
-                            echo '</div>';
-                        } else {
-                            echo '<div class="bg-red-50 border border-red-200 rounded-2xl p-4 mb-4 text-red-700 text-xs font-bold flex items-center gap-3">';
-                            echo '<i class="ph-fill ph-warning-circle text-red-500 text-2xl flex-shrink-0"></i>';
-                            echo '<div><div class="font-black text-sm">Need at least 4 players</div><div class="text-red-600/80 mt-0.5">Currently enrolled: '.$pCount.' players</div></div>';
-                            echo '</div>';
-                            echo '<button class="w-full bg-slate-100 text-slate-400 font-bold py-3.5 px-4 rounded-2xl cursor-not-allowed text-xs" disabled>Generate Round 1</button>';
-                        }
-                    } 
-                    elseif (!$hasR2) {
-                        $r1Done = Matchmaker::isRoundComplete($id, ROUND_STAGE1_R1);
-                        if ($r1Done) {
-                            echo '<div class="bg-emerald-50/80 border border-emerald-200 rounded-2xl p-4 mb-5 text-emerald-900 text-xs font-bold flex items-center gap-3 shadow-xs">';
-                            echo '<div class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center flex-shrink-0"><i class="ph-fill ph-check-circle text-lg"></i></div>';
-                            echo '<div><div class="font-black text-emerald-950 text-sm">Round 1 Finished!</div><div class="text-emerald-700/80 font-medium mt-0.5">Winners (1-0) and Losers (0-1) bracket ready</div></div>';
-                            echo '</div>';
-                            
-                            echo '<div class="space-y-3">';
-                            echo '<a href="pairings.php?id='.$id.'&round=r2" class="group relative w-full bg-gradient-to-r from-[#0f2044] to-[#1e3a8a] hover:from-[#0a1630] hover:to-[#172e6e] text-white p-4 rounded-2xl shadow-lg hover:shadow-2xl border border-white/10 hover:border-[#c9a84c]/50 transition-all duration-200 flex items-center justify-between text-left hover:-translate-y-0.5">';
-                            echo '<div class="flex items-center gap-3.5">';
-                            echo '<div class="w-11 h-11 rounded-xl bg-[#c9a84c]/20 border border-[#c9a84c]/30 flex items-center justify-center text-[#c9a84c] shadow-inner group-hover:scale-105 transition-transform"><i class="ph-bold ph-sliders-horizontal text-xl"></i></div>';
-                            echo '<div>';
-                            echo '<div class="font-black text-sm text-white tracking-tight flex items-center gap-2">Custom Manual Pairing Studio <span class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-[#c9a84c] text-[#0f2044]">Round 2</span></div>';
-                            echo '<div class="text-[11px] text-blue-200/80 font-medium mt-0.5">Pair 1-0 vs 1-0 and 0-1 vs 0-1 players</div>';
-                            echo '</div>';
-                            echo '</div>';
-                            echo '<i class="ph-bold ph-arrow-right text-[#c9a84c] group-hover:translate-x-1.5 transition-transform"></i>';
-                            echo '</a>';
-
-                            echo '<form action="generate.php" method="POST">';
-                            echo csrf_field();
-                            echo '<input type="hidden" name="tournament_id" value="'.$id.'">';
-                            echo '<input type="hidden" name="action" value="generate_r2">';
-                            echo '<button type="submit" class="w-full bg-slate-50 hover:bg-white text-slate-700 hover:text-slate-900 font-bold p-3.5 rounded-2xl border-2 border-slate-200 hover:border-slate-300 transition-all duration-150 text-xs flex items-center justify-center gap-2 shadow-xs group">';
-                            echo '<i class="ph-bold ph-shuffle text-slate-400 group-hover:text-blue-600 transition-colors text-base"></i>';
-                            echo '<span class="font-black">Quick Auto-Pair (W vs W, L vs L)</span>';
-                            echo '</button>';
-                            echo '</form>';
-                            echo '</div>';
-                        } else {
-                            echo '<div class="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-4 text-blue-900 text-xs font-bold flex items-center gap-3">';
-                            echo '<i class="ph-fill ph-hourglass-medium text-blue-500 text-2xl flex-shrink-0 animate-spin"></i>';
-                            echo '<div><div class="font-black text-sm">Round 1 in Progress</div><div class="text-blue-700/80 mt-0.5">Round 2 pairing unlocks when all matches finish</div></div>';
-                            echo '</div>';
-                            echo '<button class="w-full bg-slate-100 text-slate-400 font-bold py-3.5 px-4 rounded-2xl cursor-not-allowed text-xs" disabled>Pair Round 2</button>';
-                        }
-                    }
-                    else {
+                    if ($tStatus === 'draft') {
+                        echo '<div class="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-5 text-blue-900 text-xs font-bold flex items-center gap-3">';
+                        echo '<i class="ph-fill ph-info text-blue-500 text-2xl flex-shrink-0"></i>';
+                        echo '<div><div class="font-black text-sm">Draft Mode</div><div class="text-blue-700/80 mt-0.5">Enroll players and teams.</div></div>';
+                        echo '</div>';
+                        
+                        echo '<form action="generate.php" method="POST">';
+                        echo csrf_field();
+                        echo '<input type="hidden" name="tournament_id" value="'.$id.'">';
+                        echo '<input type="hidden" name="action" value="lock_enrollment">';
+                        echo '<button type="submit" class="w-full bg-[#0f2044] hover:bg-blue-900 text-white font-bold p-3.5 rounded-2xl shadow-xl transition-all duration-150 text-sm flex items-center justify-center gap-2">';
+                        echo '<i class="ph-bold ph-lock-key text-lg text-[#c9a84c]"></i>';
+                        echo '<span>Lock Enrollment & Generate Structure</span>';
+                        echo '</button>';
+                        echo '</form>';
+                        
+                    } elseif ($tStatus === 'enrollment_locked') {
+                        // Should theoretically not stay in this state long, but just in case
+                        echo '<form action="generate.php" method="POST">';
+                        echo csrf_field();
+                        echo '<input type="hidden" name="tournament_id" value="'.$id.'">';
+                        echo '<input type="hidden" name="action" value="lock_enrollment">';
+                        echo '<button type="submit" class="w-full bg-[#c9a84c] text-[#0f2044] font-bold p-3.5 rounded-2xl shadow-xl transition-all text-sm flex items-center justify-center gap-2">';
+                        echo '<span>Generate Tournament Math</span>';
+                        echo '</button>';
+                        echo '</form>';
+                        
+                    } elseif ($tStatus === 'structure_ready') {
+                        echo '<div class="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-5 text-blue-900 text-xs font-bold flex items-center gap-3">';
+                        echo '<i class="ph-fill ph-info text-blue-500 text-2xl flex-shrink-0"></i>';
+                        echo '<div><div class="font-black text-sm">Structure Generated</div><div class="text-blue-700/80 mt-0.5">Please review the scoring rules on the left, then lock them to proceed.</div></div>';
+                        echo '</div>';
+                        
+                        echo '<form action="generate.php" method="POST">';
+                        echo csrf_field();
+                        echo '<input type="hidden" name="tournament_id" value="'.$id.'">';
+                        echo '<input type="hidden" name="action" value="lock_rules">';
+                        echo '<button type="submit" class="w-full bg-[#0f2044] hover:bg-blue-900 text-white font-bold p-3.5 rounded-2xl shadow-xl transition-all duration-150 text-sm flex items-center justify-center gap-2">';
+                        echo '<i class="ph-bold ph-lock-key text-lg text-[#c9a84c]"></i>';
+                        echo '<span>Lock Scoring Rules</span>';
+                        echo '</button>';
+                        echo '</form>';
+                        
+                    } elseif ($tStatus === 'rules_locked') {
+                        echo '<div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 mb-5 text-emerald-900 text-xs font-bold flex items-center gap-3">';
+                        echo '<i class="ph-fill ph-check-circle text-emerald-500 text-2xl flex-shrink-0"></i>';
+                        echo '<div><div class="font-black text-sm">Ready to Start</div><div class="text-emerald-700/80 mt-0.5">Rules and players are locked. Ready to draw Round 1.</div></div>';
+                        echo '</div>';
+                        
+                        echo '<form action="generate.php" method="POST">';
+                        echo csrf_field();
+                        echo '<input type="hidden" name="tournament_id" value="'.$id.'">';
+                        echo '<input type="hidden" name="action" value="generate_r1">';
+                        echo '<button type="submit" class="w-full bg-gradient-to-r from-[#0f2044] to-[#1e3a8a] text-white font-black p-4 rounded-2xl shadow-xl transition-all text-sm flex items-center justify-center gap-2">';
+                        echo '<i class="ph-bold ph-shuffle text-xl text-[#c9a84c]"></i>';
+                        echo '<span>Generate Round 1 Matches</span>';
+                        echo '</button>';
+                        echo '</form>';
+                        
+                    } elseif ($tStatus === 'live') {
+                        // Dynamic engine: Check completion status based on structure manifest
+                        $hasR2 = (int)db()->query("SELECT COUNT(*) FROM matches WHERE tournament_id = $id AND round_key = '" . ROUND_STAGE1_R2 . "'")->fetchColumn() > 0;
                         $hasSurvival = (int)db()->query("SELECT COUNT(*) FROM matches WHERE tournament_id = $id AND round_key = '" . ROUND_STAGE1_SURVIVAL . "'")->fetchColumn() > 0;
-                        if (!$hasSurvival) {
+                        $hasStage2 = (int)db()->query("SELECT COUNT(*) FROM matches WHERE tournament_id = $id AND stage = 'stage2'")->fetchColumn() > 0;
+                        
+                        if (!$hasR2) {
+                            $r1Done = Matchmaker::isRoundComplete($id, ROUND_STAGE1_R1);
+                            if ($r1Done) {
+                                echo '<form action="generate.php" method="POST">';
+                                echo csrf_field();
+                                echo '<input type="hidden" name="tournament_id" value="'.$id.'">';
+                                echo '<input type="hidden" name="action" value="generate_r2">';
+                                echo '<button type="submit" class="w-full bg-[#0f2044] hover:bg-blue-900 text-white font-bold p-4 rounded-2xl shadow-xl transition-all text-sm flex items-center justify-center gap-2">';
+                                echo '<span>Generate Round 2 (1-0 vs 1-0, 0-1 vs 0-1)</span>';
+                                echo '</button>';
+                                echo '</form>';
+                            } else {
+                                echo '<div class="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-4 text-blue-900 text-xs font-bold text-center">';
+                                echo 'Round 1 Matches in Progress';
+                                echo '</div>';
+                            }
+                        } elseif (!$hasSurvival) {
                             $r2Done = Matchmaker::isRoundComplete($id, ROUND_STAGE1_R2);
                             if ($r2Done) {
-                                echo '<div class="bg-emerald-50/80 border border-emerald-200 rounded-2xl p-4 mb-5 text-emerald-900 text-xs font-bold flex items-center gap-3 shadow-xs">';
-                                echo '<div class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center flex-shrink-0"><i class="ph-fill ph-check-circle text-lg"></i></div>';
-                                echo '<div><div class="font-black text-emerald-950 text-sm">Round 2 Finished!</div><div class="text-emerald-700/80 font-medium mt-0.5">Time to pair the 1-1 survival players</div></div>';
-                                echo '</div>';
-                                
-                                echo '<a href="survival.php?id='.$id.'" class="group relative w-full bg-gradient-to-r from-[#c9a84c] to-[#b0923e] hover:from-[#b0923e] hover:to-[#997d2e] text-[#0f2044] p-4 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-200 flex items-center justify-between text-left hover:-translate-y-0.5 font-black">';
-                                echo '<div class="flex items-center gap-3.5">';
-                                echo '<div class="w-11 h-11 rounded-xl bg-white/30 flex items-center justify-center text-[#0f2044] shadow-inner"><i class="ph-bold ph-shield-check text-xl"></i></div>';
-                                echo '<div>';
-                                echo '<div class="text-sm font-black tracking-tight">Configure Survival Round</div>';
-                                echo '<div class="text-[11px] text-[#0f2044]/80 font-bold mt-0.5">Cross-path pairing studio (16 &times; 1-1 players)</div>';
-                                echo '</div>';
-                                echo '</div>';
-                                echo '<i class="ph-bold ph-arrow-right text-[#0f2044] group-hover:translate-x-1.5 transition-transform"></i>';
+                                echo '<a href="survival.php?id='.$id.'" class="block text-center w-full bg-[#0f2044] hover:bg-blue-900 text-white font-bold p-4 rounded-2xl shadow-xl transition-all text-sm">';
+                                echo 'Configure Survival Round (1-1 players)';
                                 echo '</a>';
                             } else {
-                                echo '<div class="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-4 text-blue-900 text-xs font-bold flex items-center gap-3">';
-                                echo '<i class="ph-fill ph-hourglass-medium text-blue-500 text-2xl flex-shrink-0"></i>';
-                                echo '<div><div class="font-black text-sm">Round 2 in Progress</div><div class="text-blue-700/80 mt-0.5">Survival Round unlocks after matches complete</div></div>';
+                                echo '<div class="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-4 text-blue-900 text-xs font-bold text-center">';
+                                echo 'Round 2 Matches in Progress';
                                 echo '</div>';
-                                echo '<button class="w-full bg-slate-100 text-slate-400 font-bold py-3.5 px-4 rounded-2xl cursor-not-allowed text-xs" disabled>Configure Survival Round</button>';
+                            }
+                        } elseif (!$hasStage2) {
+                            $survDone = Matchmaker::isRoundComplete($id, ROUND_STAGE1_SURVIVAL);
+                            if ($survDone) {
+                                echo '<form action="generate.php" method="POST">';
+                                echo csrf_field();
+                                echo '<input type="hidden" name="tournament_id" value="'.$id.'">';
+                                echo '<input type="hidden" name="action" value="generate_stage2">';
+                                echo '<button type="submit" class="w-full bg-gradient-to-r from-slate-900 to-black text-white font-bold p-4 rounded-2xl shadow-xl transition-all text-sm flex items-center justify-center gap-2">';
+                                echo '<i class="ph-bold ph-trophy text-[#c9a84c]"></i> Generate Stage 2 Knockouts';
+                                echo '</button>';
+                                echo '</form>';
+                            } else {
+                                echo '<div class="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-4 text-blue-900 text-xs font-bold text-center">';
+                                echo 'Survival Matches in Progress';
+                                echo '</div>';
                             }
                         } else {
-                            $hasStage2 = (int)db()->query("SELECT COUNT(*) FROM matches WHERE tournament_id = $id AND stage = 'stage2'")->fetchColumn() > 0;
-                            if (!$hasStage2) {
-                                $survDone = Matchmaker::isRoundComplete($id, ROUND_STAGE1_SURVIVAL);
-                                if ($survDone) {
-                                    echo '<div class="bg-emerald-50/80 border border-emerald-200 rounded-2xl p-4 mb-5 text-emerald-900 text-xs font-bold flex items-center gap-3 shadow-xs">';
-                                    echo '<div class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center flex-shrink-0"><i class="ph-fill ph-check-circle text-lg"></i></div>';
-                                    echo '<div><div class="font-black text-emerald-950 text-sm">Qualifiers Complete!</div><div class="text-emerald-700/80 font-medium mt-0.5">Top 16 players ready for Stage 2 Knockouts</div></div>';
-                                    echo '</div>';
-                                    
-                                    echo '<form action="generate.php" method="POST">';
-                                    echo csrf_field();
-                                    echo '<input type="hidden" name="tournament_id" value="'.$id.'">';
-                                    echo '<input type="hidden" name="action" value="generate_stage2">';
-                                    echo '<button type="submit" class="group relative w-full bg-gradient-to-r from-slate-900 via-[#0f2044] to-slate-900 hover:from-black hover:to-black text-white p-4 rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-200 flex items-center justify-between text-left hover:-translate-y-0.5 border border-white/10">';
-                                    echo '<div class="flex items-center gap-3.5">';
-                                    echo '<div class="w-11 h-11 rounded-xl bg-[#c9a84c]/20 border border-[#c9a84c]/30 flex items-center justify-center text-[#c9a84c] shadow-inner"><i class="ph-bold ph-trophy text-xl"></i></div>';
-                                    echo '<div>';
-                                    echo '<div class="font-black text-sm text-white tracking-tight flex items-center gap-2">Generate Stage 2 Knockout Bracket <span class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-[#c9a84c] text-[#0f2044]">Finals</span></div>';
-                                    echo '<div class="text-[11px] text-slate-300 font-medium mt-0.5">R16, QF, SF, 3rd Place & Grand Final</div>';
-                                    echo '</div>';
-                                    echo '</div>';
-                                    echo '<i class="ph-bold ph-arrow-right text-[#c9a84c] group-hover:translate-x-1.5 transition-transform"></i>';
-                                    echo '</button>';
-                                    echo '</form>';
-                                } else {
-                                    echo '<div class="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-4 text-blue-900 text-xs font-bold flex items-center gap-3">';
-                                    echo '<i class="ph-fill ph-hourglass-medium text-blue-500 text-2xl flex-shrink-0"></i>';
-                                    echo '<div><div class="font-black text-sm">Survival Round Active</div><div class="text-blue-700/80 mt-0.5">Stage 2 unlocks after all survival matches finish</div></div>';
-                                    echo '</div>';
-                                    echo '<button class="w-full bg-slate-100 text-slate-400 font-bold py-3.5 px-4 rounded-2xl cursor-not-allowed text-xs" disabled>Generate Stage 2 Bracket</button>';
-                                }
-                            } else {
-                                echo '<div class="text-center py-6 bg-slate-50 rounded-2xl border border-slate-200 mb-4">';
-                                echo '<div class="w-14 h-14 rounded-2xl bg-[#c9a84c]/15 text-[#c9a84c] flex items-center justify-center mx-auto mb-2 shadow-inner"><i class="ph-fill ph-trophy text-3xl"></i></div>';
-                                echo '<h4 class="font-black text-[#0f2044] text-lg">Knockout Brackets Active</h4>';
-                                echo '<p class="text-xs font-medium text-slate-500 mt-1">Stage 2 Single-Elimination fixtures are live.</p>';
-                                echo '</div>';
-                                echo '<a href="'.BASE_URL.'/admin/scoring/index.php?tournament_id='.$id.'" class="group w-full bg-[#0f2044] hover:bg-blue-900 text-white font-black p-3.5 rounded-2xl shadow-md hover:shadow-xl transition-all flex items-center justify-between text-xs">';
-                                echo '<div class="flex items-center gap-2.5"><i class="ph-bold ph-broadcast text-base text-[#c9a84c]"></i><span>Score Stage 2 Matches</span></div>';
-                                echo '<i class="ph-bold ph-arrow-right text-[#c9a84c] group-hover:translate-x-1 transition-transform"></i>';
-                                echo '</a>';
-                            }
+                            echo '<div class="text-center py-6 bg-slate-50 rounded-2xl border border-slate-200 mb-4">';
+                            echo '<div class="w-14 h-14 rounded-2xl bg-[#c9a84c]/15 text-[#c9a84c] flex items-center justify-center mx-auto mb-2 shadow-inner"><i class="ph-fill ph-trophy text-3xl"></i></div>';
+                            echo '<h4 class="font-black text-[#0f2044] text-lg">Knockout Brackets Active</h4>';
+                            echo '<p class="text-xs font-medium text-slate-500 mt-1">Stage 2 Single-Elimination fixtures are live.</p>';
+                            echo '</div>';
+                            echo '<a href="'.BASE_URL.'/admin/scoring/index.php?tournament_id='.$id.'" class="group w-full bg-[#0f2044] hover:bg-blue-900 text-white font-black p-3.5 rounded-2xl shadow-md hover:shadow-xl transition-all flex items-center justify-between text-xs">';
+                            echo '<div class="flex items-center gap-2.5"><i class="ph-bold ph-broadcast text-base text-[#c9a84c]"></i><span>Score Stage 2 Matches</span></div>';
+                            echo '<i class="ph-bold ph-arrow-right text-[#c9a84c] group-hover:translate-x-1 transition-transform"></i>';
+                            echo '</a>';
                         }
                     }
                 } // End of else for swiss_knockout
+                ?>
+    
+
                 ?>
             </div>
         </div>
