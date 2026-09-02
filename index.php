@@ -317,67 +317,6 @@ include __DIR__ . '/includes/header.php';
         <!-- ======================================================= -->
         <!-- 3. TOURNAMENT SYSTEM & RULES (Clean, Step-by-Step)       -->
         <!-- ======================================================= -->
-        <div class="mb-16">
-            <div class="mb-6 pb-3 border-b border-slate-200">
-                <h2 class="text-2xl font-black text-[#080e1e] uppercase tracking-tight">Tournament Format & Rules</h2>
-                <p class="text-slate-500 text-sm mt-1">How TKMI Badminton competitions are structured.</p>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                
-                <!-- Stage 1 Card -->
-                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
-                    <div>
-                        <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-black text-lg mb-4">
-                            1
-                        </div>
-                        <h3 class="text-lg font-black text-[#080e1e] mb-2">Stage 1: Swiss Qualifiers</h3>
-                        <p class="text-slate-600 text-sm leading-relaxed">
-                            Round 1 pairs all participants randomly. Round 2 matches Winners vs Winners (1-0) and Losers vs Losers (0-1). The Survival Round pairs remaining 1-1 participants for Tier 2 advancement.
-                        </p>
-                    </div>
-                    <div class="mt-6 pt-4 border-t border-slate-100 text-xs font-bold text-blue-600 uppercase tracking-wider">
-                        Two-Loss Rule Applies
-                    </div>
-                </div>
-
-                <!-- Stage 2 Card -->
-                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
-                    <div>
-                        <div class="w-10 h-10 rounded-xl bg-amber-50 text-[#c9a84c] flex items-center justify-center font-black text-lg mb-4">
-                            2
-                        </div>
-                        <h3 class="text-lg font-black text-[#080e1e] mb-2">Stage 2: Knockout Bracket</h3>
-                        <p class="text-slate-600 text-sm leading-relaxed">
-                            Qualified participants advance into the Single Elimination Championship tree: Quarter-Finals, Semi-Finals, 3rd Place Playoff, and Grand Final.
-                        </p>
-                    </div>
-                    <div class="mt-6 pt-4 border-t border-slate-100 text-xs font-bold text-[#c9a84c] uppercase tracking-wider">
-                        1st, 2nd, 3rd & 4th Awarded
-                    </div>
-                </div>
-
-                <!-- Scoring Rules Card -->
-                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
-                    <div>
-                        <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-black text-lg mb-4">
-                            3
-                        </div>
-                        <h3 class="text-lg font-black text-[#080e1e] mb-2">Scoring Targets Per Round</h3>
-                        <ul class="text-slate-600 text-sm space-y-2 leading-relaxed">
-                            <li>&bull; <strong>Stage 1:</strong> 11 pts (Deuce at 10-10, Cap 16)</li>
-                            <li>&bull; <strong>Stage 2 (QF/SF):</strong> 15 pts (Deuce at 14-14, Cap 21)</li>
-                            <li>&bull; <strong>Grand Final:</strong> 21 pts (Deuce at 20-20, Cap 26)</li>
-                            <li>&bull; Matches are <strong>Best of 3 games</strong></li>
-                        </ul>
-                    </div>
-                    <div class="mt-6 pt-4 border-t border-slate-100 text-xs font-bold text-emerald-600 uppercase tracking-wider">
-                        Live Point Adjustments
-                    </div>
-                </div>
-
-            </div>
-        </div>
 
         <!-- ======================================================= -->
         <!-- 4. ACTIVE & UPCOMING TOURNAMENTS DIRECTORY              -->
