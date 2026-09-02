@@ -66,17 +66,17 @@ include __DIR__ . '/../includes/header.php';
     }
 }">
 
-    <div class="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 sm:mb-8 gap-4">
         <div>
-            <h2 class="text-3xl font-black font-display text-[#0f2044]">Players Directory</h2>
-            <p class="text-slate-500 font-medium mt-1">Manage all registered players in the TKMI community.</p>
+            <h2 class="text-2xl sm:text-3xl font-black font-display text-[#0f2044]">Players Directory</h2>
+            <p class="text-xs sm:text-sm text-slate-500 font-medium mt-1">Manage all registered players in the TKMI community.</p>
         </div>
-        <div class="flex items-center gap-3">
-            <a href="<?= BASE_URL ?>/admin/players/import.php" class="bg-white border-2 border-slate-200 text-slate-700 hover:border-[#c9a84c] hover:text-[#c9a84c] px-4 py-2.5 rounded-xl font-bold transition flex items-center gap-2">
-                <i class="ph-bold ph-upload-simple text-lg"></i> Bulk Import
+        <div class="flex flex-wrap items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
+            <a href="<?= BASE_URL ?>/admin/players/import.php" class="bg-white border-2 border-slate-200 text-slate-700 hover:border-[#c9a84c] hover:text-[#c9a84c] px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl font-bold transition flex items-center gap-2 text-xs sm:text-sm">
+                <i class="ph-bold ph-upload-simple text-base sm:text-lg"></i> Bulk Import
             </a>
-            <a href="<?= BASE_URL ?>/admin/players/add.php" class="bg-[#c9a84c] hover:bg-[#b0923e] text-[#0f2044] px-6 py-2.5 rounded-xl font-black transition shadow-md flex items-center gap-2">
-                <i class="ph-bold ph-user-plus text-lg"></i> Add Player
+            <a href="<?= BASE_URL ?>/admin/players/add.php" class="bg-[#c9a84c] hover:bg-[#b0923e] text-[#0f2044] px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl font-black transition shadow-md flex items-center gap-2 text-xs sm:text-sm">
+                <i class="ph-bold ph-user-plus text-base sm:text-lg"></i> Add Player
             </a>
         </div>
     </div>
@@ -85,7 +85,7 @@ include __DIR__ . '/../includes/header.php';
 
     <div class="bg-white border border-slate-200 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
+            <table class="w-full text-left border-collapse min-w-[700px]">
                 <thead>
                     <tr class="bg-slate-50 border-b border-slate-200 text-[10px] uppercase tracking-widest text-slate-400 font-bold">
                         <th class="p-5 pl-8 w-16">Photo</th>

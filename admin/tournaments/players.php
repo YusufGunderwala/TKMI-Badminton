@@ -247,7 +247,7 @@ include __DIR__ . '/../includes/header.php';
                 </div>
                 
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm whitespace-nowrap">
+                    <table class="w-full text-left text-sm whitespace-nowrap min-w-[550px]">
                         <thead>
                             <tr class="text-[10px] uppercase tracking-widest text-slate-400 border-b border-slate-100 bg-white">
                                 <th class="px-6 py-3.5 font-bold">#</th>

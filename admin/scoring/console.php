@@ -213,13 +213,14 @@ $gamesToWin = ceil($bestOf / 2);
                     x-show="!isDeuce" 
                     class="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 hover:border-[#c9a84c]/50 text-[11px] sm:text-xs font-bold shadow-inner transition cursor-pointer group"
                     title="Click to change Match Format (1, 3, 5 sets or point target)">
-                <span class="text-slate-200" x-text="bestOf === 1 ? '1 Single Game' : ('Game ' + (games_a + games_b + 1) + '/' + bestOf)"></span>
+                <span class="text-slate-200 hidden xs:inline" x-text="bestOf === 1 ? '1 Single Game' : ('Game ' + (games_a + games_b + 1) + '/' + bestOf)"></span>
+                <span class="text-slate-200 xs:hidden" x-text="bestOf === 1 ? '1 Set' : ('G' + (games_a + games_b + 1))"></span>
                 <span class="text-white/40">&bull;</span>
-                <span class="text-[#c9a84c] font-black" x-text="pointsPerGame + ' Pts'"></span>
+                <span class="text-[#c9a84c] font-black" x-text="pointsPerGame + 'P'"></span>
                 <template x-if="deuceEnabled">
-                    <span class="hidden sm:inline text-slate-300 font-normal" x-text="'• Deuce @ ' + deuceTrigger"></span>
+                    <span class="hidden md:inline text-slate-300 font-normal" x-text="'• Deuce @ ' + deuceTrigger"></span>
                 </template>
-                <i class="ph-bold ph-gear-fine text-xs text-[#c9a84c] opacity-60 group-hover:opacity-100 transition-opacity ml-1"></i>
+                <i class="ph-bold ph-gear-fine text-xs text-[#c9a84c] opacity-60 group-hover:opacity-100 transition-opacity ml-0.5 sm:ml-1"></i>
             </button>
 
             <!-- Flaming Deuce Capsule -->
@@ -265,67 +266,66 @@ $gamesToWin = ceil($bestOf / 2);
     <!-- ============================================================ -->
     <!-- MAIN LUMINOUS STADIUM SPLIT SCORING ARENA                    -->
     <!-- ============================================================ -->
-    <main class="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 p-3 sm:p-5 lg:p-6 relative z-10 overflow-y-auto lg:overflow-hidden" x-show="!isCompleted">
+    <main class="flex-1 grid grid-cols-2 gap-2 sm:gap-4 lg:gap-6 p-2 sm:p-4 lg:p-6 2xl:p-10 relative z-10 overflow-hidden h-[calc(100dvh-60px)] sm:h-[calc(100vh-64px)]" x-show="!isCompleted">
         
         <!-- Pre-Match Quick Match Format Selector Bar (Active Before Serving) -->
         <div x-show="score_a === 0 && score_b === 0 && games_a === 0 && games_b === 0 && !isCompleted" 
              x-cloak
-             class="col-span-1 lg:col-span-2 -mb-2 z-20">
-            <div class="bg-gradient-to-r from-[#0f2452]/95 via-[#16306e]/95 to-[#0f2452]/95 border border-[#c9a84c]/50 rounded-2xl p-3 sm:p-4 shadow-xl flex flex-col md:flex-row items-center justify-between gap-3">
-                <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-300 to-[#c9a84c] text-[#080e1e] flex items-center justify-center font-black shadow-md flex-shrink-0">
-                        <i class="ph-bold ph-sliders-horizontal text-lg"></i>
+             class="col-span-2 -mb-1 sm:-mb-2 z-20">
+            <div class="bg-gradient-to-r from-[#0f2452]/95 via-[#16306e]/95 to-[#0f2452]/95 border border-[#c9a84c]/50 rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 shadow-xl flex flex-col md:flex-row items-center justify-between gap-2 sm:gap-3">
+                <div class="flex items-center gap-2 sm:gap-3">
+                    <div class="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-gradient-to-br from-amber-300 to-[#c9a84c] text-[#080e1e] flex items-center justify-center font-black shadow-md flex-shrink-0">
+                        <i class="ph-bold ph-sliders-horizontal text-sm sm:text-lg"></i>
                     </div>
                     <div>
-                        <div class="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2 flex-wrap">
+                        <div class="text-[11px] sm:text-xs font-black text-white uppercase tracking-wider flex items-center gap-2 flex-wrap">
                             <span>Pre-Match Format</span>
-                            <span class="px-2 py-0.2 rounded-full bg-[#c9a84c]/20 text-[#ffd978] text-[10px] font-mono">Choose Sets for this Game</span>
+                            <span class="px-1.5 py-0.2 rounded-full bg-[#c9a84c]/20 text-[#ffd978] text-[9px] sm:text-[10px] font-mono">Choose Sets</span>
                         </div>
-                        <div class="text-[11px] text-blue-200/80">Select match length before serving point #1:</div>
                     </div>
                 </div>
 
-                <div class="flex items-center gap-2 flex-wrap justify-center">
+                <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-center">
                     <!-- Sets Selector (1, 3, 5) -->
-                    <div class="flex items-center bg-black/40 p-1 rounded-xl border border-white/15">
+                    <div class="flex items-center bg-black/40 p-0.5 sm:p-1 rounded-lg sm:rounded-xl border border-white/15">
                         <button type="button" 
                                 @click="setFormat(1, pointsPerGame)" 
                                 :class="bestOf === 1 ? 'bg-[#c9a84c] text-[#080e1e] font-black shadow-md' : 'text-slate-300 hover:text-white'"
-                                class="px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1">
+                                class="px-2 sm:px-3 py-1 sm:py-1.5 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-bold transition cursor-pointer flex items-center gap-1">
                             <i class="ph-bold ph-lightning"></i> 1 Set
                         </button>
                         <button type="button" 
                                 @click="setFormat(3, pointsPerGame)" 
                                 :class="bestOf === 3 ? 'bg-[#c9a84c] text-[#080e1e] font-black shadow-md' : 'text-slate-300 hover:text-white'"
-                                class="px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1">
+                                class="px-2 sm:px-3 py-1 sm:py-1.5 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-bold transition cursor-pointer flex items-center gap-1">
                             <i class="ph-bold ph-trophy"></i> Best of 3
                         </button>
                         <button type="button" 
                                 @click="setFormat(5, pointsPerGame)" 
                                 :class="bestOf === 5 ? 'bg-[#c9a84c] text-[#080e1e] font-black shadow-md' : 'text-slate-300 hover:text-white'"
-                                class="px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1">
+                                class="px-2 sm:px-3 py-1 sm:py-1.5 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-bold transition cursor-pointer flex items-center gap-1">
                             <i class="ph-bold ph-crown"></i> Best of 5
                         </button>
                     </div>
 
                     <!-- Points Selector (11, 15, 21) -->
-                    <div class="flex items-center bg-black/40 p-1 rounded-xl border border-white/15">
+                    <div class="flex items-center bg-black/40 p-0.5 sm:p-1 rounded-lg sm:rounded-xl border border-white/15">
                         <button type="button" 
                                 @click="setFormat(bestOf, 11)" 
                                 :class="pointsPerGame === 11 ? 'bg-cyan-500 text-[#080e1e] font-black shadow-md' : 'text-slate-300 hover:text-white'"
-                                class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer">
+                                class="px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-bold transition cursor-pointer">
                             11 Pts
                         </button>
                         <button type="button" 
                                 @click="setFormat(bestOf, 15)" 
                                 :class="pointsPerGame === 15 ? 'bg-cyan-500 text-[#080e1e] font-black shadow-md' : 'text-slate-300 hover:text-white'"
-                                class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer">
+                                class="px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-bold transition cursor-pointer">
                             15 Pts
                         </button>
                         <button type="button" 
                                 @click="setFormat(bestOf, 21)" 
                                 :class="pointsPerGame === 21 ? 'bg-cyan-500 text-[#080e1e] font-black shadow-md' : 'text-slate-300 hover:text-white'"
-                                class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer">
+                                class="px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-bold transition cursor-pointer">
                             21 Pts
                         </button>
                     </div>
@@ -334,75 +334,59 @@ $gamesToWin = ceil($bestOf / 2);
         </div>
         
         <!-- Live Match Point / Deciding Point Reached Alert Banner -->
-        <div x-show="isMatchPointReached && !isCompleted" x-cloak class="col-span-1 lg:col-span-2 -mb-2 z-20">
-            <div class="w-full bg-gradient-to-r from-emerald-950/95 via-[#0f3d26]/95 to-emerald-950/95 border-2 border-emerald-400 rounded-2xl py-3 px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-[0_0_35px_rgba(16,185,129,0.35)] backdrop-blur-xl animate-pulse">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 text-slate-950 flex items-center justify-center font-black shadow-lg flex-shrink-0">
-                        <i class="ph-fill ph-trophy text-2xl text-yellow-100"></i>
+        <div x-show="isMatchPointReached && !isCompleted" x-cloak class="col-span-2 -mb-1 sm:-mb-2 z-20">
+            <div class="w-full bg-gradient-to-r from-emerald-950/95 via-[#0f3d26]/95 to-emerald-950/95 border-2 border-emerald-400 rounded-xl sm:rounded-2xl py-2 sm:py-3 px-3 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3 shadow-[0_0_35px_rgba(16,185,129,0.35)] backdrop-blur-xl animate-pulse">
+                <div class="flex items-center gap-2 sm:gap-3">
+                    <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 text-slate-950 flex items-center justify-center font-black shadow-lg flex-shrink-0">
+                        <i class="ph-fill ph-trophy text-lg sm:text-2xl text-yellow-100"></i>
                     </div>
                     <div>
                         <div class="text-xs sm:text-sm font-black text-emerald-300 tracking-wider flex items-center gap-2 flex-wrap">
-                            <span>🏆 MATCH POINT REACHED</span>
+                            <span>🏆 MATCH POINT</span>
                             <span class="text-white text-xs font-bold">(Winner: <span x-text="getMatchWinnerName()"></span>)</span>
-                        </div>
-                        <div class="text-[11px] text-emerald-200/80 font-medium mt-0.5">
-                            Winning target score attained. Finalize result or Undo if misclicked:
                         </div>
                     </div>
                 </div>
                 <div class="flex items-center gap-2 flex-shrink-0">
                     <button type="button" 
                             @click="showConfirmCompleteModal = true" 
-                            class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-400 to-teal-400 hover:from-emerald-300 hover:to-teal-300 text-slate-950 text-xs font-black uppercase tracking-wider shadow-lg transition flex items-center gap-1.5 cursor-pointer">
-                        <i class="ph-bold ph-check-circle text-base"></i> Finalize Match
+                            class="px-3.5 sm:px-5 py-1.5 sm:py-2.5 rounded-xl bg-gradient-to-r from-emerald-400 to-teal-400 hover:from-emerald-300 hover:to-teal-300 text-slate-950 text-[11px] sm:text-xs font-black uppercase tracking-wider shadow-lg transition flex items-center gap-1.5 cursor-pointer">
+                        <i class="ph-bold ph-check-circle text-sm sm:text-base"></i> Finalize Match
                     </button>
                 </div>
             </div>
         </div>
 
         <!-- Live Deuce Banner Alert -->
-        <div x-show="!isMatchPointReached && isDeuce" x-cloak class="col-span-1 lg:col-span-2 -mb-2 z-20">
-            <div class="w-full bg-gradient-to-r from-red-950/90 via-amber-950/90 to-red-950/90 border-2 border-amber-400 rounded-2xl py-3 px-4 sm:px-6 flex items-center justify-between shadow-[0_0_35px_rgba(245,158,11,0.35)] backdrop-blur-xl animate-pulse">
-                <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 to-red-500 text-slate-950 flex items-center justify-center font-black shadow-lg">
-                        <i class="ph-fill ph-fire text-2xl text-yellow-100"></i>
+        <div x-show="!isMatchPointReached && isDeuce" x-cloak class="col-span-2 -mb-1 sm:-mb-2 z-20">
+            <div class="w-full bg-gradient-to-r from-red-950/90 via-amber-950/90 to-red-950/90 border-2 border-amber-400 rounded-xl sm:rounded-2xl py-2 sm:py-3 px-3 sm:px-6 flex items-center justify-between shadow-[0_0_35px_rgba(245,158,11,0.35)] backdrop-blur-xl animate-pulse">
+                <div class="flex items-center gap-2 sm:gap-3">
+                    <div class="w-7 h-7 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-amber-400 to-red-500 text-slate-950 flex items-center justify-center font-black shadow-lg">
+                        <i class="ph-fill ph-fire text-lg sm:text-2xl text-yellow-100"></i>
                     </div>
                     <div>
                         <div class="text-xs sm:text-sm font-black text-amber-300 tracking-wider flex items-center gap-2 flex-wrap">
                             <span>🔥 DEUCE IN PLAY</span>
                             <span class="text-white text-xs font-bold" x-show="score_a === score_b">(TIED AT <span x-text="score_a"></span>)</span>
-                            <span class="text-cyan-300 text-xs font-bold" x-show="score_a > score_b">(+1 ADVANTAGE <?= e($pA_display) ?>)</span>
-                            <span class="text-yellow-300 text-xs font-bold" x-show="score_b > score_a">(+1 ADVANTAGE <?= e($pB_display) ?>)</span>
-                        </div>
-                        <div class="text-[11px] text-amber-200/80 font-medium mt-0.5">
-                            Must win by 2 consecutive points &bull; Sudden-Death Cap at <span x-text="deuceCap"></span> pts
+                            <span class="text-cyan-300 text-xs font-bold" x-show="score_a > score_b">(+1 ADV <?= e($pA_display) ?>)</span>
+                            <span class="text-yellow-300 text-xs font-bold" x-show="score_b > score_a">(+1 ADV <?= e($pB_display) ?>)</span>
                         </div>
                     </div>
-                </div>
-                <div class="text-right">
-                    <span class="px-3.5 py-1 rounded-xl bg-amber-400 text-[#0a1630] text-[11px] font-black uppercase tracking-widest shadow-md">
-                        Cap: <span x-text="deuceCap"></span> Pts
-                    </span>
                 </div>
             </div>
         </div>
 
         <!-- Live Game Point Banner Alert -->
-        <div x-show="!isDeuce && isGamePoint" x-cloak class="col-span-1 lg:col-span-2 -mb-2 z-20">
-            <div class="w-full bg-gradient-to-r from-cyan-950/90 via-blue-900/90 to-cyan-950/90 border-2 border-cyan-400 rounded-2xl py-2.5 px-4 sm:px-6 flex items-center justify-between shadow-[0_0_30px_rgba(6,182,212,0.35)] backdrop-blur-xl">
-                <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-xl bg-cyan-400 text-slate-950 flex items-center justify-center font-black shadow-md">
-                        <i class="ph-fill ph-lightning text-xl text-yellow-400"></i>
+        <div x-show="!isDeuce && isGamePoint" x-cloak class="col-span-2 -mb-1 sm:-mb-2 z-20">
+            <div class="w-full bg-gradient-to-r from-cyan-950/90 via-blue-900/90 to-cyan-950/90 border-2 border-cyan-400 rounded-xl sm:rounded-2xl py-2 sm:py-2.5 px-3 sm:px-6 flex items-center justify-between shadow-[0_0_30px_rgba(6,182,212,0.35)] backdrop-blur-xl">
+                <div class="flex items-center gap-2 sm:gap-3">
+                    <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-cyan-400 text-slate-950 flex items-center justify-center font-black shadow-md">
+                        <i class="ph-fill ph-lightning text-lg sm:text-xl text-yellow-400"></i>
                     </div>
                     <div class="text-xs sm:text-sm font-black text-cyan-200 tracking-wider flex items-center gap-2">
                         <span>⚡ GAME POINT</span>
-                        <span class="text-white text-xs font-bold">FOR <span x-text="gamePointLeader() === 'A' ? '<?= e($pA_display) ?>' : '<?= e($pB_display) ?>'"></span></span>
+                        <span class="text-white text-xs font-bold truncate">FOR <span x-text="gamePointLeader() === 'A' ? '<?= e($pA_display) ?>' : '<?= e($pB_display) ?>'"></span></span>
                     </div>
-                </div>
-                <div>
-                    <span class="px-3 py-1 rounded-xl bg-cyan-400 text-[#0a1630] text-[10px] font-black uppercase tracking-widest shadow-md"
-                          x-text="bestOf === 1 ? 'Match Decider' : ('Set ' + (games_a + games_b + 1) + ' Decider')">
-                    </span>
                 </div>
             </div>
         </div>
@@ -410,20 +394,20 @@ $gamesToWin = ceil($bestOf / 2);
         <!-- ============================================================ -->
         <!-- PLAYER A ARENA (Luminous Sapphire & Cyan Court)              -->
         <!-- ============================================================ -->
-        <section class="flex flex-col justify-between bg-gradient-to-b from-[#18356c]/90 via-[#122854]/90 to-[#0c1d42]/95 backdrop-blur-xl border-2 border-cyan-400/40 rounded-3xl p-4 sm:p-6 lg:p-8 shadow-2xl relative overflow-hidden group">
+        <section class="flex flex-col justify-between bg-gradient-to-b from-[#18356c]/90 via-[#122854]/90 to-[#0c1d42]/95 backdrop-blur-xl border-2 border-cyan-400/40 rounded-2xl sm:rounded-3xl p-2.5 sm:p-5 lg:p-7 shadow-2xl relative overflow-hidden group">
             
             <!-- Ambient Blue Glow -->
             <div class="absolute -top-24 -left-24 w-72 h-72 bg-cyan-400/15 rounded-full blur-3xl pointer-events-none group-hover:bg-cyan-400/25 transition-all"></div>
 
             <!-- Player A Header Capsule -->
-            <div class="relative z-10 bg-white/10 backdrop-blur-md rounded-2xl p-3.5 sm:p-4 border border-white/20 flex items-center justify-between shadow-md">
-                <div class="flex items-center gap-3 min-w-0 pr-2">
+            <div class="relative z-10 bg-white/10 backdrop-blur-md rounded-xl sm:rounded-2xl p-2 sm:p-3.5 border border-white/20 flex items-center justify-between shadow-md">
+                <div class="flex items-center gap-2 sm:gap-3 min-w-0 pr-1 sm:pr-2">
                     <!-- Avatar -->
                     <div class="relative flex-shrink-0">
                         <?php if (!empty($match['pa_photo'])): ?>
-                            <img src="<?= BASE_URL ?>/uploads/players/<?= e($match['pa_photo']) ?>" alt="Photo" class="w-12 h-12 rounded-2xl object-cover border-2 border-cyan-400 shadow-md">
+                            <img src="<?= BASE_URL ?>/uploads/players/<?= e($match['pa_photo']) ?>" alt="Photo" class="w-8 h-8 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl object-cover border-2 border-cyan-400 shadow-md">
                         <?php else: ?>
-                            <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-700 text-white font-black text-lg flex items-center justify-center border-2 border-cyan-300 shadow-md">
+                            <div class="w-8 h-8 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-700 text-white font-black text-xs sm:text-base flex items-center justify-center border-2 border-cyan-300 shadow-md">
                                 <?= strtoupper(substr($pA_display, 0, 1)) ?>
                             </div>
                         <?php endif; ?>
@@ -432,42 +416,38 @@ $gamesToWin = ceil($bestOf / 2);
                         <button type="button" 
                                 @click="server = 'A'"
                                 :class="server === 'A' ? 'opacity-100 scale-100' : 'opacity-0 scale-75'"
-                                class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-cyan-400 text-black flex items-center justify-center text-[10px] font-black shadow-lg transition-all"
+                                class="absolute -bottom-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-cyan-400 text-black flex items-center justify-center text-[9px] sm:text-[10px] font-black shadow-lg transition-all"
                                 title="Serving">
                             <i class="ph-fill ph-check"></i>
                         </button>
                     </div>
 
                     <div class="min-w-0">
-                        <div class="flex items-center gap-2 flex-wrap">
-                            <h2 class="text-base sm:text-xl font-black font-display text-white truncate tracking-tight"><?= e($pA_display) ?></h2>
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <h2 class="text-xs sm:text-base lg:text-lg 2xl:text-xl font-black font-display text-white truncate tracking-tight"><?= e($pA_display) ?></h2>
                             <button type="button" 
                                     @click="server = 'A'" 
                                     :class="server === 'A' ? 'bg-cyan-400 text-[#0a1630] font-black border-cyan-300' : 'bg-white/10 text-cyan-200 border-white/20 hover:bg-white/20'"
-                                    class="px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border transition flex items-center gap-1 cursor-pointer">
+                                    class="hidden sm:flex px-2 py-0.5 rounded-full text-[8px] sm:text-[9px] font-bold uppercase tracking-wider border transition items-center gap-1 cursor-pointer">
                                 <i class="ph-fill ph-lightning text-xs"></i>
                                 <span x-text="server === 'A' ? 'SERVING' : 'SET SERVE'"></span>
                             </button>
                         </div>
 
-                        <div class="text-[11px] text-slate-300 font-medium flex items-center gap-1.5 mt-0.5">
+                        <div class="text-[9px] sm:text-[11px] text-slate-300 font-medium flex items-center gap-1 sm:gap-1.5 mt-0.5 truncate">
                             <span class="text-cyan-300 font-bold"><?= e($match['pa_mohallah'] ?: 'TKMI') ?></span>
-                            <?php if (!empty($match['pa_its'])): ?>
-                                <span>&bull;</span>
-                                <span class="font-mono text-slate-300">ITS: <?= e($match['pa_its']) ?></span>
-                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
 
                 <!-- Sets Won LED Lamps -->
                 <div class="flex flex-col items-end flex-shrink-0">
-                    <span class="text-[9px] font-black uppercase tracking-widest text-cyan-300 mb-1">SETS WON</span>
-                    <div class="flex items-center gap-1.5 bg-black/40 px-2.5 py-1.5 rounded-xl border border-white/20 shadow-inner">
+                    <span class="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-cyan-300 mb-0.5 sm:mb-1">SETS</span>
+                    <div class="flex items-center gap-1 sm:gap-1.5 bg-black/40 px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-lg sm:rounded-xl border border-white/20 shadow-inner">
                         <?php for($i=0; $i<$gamesToWin; $i++): ?>
-                            <div class="w-3.5 h-3.5 rounded-full border transition-all duration-300 flex items-center justify-center" 
+                            <div class="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 rounded-full border transition-all duration-300 flex items-center justify-center" 
                                  :class="games_a > <?= $i ?> ? 'bg-cyan-400 border-cyan-200 shadow-[0_0_12px_rgba(6,182,212,1)] scale-110' : 'border-slate-600 bg-slate-800/60'">
-                                <div class="w-1.5 h-1.5 rounded-full bg-white" x-show="games_a > <?= $i ?>"></div>
+                                <div class="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-white" x-show="games_a > <?= $i ?>"></div>
                             </div>
                         <?php endfor; ?>
                     </div>
@@ -475,24 +455,24 @@ $gamesToWin = ceil($bestOf / 2);
             </div>
 
             <!-- Giant Luminous Score Digit & Tap Target -->
-            <div class="my-auto flex flex-col items-center justify-center py-6 sm:py-10 relative z-10">
+            <div class="my-auto flex flex-col items-center justify-center py-2 sm:py-6 lg:py-10 relative z-10">
                 <button type="button" 
                         @click="addPoint('A')"
-                        class="tap-target group/btn w-full flex flex-col items-center justify-center p-4 sm:p-6 rounded-3xl hover:bg-cyan-500/10 transition-all duration-200 active:scale-95 cursor-pointer relative"
+                        class="tap-target group/btn w-full flex flex-col items-center justify-center p-2 sm:p-4 rounded-2xl sm:rounded-3xl hover:bg-cyan-500/10 transition-all duration-200 active:scale-95 cursor-pointer relative"
                         title="Click or press [A] to add point for <?= e($pA_display) ?>">
                     
                     <!-- Glow Aura Behind Score -->
                     <div class="absolute inset-0 bg-cyan-400/15 rounded-full blur-3xl opacity-0 group-hover/btn:opacity-100 transition-opacity pointer-events-none"></div>
 
                     <div id="scoreDigitA" 
-                         class="text-[6.5rem] sm:text-[8.5rem] lg:text-[10.5rem] font-black font-display leading-none tracking-tighter text-white drop-shadow-[0_0_35px_rgba(6,182,212,0.6)] transition-transform duration-200"
+                         class="text-6xl sm:text-8xl md:text-9xl lg:text-[10.5rem] 2xl:text-[15rem] 3xl:text-[19rem] font-black font-display leading-none tracking-tighter text-white drop-shadow-[0_0_35px_rgba(6,182,212,0.6)] transition-transform duration-200 select-none"
                          x-text="score_a">
                         0
                     </div>
 
                     <!-- Massive Glowing Power Trigger -->
-                    <div class="mt-4 w-full max-w-xs sm:max-w-sm py-4 px-6 rounded-2xl bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-600 hover:from-cyan-300 hover:to-blue-400 text-white font-black text-sm uppercase tracking-widest shadow-[0_10px_35px_rgba(6,182,212,0.5)] border border-cyan-200/50 group-hover/btn:scale-105 transition-all flex items-center justify-center gap-2">
-                        <i class="ph-bold ph-plus-circle text-xl"></i>
+                    <div class="mt-2 sm:mt-4 w-full max-w-xs sm:max-w-sm py-2.5 sm:py-3.5 lg:py-4 px-3 sm:px-6 rounded-xl sm:rounded-2xl bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-600 hover:from-cyan-300 hover:to-blue-400 text-white font-black text-xs sm:text-sm uppercase tracking-wider sm:tracking-widest shadow-[0_10px_35px_rgba(6,182,212,0.5)] border border-cyan-200/50 group-hover/btn:scale-105 transition-all flex items-center justify-center gap-1.5 sm:gap-2">
+                        <i class="ph-bold ph-plus-circle text-base sm:text-xl"></i>
                         <span>+ POINT A</span>
                         <kbd class="hidden lg:inline px-1.5 py-0.5 rounded bg-black/30 text-[9px] font-mono border border-white/20 ml-1">A</kbd>
                     </div>
@@ -500,18 +480,18 @@ $gamesToWin = ceil($bestOf / 2);
             </div>
 
             <!-- Player A Footer: Quick Undo & Micro-actions -->
-            <div class="relative z-10 flex items-center justify-between pt-3 border-t border-white/15">
+            <div class="relative z-10 flex items-center justify-between pt-2 border-t border-white/15">
                 <button type="button" 
                         @click="undoPoint('A')" 
                         :disabled="score_a === 0 || isProcessing"
                         :class="score_a === 0 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-red-500/30 hover:text-white active:scale-95 cursor-pointer'"
-                        class="px-4 py-2 rounded-xl bg-white/10 border border-white/20 text-slate-200 text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                        class="px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-white/10 border border-white/20 text-slate-200 text-[10px] sm:text-xs font-bold transition flex items-center gap-1 sm:gap-1.5 shadow-sm">
                     <i class="ph-bold ph-arrow-counter-clockwise"></i>
-                    <span>Undo Point</span>
+                    <span>Undo</span>
                     <kbd class="hidden lg:inline px-1 py-0.2 rounded bg-black/40 text-[9px] font-mono text-slate-300">Z</kbd>
                 </button>
 
-                <div class="text-[10px] font-mono text-cyan-300 font-bold">
+                <div class="text-[9px] sm:text-[10px] font-mono text-cyan-300 font-bold">
                     Court A &bull; Blue Side
                 </div>
             </div>
@@ -520,20 +500,20 @@ $gamesToWin = ceil($bestOf / 2);
         <!-- ============================================================ -->
         <!-- PLAYER B ARENA (Luminous Royal Amber & Gold Court)           -->
         <!-- ============================================================ -->
-        <section class="flex flex-col justify-between bg-gradient-to-b from-[#382713]/90 via-[#291c0c]/90 to-[#1c1307]/95 backdrop-blur-xl border-2 border-[#c9a84c]/50 rounded-3xl p-4 sm:p-6 lg:p-8 shadow-2xl relative overflow-hidden group">
+        <section class="flex flex-col justify-between bg-gradient-to-b from-[#382713]/90 via-[#291c0c]/90 to-[#1c1307]/95 backdrop-blur-xl border-2 border-[#c9a84c]/50 rounded-2xl sm:rounded-3xl p-2.5 sm:p-5 lg:p-7 shadow-2xl relative overflow-hidden group">
             
             <!-- Ambient Gold Glow -->
             <div class="absolute -top-24 -right-24 w-72 h-72 bg-[#c9a84c]/15 rounded-full blur-3xl pointer-events-none group-hover:bg-[#c9a84c]/25 transition-all"></div>
 
             <!-- Player B Header Capsule -->
-            <div class="relative z-10 bg-white/10 backdrop-blur-md rounded-2xl p-3.5 sm:p-4 border border-white/20 flex items-center justify-between shadow-md">
-                <div class="flex items-center gap-3 min-w-0 pr-2">
+            <div class="relative z-10 bg-white/10 backdrop-blur-md rounded-xl sm:rounded-2xl p-2 sm:p-3.5 border border-white/20 flex items-center justify-between shadow-md">
+                <div class="flex items-center gap-2 sm:gap-3 min-w-0 pr-1 sm:pr-2">
                     <!-- Avatar -->
                     <div class="relative flex-shrink-0">
                         <?php if (!empty($match['pb_photo'])): ?>
-                            <img src="<?= BASE_URL ?>/uploads/players/<?= e($match['pb_photo']) ?>" alt="Photo" class="w-12 h-12 rounded-2xl object-cover border-2 border-[#c9a84c] shadow-md">
+                            <img src="<?= BASE_URL ?>/uploads/players/<?= e($match['pb_photo']) ?>" alt="Photo" class="w-8 h-8 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl object-cover border-2 border-[#c9a84c] shadow-md">
                         <?php else: ?>
-                            <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#c9a84c] to-amber-700 text-[#080e1e] font-black text-lg flex items-center justify-center border-2 border-[#ffd978] shadow-md">
+                            <div class="w-8 h-8 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#c9a84c] to-amber-700 text-[#080e1e] font-black text-xs sm:text-base flex items-center justify-center border-2 border-[#ffd978] shadow-md">
                                 <?= strtoupper(substr($pB_display, 0, 1)) ?>
                             </div>
                         <?php endif; ?>
@@ -542,42 +522,38 @@ $gamesToWin = ceil($bestOf / 2);
                         <button type="button" 
                                 @click="server = 'B'"
                                 :class="server === 'B' ? 'opacity-100 scale-100' : 'opacity-0 scale-75'"
-                                class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#c9a84c] text-black flex items-center justify-center text-[10px] font-black shadow-lg transition-all"
+                                class="absolute -bottom-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-[#c9a84c] text-black flex items-center justify-center text-[9px] sm:text-[10px] font-black shadow-lg transition-all"
                                 title="Serving">
                             <i class="ph-fill ph-check"></i>
                         </button>
                     </div>
 
                     <div class="min-w-0">
-                        <div class="flex items-center gap-2 flex-wrap">
-                            <h2 class="text-base sm:text-xl font-black font-display text-white truncate tracking-tight"><?= e($pB_display) ?></h2>
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <h2 class="text-xs sm:text-base lg:text-lg 2xl:text-xl font-black font-display text-white truncate tracking-tight"><?= e($pB_display) ?></h2>
                             <button type="button" 
                                     @click="server = 'B'" 
                                     :class="server === 'B' ? 'bg-[#c9a84c] text-[#080e1e] font-black border-amber-300' : 'bg-white/10 text-amber-200 border-white/20 hover:bg-white/20'"
-                                    class="px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border transition flex items-center gap-1 cursor-pointer">
+                                    class="hidden sm:flex px-2 py-0.5 rounded-full text-[8px] sm:text-[9px] font-bold uppercase tracking-wider border transition items-center gap-1 cursor-pointer">
                                 <i class="ph-fill ph-lightning text-xs"></i>
                                 <span x-text="server === 'B' ? 'SERVING' : 'SET SERVE'"></span>
                             </button>
                         </div>
 
-                        <div class="text-[11px] text-slate-300 font-medium flex items-center gap-1.5 mt-0.5">
+                        <div class="text-[9px] sm:text-[11px] text-slate-300 font-medium flex items-center gap-1 sm:gap-1.5 mt-0.5 truncate">
                             <span class="text-[#c9a84c] font-bold"><?= e($match['pb_mohallah'] ?: 'TKMI') ?></span>
-                            <?php if (!empty($match['pb_its'])): ?>
-                                <span>&bull;</span>
-                                <span class="font-mono text-slate-300">ITS: <?= e($match['pb_its']) ?></span>
-                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
 
                 <!-- Sets Won LED Lamps -->
                 <div class="flex flex-col items-end flex-shrink-0">
-                    <span class="text-[9px] font-black uppercase tracking-widest text-[#c9a84c] mb-1">SETS WON</span>
-                    <div class="flex items-center gap-1.5 bg-black/40 px-2.5 py-1.5 rounded-xl border border-white/20 shadow-inner">
+                    <span class="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-[#c9a84c] mb-0.5 sm:mb-1">SETS</span>
+                    <div class="flex items-center gap-1 sm:gap-1.5 bg-black/40 px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-lg sm:rounded-xl border border-white/20 shadow-inner">
                         <?php for($i=0; $i<$gamesToWin; $i++): ?>
-                            <div class="w-3.5 h-3.5 rounded-full border transition-all duration-300 flex items-center justify-center" 
+                            <div class="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 rounded-full border transition-all duration-300 flex items-center justify-center" 
                                  :class="games_b > <?= $i ?> ? 'bg-[#c9a84c] border-amber-200 shadow-[0_0_12px_rgba(201,168,76,1)] scale-110' : 'border-slate-600 bg-slate-800/60'">
-                                <div class="w-1.5 h-1.5 rounded-full bg-white" x-show="games_b > <?= $i ?>"></div>
+                                <div class="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-white" x-show="games_b > <?= $i ?>"></div>
                             </div>
                         <?php endfor; ?>
                     </div>
@@ -585,24 +561,24 @@ $gamesToWin = ceil($bestOf / 2);
             </div>
 
             <!-- Giant Luminous Score Digit & Tap Target -->
-            <div class="my-auto flex flex-col items-center justify-center py-6 sm:py-10 relative z-10">
+            <div class="my-auto flex flex-col items-center justify-center py-2 sm:py-6 lg:py-10 relative z-10">
                 <button type="button" 
                         @click="addPoint('B')"
-                        class="tap-target group/btn w-full flex flex-col items-center justify-center p-4 sm:p-6 rounded-3xl hover:bg-amber-500/10 transition-all duration-200 active:scale-95 cursor-pointer relative"
+                        class="tap-target group/btn w-full flex flex-col items-center justify-center p-2 sm:p-4 rounded-2xl sm:rounded-3xl hover:bg-amber-500/10 transition-all duration-200 active:scale-95 cursor-pointer relative"
                         title="Click or press [L] to add point for <?= e($pB_display) ?>">
                     
                     <!-- Glow Aura Behind Score -->
                     <div class="absolute inset-0 bg-[#c9a84c]/15 rounded-full blur-3xl opacity-0 group-hover/btn:opacity-100 transition-opacity pointer-events-none"></div>
 
                     <div id="scoreDigitB" 
-                         class="text-[6.5rem] sm:text-[8.5rem] lg:text-[10.5rem] font-black font-display leading-none tracking-tighter text-white drop-shadow-[0_0_35px_rgba(201,168,76,0.6)] transition-transform duration-200"
+                         class="text-6xl sm:text-8xl md:text-9xl lg:text-[10.5rem] 2xl:text-[15rem] 3xl:text-[19rem] font-black font-display leading-none tracking-tighter text-white drop-shadow-[0_0_35px_rgba(201,168,76,0.6)] transition-transform duration-200 select-none"
                          x-text="score_b">
                         0
                     </div>
 
                     <!-- Massive Glowing Power Trigger -->
-                    <div class="mt-4 w-full max-w-xs sm:max-w-sm py-4 px-6 rounded-2xl bg-gradient-to-r from-amber-400 via-[#c9a84c] to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-[#080e1e] font-black text-sm uppercase tracking-widest shadow-[0_10px_35px_rgba(201,168,76,0.5)] border border-amber-200/60 group-hover/btn:scale-105 transition-all flex items-center justify-center gap-2">
-                        <i class="ph-bold ph-plus-circle text-xl"></i>
+                    <div class="mt-2 sm:mt-4 w-full max-w-xs sm:max-w-sm py-2.5 sm:py-3.5 lg:py-4 px-3 sm:px-6 rounded-xl sm:rounded-2xl bg-gradient-to-r from-amber-400 via-[#c9a84c] to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-[#080e1e] font-black text-xs sm:text-sm uppercase tracking-wider sm:tracking-widest shadow-[0_10px_35px_rgba(201,168,76,0.5)] border border-amber-200/60 group-hover/btn:scale-105 transition-all flex items-center justify-center gap-1.5 sm:gap-2">
+                        <i class="ph-bold ph-plus-circle text-base sm:text-xl"></i>
                         <span>+ POINT B</span>
                         <kbd class="hidden lg:inline px-1.5 py-0.5 rounded bg-black/20 text-[9px] font-mono border border-black/20 ml-1">L</kbd>
                     </div>
@@ -610,24 +586,38 @@ $gamesToWin = ceil($bestOf / 2);
             </div>
 
             <!-- Player B Footer: Quick Undo & Micro-actions -->
-            <div class="relative z-10 flex items-center justify-between pt-3 border-t border-white/15">
+            <div class="relative z-10 flex items-center justify-between pt-2 border-t border-white/15">
                 <button type="button" 
                         @click="undoPoint('B')" 
                         :disabled="score_b === 0 || isProcessing"
                         :class="score_b === 0 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-red-500/30 hover:text-white active:scale-95 cursor-pointer'"
-                        class="px-4 py-2 rounded-xl bg-white/10 border border-white/20 text-slate-200 text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                        class="px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-white/10 border border-white/20 text-slate-200 text-[10px] sm:text-xs font-bold transition flex items-center gap-1 sm:gap-1.5 shadow-sm">
                     <i class="ph-bold ph-arrow-counter-clockwise"></i>
-                    <span>Undo Point</span>
+                    <span>Undo</span>
                     <kbd class="hidden lg:inline px-1 py-0.2 rounded bg-black/40 text-[9px] font-mono text-slate-300">M</kbd>
                 </button>
 
-                <div class="text-[10px] font-mono text-[#c9a84c] font-bold">
+                <div class="text-[9px] sm:text-[10px] font-mono text-[#c9a84c] font-bold">
                     Court B &bull; Gold Side
                 </div>
             </div>
         </section>
 
     </main>
+
+    <!-- TV / Hall Screen Floating Sponsor Badge (Corner of live scoreboard - GEMINI.md) -->
+    <?php if (!empty($sponsors)): ?>
+        <div class="fixed bottom-3 right-4 z-30 hidden sm:flex items-center gap-2.5 bg-[#0f2044]/90 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/15 shadow-xl text-[10px] text-slate-300">
+            <span class="font-bold text-[#c9a84c] uppercase tracking-wider text-[9px]">Sponsors</span>
+            <div class="flex items-center gap-2">
+                <?php foreach (array_slice($sponsors, 0, 4) as $sp): 
+                    $spUrl = str_starts_with($sp['image_path'], 'uploads/') ? BASE_URL . '/' . e($sp['image_path']) : BASE_URL . '/uploads/sponsors/' . e($sp['image_path']);
+                ?>
+                    <img src="<?= $spUrl ?>" alt="<?= e($sp['name']) ?>" title="<?= e($sp['name']) ?>" class="h-4 max-w-[50px] object-contain rounded brightness-90 hover:brightness-100 transition">
+                <?php endforeach; ?>
+            </div>
+        </div>
+    <?php endif; ?>
 
     <!-- ============================================================ -->
     <!-- EPIC CHAMPIONSHIP MATCH COMPLETED / VICTORY OVERLAY          -->

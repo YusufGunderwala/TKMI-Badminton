@@ -226,22 +226,22 @@ include __DIR__ . '/includes/header.php';
                             <span class="opacity-90 font-mono text-[9px]"><?= e($match['tournament_name'] ?? 'Tournament') ?></span>
                         </div>
                         
-                        <div class="p-6 grid grid-cols-[1fr_auto_1fr] items-center gap-4 flex-1 bg-white">
+                        <div class="p-3 sm:p-6 grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-4 flex-1 bg-white">
                             <!-- Player A -->
                             <div class="text-center flex flex-col justify-center h-full">
-                                <div class="font-black text-slate-800 text-base leading-snug line-clamp-2" title="<?= e($pAName) ?>"><?= e($pAName) ?></div>
-                                <div class="flex gap-1.5 justify-center mt-2.5">
+                                <div class="font-black text-slate-800 text-sm sm:text-base leading-snug line-clamp-2" title="<?= e($pAName) ?>"><?= e($pAName) ?></div>
+                                <div class="flex gap-1 sm:gap-1.5 justify-center mt-1.5 sm:mt-2.5">
                                     <?php for ($i=0; $i<$gamesToWin; $i++): ?>
-                                        <div class="w-3 h-3 rounded-full <?= ((int)$match['games_a'] > $i) ? 'bg-[#c9a84c] shadow-[0_0_8px_rgba(201,168,76,0.6)]' : 'bg-slate-200 border border-slate-300' ?>"></div>
+                                        <div class="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full <?= ((int)$match['games_a'] > $i) ? 'bg-[#c9a84c] shadow-[0_0_8px_rgba(201,168,76,0.6)]' : 'bg-slate-200 border border-slate-300' ?>"></div>
                                     <?php endfor; ?>
                                 </div>
                             </div>
 
                             <!-- Live Scores -->
-                            <div class="flex items-center justify-center gap-3 bg-[#0f2044] text-white px-5 py-3 rounded-2xl shadow-lg border border-slate-700">
-                                <div class="text-3xl font-black w-10 text-center font-display text-white" id="score_a_<?= $match['id'] ?>"><?= (int)$match['score_a'] ?></div>
-                                <div class="text-[#c9a84c] font-black text-xl mb-0.5">:</div>
-                                <div class="text-3xl font-black w-10 text-center font-display text-white" id="score_b_<?= $match['id'] ?>"><?= (int)$match['score_b'] ?></div>
+                            <div class="flex items-center justify-center gap-1.5 sm:gap-3 bg-[#0f2044] text-white px-3 sm:px-5 py-2 sm:py-3 rounded-xl sm:rounded-2xl shadow-lg border border-slate-700">
+                                <div class="text-2xl sm:text-3xl font-black w-8 sm:w-10 text-center font-display text-white" id="score_a_<?= $match['id'] ?>"><?= (int)$match['score_a'] ?></div>
+                                <div class="text-[#c9a84c] font-black text-lg sm:text-xl mb-0.5">:</div>
+                                <div class="text-2xl sm:text-3xl font-black w-8 sm:w-10 text-center font-display text-white" id="score_b_<?= $match['id'] ?>"><?= (int)$match['score_b'] ?></div>
                             </div>
 
                             <!-- Player B -->

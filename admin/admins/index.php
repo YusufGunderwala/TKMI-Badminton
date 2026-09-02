@@ -91,15 +91,15 @@ include __DIR__ . '/../includes/header.php';
     deleteAdminName: ''
 }">
 
-    <div class="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 sm:mb-8 gap-4">
         <div>
-            <h1 class="text-3xl font-black text-[#0f2044] tracking-tight flex items-center gap-3">
+            <h1 class="text-2xl sm:text-3xl font-black text-[#0f2044] tracking-tight flex items-center gap-2 sm:gap-3">
                 <i class="ph-fill ph-shield-check text-[#c9a84c]"></i> Manage Administrators
             </h1>
-            <p class="text-slate-500 font-medium mt-1">Manage users who have access to the TKMI Badminton Platform.</p>
+            <p class="text-xs sm:text-sm text-slate-500 font-medium mt-1">Manage users who have access to the TKMI Badminton Platform.</p>
         </div>
-        <button @click="showAddModal = true" class="bg-[#c9a84c] hover:bg-[#b0923e] text-[#0f2044] px-6 py-2.5 rounded-xl font-black transition shadow-md flex items-center gap-2">
-            <i class="ph-bold ph-user-plus text-lg"></i> Add New Admin
+        <button @click="showAddModal = true" class="bg-[#c9a84c] hover:bg-[#b0923e] text-[#0f2044] px-5 sm:px-6 py-2 sm:py-2.5 rounded-xl font-black transition shadow-md flex items-center gap-2 text-xs sm:text-sm">
+            <i class="ph-bold ph-user-plus text-base sm:text-lg"></i> Add New Admin
         </button>
     </div>
 
@@ -107,7 +107,7 @@ include __DIR__ . '/../includes/header.php';
 
     <div class="bg-white border border-slate-200 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
+            <table class="w-full text-left border-collapse min-w-[600px]">
                 <thead>
                     <tr class="bg-slate-50 border-b border-slate-200 text-[10px] uppercase tracking-widest text-slate-400 font-bold">
                         <th class="p-5 pl-8">Admin Name</th>

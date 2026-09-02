@@ -22,7 +22,7 @@ $recentTournaments = array_slice(getAllTournaments(), 0, 5);
 <?php endif; ?>
 
 <!-- Welcome Hero Banner -->
-<div class="bg-[#0f2044] rounded-3xl p-10 text-white shadow-xl mb-10 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 border border-white/10">
+<div class="bg-[#0f2044] rounded-3xl p-5 sm:p-8 lg:p-10 text-white shadow-xl mb-6 sm:mb-10 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6 sm:gap-8 border border-white/10">
     <!-- Retro Grid Ambient Effect -->
     <div class="retro-grid retro-grid-dark opacity-15">
         <div class="retro-grid-plane"></div>
@@ -59,13 +59,13 @@ $recentTournaments = array_slice(getAllTournaments(), 0, 5);
             'amber' => 'bg-amber-50 text-amber-600'
         ];
     ?>
-    <div class="spotlight-card bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex items-center gap-5 hover-lift transition-all">
-        <div class="w-16 h-16 rounded-2xl flex items-center justify-center <?= $bgMap[$color] ?> transition-transform group-hover:scale-110 shadow-inner">
-            <i class="ph-fill <?= $card['icon'] ?> text-3xl"></i>
+    <div class="spotlight-card bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 shadow-sm flex items-center gap-3.5 sm:gap-5 hover-lift transition-all">
+        <div class="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl flex items-center justify-center <?= $bgMap[$color] ?> transition-transform group-hover:scale-110 shadow-inner flex-shrink-0">
+            <i class="ph-fill <?= $card['icon'] ?> text-2xl sm:text-3xl"></i>
         </div>
         <div>
-            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1"><?= $card['title'] ?></div>
-            <div class="text-4xl font-black font-display text-[#0f2044] leading-none tracking-tighter" data-ticker="<?= $card['val'] ?>"><?= $card['val'] ?></div>
+            <div class="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1"><?= $card['title'] ?></div>
+            <div class="text-2xl sm:text-4xl font-black font-display text-[#0f2044] leading-none tracking-tighter" data-ticker="<?= $card['val'] ?>"><?= $card['val'] ?></div>
         </div>
     </div>
     <?php endforeach; ?>

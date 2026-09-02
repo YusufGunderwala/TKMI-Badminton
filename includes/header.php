@@ -76,12 +76,12 @@
   <nav class="max-w-5xl mx-auto bg-[#0f2044]/85 backdrop-blur-xl border border-white/15 rounded-full px-5 sm:px-7 py-2.5 shadow-[0_10px_35px_rgba(0,0,0,0.35)] flex items-center justify-between pointer-events-auto transition-all duration-300">
 
       <!-- Logo + Brand -->
-      <a href="<?= BASE_URL ?>/" class="flex items-center gap-3 group">
-        <div class="w-10 h-10 rounded-full overflow-hidden border-2 border-[#c9a84c]/60 shadow-md transition-transform group-hover:scale-105 flex-shrink-0 bg-[#004d26]">
+      <a href="<?= BASE_URL ?>/" class="flex items-center gap-2.5 sm:gap-3 group min-w-0">
+        <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden border-2 border-[#c9a84c]/60 shadow-md transition-transform group-hover:scale-105 flex-shrink-0 bg-[#004d26]">
           <img src="<?= BASE_URL ?>/assets/assets/Logo.png" alt="Toloba Logo" class="w-full h-full object-cover">
         </div>
-        <div>
-          <div class="text-white font-display font-black text-lg tracking-tight leading-none group-hover:text-[#c9a84c] transition-colors">TKMI BADMINTON</div>
+        <div class="min-w-0 truncate">
+          <div class="text-white font-display font-black text-sm sm:text-base lg:text-lg tracking-tight leading-none group-hover:text-[#c9a84c] transition-colors truncate">TKMI <span class="text-[#c9a84c]">BADMINTON</span></div>
         </div>
       </a>
 
@@ -99,9 +99,9 @@
       </div>
 
       <!-- Action Button -->
-      <div class="flex items-center gap-3">
-        <a href="<?= BASE_URL ?>/admin/login.php" class="gold-shimmer-btn text-xs font-black uppercase tracking-wider px-5 py-2 rounded-full shadow-md transition-all flex items-center gap-2 hover-lift">
-          <i class="ph-bold ph-shield-check text-sm"></i> <span>Command Center</span>
+      <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+        <a href="<?= BASE_URL ?>/admin/login.php" class="hidden sm:flex gold-shimmer-btn text-xs font-black uppercase tracking-wider px-4 sm:px-5 py-2 rounded-full shadow-md transition-all items-center gap-1.5 hover-lift">
+          <i class="ph-bold ph-shield-check text-sm"></i> <span>Admin Portal</span>
         </a>
 
         <!-- Mobile Menu Toggle -->

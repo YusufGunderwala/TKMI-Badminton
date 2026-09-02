@@ -59,12 +59,12 @@ include __DIR__ . '/../includes/header.php';
     }
 }">
 
-    <div class="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
         <div>
-            <h2 class="text-3xl font-black font-display text-[#0f2044]">Tournament Directory</h2>
-            <p class="text-slate-500 font-medium mt-1">Manage active tournaments, view brackets, or create new divisions.</p>
+            <h1 class="text-2xl sm:text-3xl font-black text-slate-800 font-display">Tournaments</h1>
+            <p class="text-xs sm:text-sm text-slate-500 font-medium mt-1">Manage active tournaments, view brackets, or create new divisions.</p>
         </div>
-        <a href="<?= BASE_URL ?>/admin/tournaments/create.php" class="bg-[#c9a84c] hover:bg-[#b0923e] text-[#0f2044] px-6 py-2.5 rounded-xl font-black transition shadow-md flex items-center gap-2">
+        <a href="<?= BASE_URL ?>/admin/tournaments/create.php" class="bg-[#c9a84c] hover:bg-[#b0923e] text-[#0f2044] px-5 sm:px-6 py-2.5 rounded-xl font-black transition shadow-md flex items-center gap-2 text-sm sm:text-base">
             <i class="ph-bold ph-plus-circle text-lg"></i> New Tournament
         </a>
     </div>
@@ -73,7 +73,7 @@ include __DIR__ . '/../includes/header.php';
 
     <div class="bg-white border border-slate-200 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
+            <table class="w-full text-left border-collapse min-w-[640px]">
                 <thead>
                     <tr class="bg-slate-50 border-b border-slate-200 text-[10px] uppercase tracking-widest text-slate-400 font-bold">
                         <th class="p-5 pl-8">Tournament Name</th>

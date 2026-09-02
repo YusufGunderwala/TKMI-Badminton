@@ -857,10 +857,13 @@ include __DIR__ . '/../includes/header.php';
                         <p class="text-xs text-slate-400 font-medium">Rankings across all qualifier and pool stages</p>
                     </div>
                 </div>
+            <div class="md:hidden px-4 py-2 bg-slate-50 border-b border-slate-100 flex items-center justify-center gap-1.5 text-[11px] font-bold text-slate-500">
+                <i class="ph-bold ph-arrows-left-right text-xs text-[#c9a84c]"></i>
+                <span>Swipe table horizontally to view stats</span>
             </div>
 
             <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
+                <table class="w-full text-left border-collapse min-w-[640px]">
                     <thead>
                         <tr class="bg-slate-50/50 text-slate-400 text-[10px] uppercase tracking-widest font-black border-b border-slate-100">
                             <th class="p-4 pl-6 w-16 text-center">Rank</th>
@@ -969,8 +972,14 @@ include __DIR__ . '/../includes/header.php';
                 <p class="text-slate-500 text-sm mt-1">Stage 2 Single Elimination bracket tree unlocks once the Swiss qualifying rounds conclude.</p>
             </div>
         <?php else: ?>
-            <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 overflow-x-auto custom-scrollbar">
-                <div class="flex items-stretch gap-8 min-w-[950px] p-4 bg-slate-50/60 rounded-2xl border border-slate-200/80">
+            <!-- Mobile Swipe Hint -->
+            <div class="md:hidden flex items-center justify-center gap-1.5 text-[11px] font-bold text-slate-500 bg-white border border-slate-200 py-2 px-4 rounded-2xl shadow-xs mx-auto mb-3 w-fit">
+                <i class="ph-bold ph-arrows-left-right text-xs text-[#c9a84c]"></i>
+                <span>Swipe left/right to browse tournament bracket</span>
+            </div>
+
+            <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-4 sm:p-6 overflow-x-auto custom-scrollbar">
+                <div class="flex items-stretch gap-6 sm:gap-8 min-w-[950px] p-3 sm:p-4 bg-slate-50/60 rounded-2xl border border-slate-200/80">
                     
                     <!-- R16 -->
                     <?php if (!empty($bracket['r16'])): ?>
