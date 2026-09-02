@@ -543,12 +543,12 @@ function getStatusTailwind($status) {
                     
                     <?php if (isset($manifest['stage_2'])): ?>
                         <!-- Stage 2 Block -->
-                        <div class="bg-[#c9a84c]/10 border border-[#c9a84c]/30 rounded-3xl p-6 w-full max-w-xl text-center">
+                        <div class="bg-[#c9a84c]/10 border border-[#c9a84c]/30 rounded-3xl p-6 w-full max-w-2xl text-center">
                             <h4 class="font-black text-[#8a722f] mb-2 uppercase tracking-wider text-sm flex justify-center items-center gap-2">
                                 <i class="ph-bold ph-target text-[#c9a84c]"></i> Stage 2: Single Elimination
                             </h4>
                             
-                            <p class="text-xs text-[#8a722f]/80 font-bold mb-4 flex items-center justify-center gap-2">
+                            <p class="text-xs text-[#8a722f]/80 font-bold mb-6 flex items-center justify-center gap-2">
                                 <?= $manifest['stage_2']['bracket_size'] ?>-Player Bracket 
                                 <?php if ($manifest['stage_2']['byes'] > 0): ?>
                                     <span class="bg-[#c9a84c]/20 px-2 py-0.5 rounded-full text-[#8a722f]"><?= $manifest['stage_2']['byes'] ?> Byes</span>
@@ -557,7 +557,6 @@ function getStatusTailwind($status) {
                             
                             <div class="flex flex-col items-center gap-3">
                                 <?php 
-                                    // Generate matches per round text
                                     $s2_matches = [
                                         'r32' => '16 Matches',
                                         'r16' => '8 Matches',
@@ -566,26 +565,77 @@ function getStatusTailwind($status) {
                                         '3rd_place' => '1 Match (Bronze)',
                                         'final' => '1 Match (Gold)'
                                     ];
-                                    foreach ($manifest['stage_2']['rounds'] as $roundKey): 
+                                    
+                                    // Filter out 3rd_place and final for linear rendering
+                                    $linear_rounds = array_diff($manifest['stage_2']['rounds'], ['3rd_place', 'final']);
+                                    $has_3rd = in_array('3rd_place', $manifest['stage_2']['rounds']);
+                                    $has_final = in_array('final', $manifest['stage_2']['rounds']);
+                                    
+                                    foreach ($linear_rounds as $roundKey): 
                                         $matchText = $s2_matches[$roundKey] ?? '';
                                 ?>
-                                    <div class="flex flex-col items-center w-full max-w-xs">
-                                        <div class="bg-white border border-[#c9a84c]/30 rounded-xl px-4 py-2 text-sm font-bold text-[#8a722f] shadow-sm w-full flex justify-between items-center">
+                                    <div class="flex flex-col items-center w-full max-w-xs relative z-10">
+                                        <div class="bg-white border border-[#c9a84c]/30 rounded-xl px-4 py-2.5 text-sm font-bold text-[#8a722f] shadow-sm w-full flex justify-between items-center">
                                             <span><?= strtoupper(str_replace('_', ' ', $roundKey)) ?></span>
-                                            <span class="text-[10px] text-[#c9a84c] uppercase tracking-wider"><?= $matchText ?></span>
+                                            <span class="text-[10px] text-[#c9a84c] uppercase tracking-wider font-black"><?= $matchText ?></span>
                                         </div>
                                     </div>
-                                    <?php if (end($manifest['stage_2']['rounds']) !== $roundKey): ?>
-                                        <i class="ph-bold ph-arrow-down text-[#c9a84c]/40 text-lg"></i>
+                                    <?php if (end($linear_rounds) !== $roundKey || $has_final): ?>
+                                        <div class="h-6 w-px border-l-2 border-[#c9a84c]/30 border-dashed"></div>
                                     <?php endif; ?>
                                 <?php endforeach; ?>
+                                
+                                <?php if ($has_final): ?>
+                                    <?php if ($has_3rd): ?>
+                                        <!-- Split for Final and 3rd Place -->
+                                        <div class="flex w-full max-w-sm h-6 relative -mt-3">
+                                            <div class="w-1/2 border-t-2 border-l-2 border-[#c9a84c]/30 rounded-tl-xl h-full border-dashed"></div>
+                                            <div class="w-1/2 border-t-2 border-r-2 border-[#c9a84c]/30 rounded-tr-xl h-full border-dashed"></div>
+                                        </div>
+                                        <div class="flex justify-between w-full max-w-md mx-auto gap-4">
+                                            <!-- 3rd Place -->
+                                            <div class="w-1/2 flex flex-col items-center">
+                                                <span class="text-[10px] uppercase font-bold text-[#8a722f] mb-1 tracking-wider">SF Losers</span>
+                                                <div class="bg-orange-50 border border-orange-200 rounded-xl px-4 py-2.5 text-sm font-bold text-orange-800 shadow-sm w-full flex flex-col items-center">
+                                                    <span>3RD PLACE</span>
+                                                    <span class="text-[10px] text-orange-600/80 uppercase tracking-wider font-black mt-0.5"><?= $s2_matches['3rd_place'] ?></span>
+                                                </div>
+                                            </div>
+                                            <!-- Final -->
+                                            <div class="w-1/2 flex flex-col items-center">
+                                                <span class="text-[10px] uppercase font-bold text-[#8a722f] mb-1 tracking-wider">SF Winners</span>
+                                                <div class="bg-yellow-50 border border-yellow-300 rounded-xl px-4 py-2.5 text-sm font-bold text-yellow-800 shadow-sm w-full flex flex-col items-center">
+                                                    <span>FINAL</span>
+                                                    <span class="text-[10px] text-yellow-600/80 uppercase tracking-wider font-black mt-0.5"><?= $s2_matches['final'] ?></span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    <?php else: ?>
+                                        <!-- Only Final -->
+                                        <div class="flex flex-col items-center w-full max-w-xs relative z-10">
+                                            <span class="text-[10px] uppercase font-bold text-[#8a722f] mb-1 tracking-wider">SF Winners</span>
+                                            <div class="bg-yellow-50 border border-yellow-300 rounded-xl px-4 py-2.5 text-sm font-bold text-yellow-800 shadow-sm w-full flex flex-col items-center">
+                                                <span>FINAL</span>
+                                                <span class="text-[10px] text-yellow-600/80 uppercase tracking-wider font-black mt-0.5"><?= $s2_matches['final'] ?></span>
+                                            </div>
+                                        </div>
+                                    <?php endif; ?>
+                                <?php endif; ?>
                             </div>
                         </div>
                         
                         <!-- Down arrow to Champion -->
-                        <div class="h-8 w-px bg-slate-300 border-l-2 border-dashed border-slate-300 -my-0.5"></div>
+                        <div class="flex w-full max-w-md mx-auto relative h-8">
+                            <?php if ($has_3rd): ?>
+                                <div class="w-1/2 border-r-2 border-dashed border-[#c9a84c]/40 h-full invisible"></div>
+                                <div class="w-1/2 border-l-2 border-dashed border-slate-300 h-full translate-x-1/4"></div>
+                            <?php else: ?>
+                                <div class="w-1/2 border-r-2 border-dashed border-slate-300 h-full"></div>
+                                <div class="w-1/2"></div>
+                            <?php endif; ?>
+                        </div>
                         
-                        <div class="bg-gradient-to-br from-yellow-400 to-yellow-600 text-white font-black px-8 py-4 rounded-2xl shadow-xl shadow-yellow-500/20 text-center relative z-10 w-64 border border-yellow-300">
+                        <div class="bg-gradient-to-br from-yellow-400 to-yellow-600 text-white font-black px-8 py-4 rounded-2xl shadow-xl shadow-yellow-500/20 text-center relative z-10 w-64 border border-yellow-300 <?= $has_3rd ? 'translate-x-14' : '' ?>">
                             <i class="ph-fill ph-trophy text-3xl mb-1 text-yellow-100 drop-shadow-md"></i>
                             <div class="text-lg tracking-wide uppercase">Champion</div>
                         </div>
