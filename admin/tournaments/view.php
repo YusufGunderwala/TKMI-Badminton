@@ -274,10 +274,40 @@ function getStatusTailwind($status) {
     <div class="lg:col-span-2 space-y-6">
         
         <?php if (in_array($tournament['status'], ['draft', 'enrollment_locked'])): ?>
-            <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-8 text-center">
-                <i class="ph-fill ph-lock-key text-4xl text-slate-300 mb-3"></i>
-                <h3 class="font-black text-xl text-slate-800">Scoring Rules Locked</h3>
-                <p class="text-slate-500 mt-2 text-sm max-w-md mx-auto">You must lock enrollment and generate the tournament structure first before you can configure the scoring rules for each round.</p>
+            <div class="bg-white border border-slate-200 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] p-10 text-center flex flex-col items-center">
+                <div class="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mb-4">
+                    <i class="ph-fill ph-lock-key text-3xl"></i>
+                </div>
+                <h3 class="font-black text-2xl text-[#0f2044] tracking-tight mb-2">Scoring Rules are Locked</h3>
+                <p class="text-slate-500 text-sm max-w-lg mb-8 leading-relaxed">
+                    Because this tournament is dynamic, the system doesn't know how many rounds to create until you finish adding players. Follow these steps to unlock the scoring rules:
+                </p>
+                
+                <div class="flex flex-col gap-3 text-left w-full max-w-md">
+                    <div class="flex items-start gap-4 p-4 rounded-2xl bg-blue-50/50 border border-blue-100">
+                        <div class="w-8 h-8 rounded-full bg-blue-600 text-white font-black flex items-center justify-center flex-shrink-0 text-sm shadow-md">1</div>
+                        <div>
+                            <h4 class="font-bold text-blue-950 text-sm">Enroll Participants</h4>
+                            <p class="text-blue-800/70 text-xs mt-0.5">Click "Manage Players" (or Teams) on the right to add your roster.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start gap-4 p-4 rounded-2xl bg-blue-50/50 border border-blue-100">
+                        <div class="w-8 h-8 rounded-full bg-blue-600 text-white font-black flex items-center justify-center flex-shrink-0 text-sm shadow-md">2</div>
+                        <div>
+                            <h4 class="font-bold text-blue-950 text-sm">Lock Enrollment</h4>
+                            <p class="text-blue-800/70 text-xs mt-0.5">Click the dark blue "Lock Enrollment" button on the right to generate the math.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100 opacity-60 grayscale">
+                        <div class="w-8 h-8 rounded-full bg-slate-300 text-slate-600 font-black flex items-center justify-center flex-shrink-0 text-sm">3</div>
+                        <div>
+                            <h4 class="font-bold text-slate-700 text-sm">Configure Rules</h4>
+                            <p class="text-slate-500 text-xs mt-0.5">This section will unlock automatically for you to set points-per-game.</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         <?php else: 
             $stmtRounds = db()->prepare('SELECT * FROM round_configs WHERE tournament_id = ? ORDER BY id ASC');
