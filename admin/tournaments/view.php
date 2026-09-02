@@ -54,7 +54,7 @@ $manifest = json_decode($tournament['structure_manifest'] ?? '{}', true);
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_status') {
     if (verify_csrf()) {
         $new_status = $_POST['status'] ?? '';
-        if (in_array($new_status, ['draft', 'ready', 'live', 'completed', 'archived'])) {
+        if (in_array($new_status, ['draft', 'enrollment_locked', 'structure_ready', 'rules_locked', 'ready', 'live', 'completed', 'archived'])) {
             $stmt = db()->prepare('UPDATE tournaments SET status = ? WHERE id = ?');
             $stmt->execute([$new_status, $id]);
             AppCache::flush();
@@ -157,11 +157,24 @@ function getStatusTailwind($status) {
             <div x-data="{ open: false, value: '<?= e($tournament['status']) ?>' }" class="relative">
                 <input type="hidden" name="status" x-model="value">
                 
+                <?php
+                    $statuses = [
+                        'draft' => ['icon' => 'ph-pencil', 'label' => 'Draft', 'color' => 'text-slate-500'],
+                        'enrollment_locked' => ['icon' => 'ph-lock-key', 'label' => 'Enrollment Locked', 'color' => 'text-slate-600'],
+                        'structure_ready' => ['icon' => 'ph-tree-structure', 'label' => 'Structure Ready', 'color' => 'text-blue-500'],
+                        'rules_locked' => ['icon' => 'ph-lock-key', 'label' => 'Rules Locked', 'color' => 'text-slate-600'],
+                        'ready' => ['icon' => 'ph-check-circle', 'label' => 'Ready to Start', 'color' => 'text-yellow-500'],
+                        'live' => ['icon' => 'ph-broadcast', 'label' => 'LIVE', 'color' => 'text-red-500'],
+                        'completed' => ['icon' => 'ph-flag-checkered', 'label' => 'Completed', 'color' => 'text-emerald-500'],
+                        'archived' => ['icon' => 'ph-archive', 'label' => 'Archived', 'color' => 'text-slate-700']
+                    ];
+                    $currentLabel = isset($statuses[$tournament['status']]) ? $statuses[$tournament['status']]['label'] : ucfirst($tournament['status']);
+                ?>
                 <div class="bg-white border border-slate-200 p-1 rounded-xl shadow-sm flex items-center">
                     <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-3 pr-2">State</span>
                     <button type="button" @click="open = !open" @click.away="open = false" 
                             class="flex items-center gap-2 text-sm font-bold bg-slate-50 hover:bg-slate-100 border border-slate-100 rounded-lg text-[#0f2044] py-1.5 px-3 cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/20">
-                        <span x-text="value === 'live' ? 'LIVE' : value.charAt(0).toUpperCase() + value.slice(1)"></span>
+                        <span><?= e($currentLabel) ?></span>
                         <i class="ph-bold ph-caret-down text-slate-400 text-xs transition-transform duration-200" :class="open ? 'rotate-180' : ''"></i>
                     </button>
                 </div>
@@ -172,13 +185,6 @@ function getStatusTailwind($status) {
                      style="display: none;">
                     
                     <?php
-                    $statuses = [
-                        'draft' => ['icon' => 'ph-pencil', 'label' => 'Draft', 'color' => 'text-slate-500'],
-                        'ready' => ['icon' => 'ph-check-circle', 'label' => 'Ready', 'color' => 'text-yellow-500'],
-                        'live' => ['icon' => 'ph-broadcast', 'label' => 'LIVE', 'color' => 'text-red-500'],
-                        'completed' => ['icon' => 'ph-flag-checkered', 'label' => 'Completed', 'color' => 'text-emerald-500'],
-                        'archived' => ['icon' => 'ph-archive', 'label' => 'Archived', 'color' => 'text-slate-700']
-                    ];
                     foreach ($statuses as $sKey => $sVal):
                     ?>
                         <button type="button" 
