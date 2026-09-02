@@ -273,7 +273,11 @@ function getStatusTailwind($status) {
                 <h3 class="font-black text-xl text-slate-800">Scoring Rules Locked</h3>
                 <p class="text-slate-500 mt-2 text-sm max-w-md mx-auto">You must lock enrollment and generate the tournament structure first before you can configure the scoring rules for each round.</p>
             </div>
-        <?php else: ?>
+        <?php else: 
+            $stmtRounds = db()->prepare('SELECT * FROM round_configs WHERE tournament_id = ? ORDER BY id ASC');
+            $stmtRounds->execute([$id]);
+            $rounds = $stmtRounds->fetchAll();
+        ?>
         <div class="bg-white border border-slate-200 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] overflow-hidden">
             <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                 <h3 class="font-black text-[#0f2044] flex items-center gap-2">
