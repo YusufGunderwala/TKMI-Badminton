@@ -792,9 +792,13 @@ function getStatusTailwind($status) {
                                 echo '<span>Manual Match Setup (R2)</span>';
                                 echo '</a>';
                             } else {
-                                echo '<div class="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-4 text-blue-900 text-xs font-bold text-center">';
+                                echo '<div class="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-2 text-blue-900 text-xs font-bold text-center">';
                                 echo 'Round 1 Matches in Progress';
                                 echo '</div>';
+                                echo '<a href="'.BASE_URL.'/admin/scoring/index.php?tournament_id='.$id.'" class="w-full bg-[#0f2044] hover:bg-blue-900 text-white font-bold p-3 rounded-2xl shadow-sm transition-all text-xs flex items-center justify-center gap-2 mb-4">';
+                                echo '<i class="ph-bold ph-broadcast text-[#c9a84c]"></i>';
+                                echo '<span>View Schedules & Score Matches</span>';
+                                echo '</a>';
                             }
                         } elseif (!$hasSurvival) {
                             $r2Done = Matchmaker::isRoundComplete($id, ROUND_STAGE1_R2);
@@ -803,9 +807,13 @@ function getStatusTailwind($status) {
                                 echo 'Configure Survival Round (1-1 players)';
                                 echo '</a>';
                             } else {
-                                echo '<div class="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-4 text-blue-900 text-xs font-bold text-center">';
+                                echo '<div class="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-2 text-blue-900 text-xs font-bold text-center">';
                                 echo 'Round 2 Matches in Progress';
                                 echo '</div>';
+                                echo '<a href="'.BASE_URL.'/admin/scoring/index.php?tournament_id='.$id.'" class="w-full bg-[#0f2044] hover:bg-blue-900 text-white font-bold p-3 rounded-2xl shadow-sm transition-all text-xs flex items-center justify-center gap-2 mb-4">';
+                                echo '<i class="ph-bold ph-broadcast text-[#c9a84c]"></i>';
+                                echo '<span>View Schedules & Score Matches</span>';
+                                echo '</a>';
                             }
                         } elseif (!$hasStage2) {
                             $survDone = Matchmaker::isRoundComplete($id, ROUND_STAGE1_SURVIVAL);
@@ -819,9 +827,13 @@ function getStatusTailwind($status) {
                                 echo '</button>';
                                 echo '</form>';
                             } else {
-                                echo '<div class="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-4 text-blue-900 text-xs font-bold text-center">';
+                                echo '<div class="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-2 text-blue-900 text-xs font-bold text-center">';
                                 echo 'Survival Matches in Progress';
                                 echo '</div>';
+                                echo '<a href="'.BASE_URL.'/admin/scoring/index.php?tournament_id='.$id.'" class="w-full bg-[#0f2044] hover:bg-blue-900 text-white font-bold p-3 rounded-2xl shadow-sm transition-all text-xs flex items-center justify-center gap-2 mb-4">';
+                                echo '<i class="ph-bold ph-broadcast text-[#c9a84c]"></i>';
+                                echo '<span>View Schedules & Score Matches</span>';
+                                echo '</a>';
                             }
                         } else {
                             echo '<div class="text-center py-6 bg-slate-50 rounded-2xl border border-slate-200 mb-4">';

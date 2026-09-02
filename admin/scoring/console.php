@@ -710,14 +710,19 @@ $gamesToWin = ceil($bestOf / 2);
             <div class="flex flex-col sm:flex-row gap-3 justify-center">
                 <a href="<?= BASE_URL ?>/admin/scoring/index.php?tournament_id=<?= $match['tournament_id'] ?>" 
                    class="bg-gradient-to-r from-amber-400 via-[#c9a84c] to-amber-500 hover:from-amber-300 hover:to-amber-400 text-[#080e1e] font-black py-4 px-8 rounded-2xl shadow-xl hover:shadow-amber-500/30 transition-all flex items-center justify-center gap-2 text-sm uppercase tracking-wider cursor-pointer">
-                    <i class="ph-bold ph-arrow-right text-lg"></i>
-                    <span>Next Match On Court</span>
+                    <i class="ph-bold ph-calendar-check text-lg"></i>
+                    <span>Back to Tournament Schedule</span>
+                </a>
+                <a href="<?= BASE_URL ?>/admin/tournaments/view.php?id=<?= $match['tournament_id'] ?>" 
+                   class="bg-white/10 hover:bg-white/20 text-white font-bold py-4 px-6 rounded-2xl border border-white/20 transition-all text-sm flex items-center justify-center gap-2 cursor-pointer shadow-md">
+                    <i class="ph-bold ph-trophy text-lg text-[#c9a84c]"></i>
+                    <span>Tournament Dashboard</span>
                 </a>
                 <a href="<?= BASE_URL ?>/public/tournament.php?id=<?= $match['tournament_id'] ?>&tab=bracket" 
                    target="_blank"
                    class="bg-white/10 hover:bg-white/20 text-white font-bold py-4 px-6 rounded-2xl border border-white/20 transition-all text-sm flex items-center justify-center gap-2 cursor-pointer shadow-md">
                     <i class="ph-bold ph-tree-structure text-lg text-[#c9a84c]"></i>
-                    <span>View Tournament Bracket</span>
+                    <span>Public Bracket</span>
                 </a>
             </div>
 
@@ -1118,13 +1123,24 @@ $gamesToWin = ceil($bestOf / 2);
 
             async confirmFinalizeMatch() {
                 this.showConfirmCompleteModal = false;
-                const winnerSide = (this.score_a > this.score_b) ? 'A' : 'B';
+                this.isProcessing = true;
+                
+                // 1. Wait for any pending point updates in flight to complete
+                let waitCount = 0;
+                while ((this.isQueueRunning || this.actionQueue.length > 0) && waitCount < 30) {
+                    await new Promise(r => setTimeout(r, 60));
+                    waitCount++;
+                }
+
+                const winnerSide = (this.score_a >= this.score_b) ? 'A' : 'B';
                 
                 try {
                     let fd = new FormData();
                     fd.append('match_id', <?= $matchId ?>);
                     fd.append('action', 'finalize_match');
                     fd.append('winner_side', winnerSide);
+                    fd.append('score_a', this.score_a);
+                    fd.append('score_b', this.score_b);
                     fd.append('csrf_token', '<?= $csrf ?>');
 
                     const response = await fetch('<?= BASE_URL ?>/api/score.php', { method: 'POST', body: fd });
@@ -1132,17 +1148,24 @@ $gamesToWin = ceil($bestOf / 2);
                     
                     if (data.success) {
                         this.isCompleted = true;
-                        this.games_a = data.games_a;
-                        this.games_b = data.games_b;
+                        this.games_a = data.games_a ?? this.games_a;
+                        this.games_b = data.games_b ?? this.games_b;
                         this.actionQueue = [];
                         if (typeof fireConfetti === 'function') {
                             fireConfetti('fireworks');
                         }
+                        this.notify("🏆 Match Finalized! Returning to Tournament Schedules in 2s...");
+                        const targetUrl = data.redirect_url || '<?= BASE_URL ?>/admin/scoring/index.php?tournament_id=<?= $match['tournament_id'] ?>';
+                        setTimeout(() => {
+                            window.location.href = targetUrl;
+                        }, 2000);
                     } else {
                         this.notify("Error: " + (data.error || "Failed to finalize match."));
                     }
                 } catch (e) {
                     this.notify("Network error while finalizing match.");
+                } finally {
+                    this.isProcessing = false;
                 }
             },
             
@@ -1360,6 +1383,10 @@ $gamesToWin = ceil($bestOf / 2);
                         if (typeof fireConfetti === 'function') {
                             fireConfetti('fireworks');
                         }
+                        this.notify("Match outcome recorded! Returning to schedule in 2s...");
+                        setTimeout(() => {
+                            window.location.href = '<?= BASE_URL ?>/admin/scoring/index.php?tournament_id=<?= $match['tournament_id'] ?>';
+                        }, 2000);
                     } else {
                         this.notify("Error: " + (data.error || "Failed to record match outcome."));
                     }

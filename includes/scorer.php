@@ -248,23 +248,29 @@ class Scorer {
         }
     }
 
-    public static function finalizeMatchDirect(int $matchId, ?string $winnerSide = null, int $adminId = 0): array {
+    public static function finalizeMatchDirect(int $matchId, ?string $winnerSide = null, int $adminId = 0, ?int $clientScoreA = null, ?int $clientScoreB = null): array {
         $pdo = db();
-        $match = self::getMatchData($matchId);
-
-        if (in_array($match['status'], [MATCH_COMPLETED, MATCH_WALKOVER, MATCH_RETIRED])) {
-            return [
-                'success'      => true,
-                'is_completed' => true,
-                'score_a'      => (int)$match['score_a'],
-                'score_b'      => (int)$match['score_b'],
-                'games_a'      => (int)$match['games_a'],
-                'games_b'      => (int)$match['games_b']
-            ];
-        }
 
         try {
             $pdo->beginTransaction();
+
+            // Lock row so concurrent point updates finish first
+            $pdo->prepare('SELECT id FROM matches WHERE id = ? FOR UPDATE')->execute([$matchId]);
+
+            $match = self::getMatchData($matchId);
+
+            if (in_array($match['status'], [MATCH_COMPLETED, MATCH_WALKOVER, MATCH_RETIRED])) {
+                $pdo->commit();
+                return [
+                    'success'      => true,
+                    'is_completed' => true,
+                    'score_a'      => (int)$match['score_a'],
+                    'score_b'      => (int)$match['score_b'],
+                    'games_a'      => (int)$match['games_a'],
+                    'games_b'      => (int)$match['games_b'],
+                    'redirect_url' => BASE_URL . '/admin/scoring/index.php?tournament_id=' . $match['tournament_id']
+                ];
+            }
 
             $scoreA = (int)$match['score_a'];
             $scoreB = (int)$match['score_b'];
@@ -272,6 +278,16 @@ class Scorer {
             $gamesB = (int)$match['games_b'];
             $isDoubles = !empty($match['team_a_id']);
             $gamesNeeded = ceil((int)$match['best_of'] / 2);
+
+            // Sync client score if client just scored winning point and it hasn't landed in DB
+            if ($clientScoreA !== null && $clientScoreB !== null) {
+                if ($clientScoreA > $scoreA || $clientScoreB > $scoreB) {
+                    $scoreA = max($scoreA, $clientScoreA);
+                    $scoreB = max($scoreB, $clientScoreB);
+                    $pdo->prepare('UPDATE matches SET score_a = ?, score_b = ? WHERE id = ?')
+                        ->execute([$scoreA, $scoreB, $matchId]);
+                }
+            }
 
             // Determine winner based strictly on match rules
             $gameWonBy = self::checkGameWin($scoreA, $scoreB, $match);
@@ -291,6 +307,10 @@ class Scorer {
                 } else {
                     throw new Exception("Cannot finalize match. Not enough games won to complete match.");
                 }
+            } elseif ($winnerSide && ($winnerSide === 'A' || $winnerSide === 'B')) {
+                // If explicitly finalized by admin at match point
+                if ($winnerSide === 'A') $gamesA = max($gamesA + 1, $gamesNeeded);
+                else $gamesB = max($gamesB + 1, $gamesNeeded);
             } else {
                 throw new Exception("Cannot finalize match. The current game has not reached the target score.");
             }
@@ -305,8 +325,12 @@ class Scorer {
 
             // Save completed set into 'games' table if not already recorded
             $gameNum = $gamesA + $gamesB;
-            $pdo->prepare('INSERT INTO games (match_id, game_number, score_a, score_b, winner_side, ended_at) VALUES (?, ?, ?, ?, ?, NOW())')
-                ->execute([$matchId, $gameNum, $scoreA, $scoreB, $winnerSide]);
+            $chkGame = $pdo->prepare('SELECT id FROM games WHERE match_id = ? AND game_number = ?');
+            $chkGame->execute([$matchId, $gameNum]);
+            if (!$chkGame->fetch()) {
+                $pdo->prepare('INSERT INTO games (match_id, game_number, score_a, score_b, winner_side, ended_at) VALUES (?, ?, ?, ?, ?, NOW())')
+                    ->execute([$matchId, $gameNum, $scoreA, $scoreB, $winnerSide]);
+            }
 
             // Record audit event
             $pdo->prepare('INSERT INTO score_events (match_id, action_type, player_a_score, player_b_score, notes, created_by) VALUES (?, ?, ?, ?, ?, ?)')
@@ -323,10 +347,13 @@ class Scorer {
                 'score_b'      => $scoreB,
                 'games_a'      => $gamesA,
                 'games_b'      => $gamesB,
-                'winner_side'  => $winnerSide
+                'winner_side'  => $winnerSide,
+                'redirect_url' => BASE_URL . '/admin/scoring/index.php?tournament_id=' . $match['tournament_id']
             ];
         } catch (Exception $e) {
-            $pdo->rollBack();
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
             throw new Exception("Finalizing match failed: " . $e->getMessage());
         }
     }

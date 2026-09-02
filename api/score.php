@@ -61,7 +61,9 @@ try {
     }
     elseif ($action === 'finalize_match') {
         $winnerSide = $_POST['winner_side'] ?? '';
-        $result = Scorer::finalizeMatchDirect($matchId, $winnerSide ?: null, $admin['id']);
+        $clientScoreA = isset($_POST['score_a']) ? (int)$_POST['score_a'] : null;
+        $clientScoreB = isset($_POST['score_b']) ? (int)$_POST['score_b'] : null;
+        $result = Scorer::finalizeMatchDirect($matchId, $winnerSide ?: null, $admin['id'], $clientScoreA, $clientScoreB);
         echo json_encode($result);
     }
     elseif ($action === 'retire') {
