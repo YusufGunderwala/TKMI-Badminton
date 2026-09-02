@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= htmlspecialchars($pageTitle ?? APP_NAME) ?> | TKMI Badminton</title>
+  <link rel="icon" type="image/png" href="<?= BASE_URL ?>/assets/assets/Logo.png">
 
   <!-- OG Meta Tags -->
   <meta property="og:title"       content="<?= htmlspecialchars($ogTitle ?? APP_NAME) ?>">
