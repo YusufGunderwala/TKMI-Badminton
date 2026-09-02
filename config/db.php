@@ -5,13 +5,26 @@
 // ============================================================
 
 // --- Supabase PostgreSQL Connection (IPv4 Connection Pooler for Cloud & Local) ---
-define('DB_HOST',     getenv('DB_HOST')     ?: 'aws-0-ap-northeast-1.pooler.supabase.com');
-define('DB_PORT',     getenv('DB_PORT')     ?: '6543');
-define('DB_NAME',     getenv('DB_NAME')     ?: 'postgres');
-define('DB_USER',     getenv('DB_USER')     ?: 'postgres.zegsiotamieloewcudur');
-define('DB_PASS',     getenv('DB_PASS')     ?: 'vQU.M$bd-asw@2N');
-define('DB_SCHEMA',   getenv('DB_SCHEMA')   ?: 'public');
-define('DB_URL',      getenv('DB_URL')      ?: '');
+$rawHost = getenv('DB_HOST') ?: 'aws-0-ap-northeast-1.pooler.supabase.com';
+$rawPort = getenv('DB_PORT') ?: '6543';
+$rawUser = getenv('DB_USER') ?: 'postgres.zegsiotamieloewcudur';
+
+// Auto-convert direct IPv6 supabase host (which fails on Render/IPv4) to IPv4 pooler
+if (str_contains($rawHost, 'db.') && str_contains($rawHost, '.supabase.co')) {
+    $rawHost = 'aws-0-ap-northeast-1.pooler.supabase.com';
+    $rawPort = '6543';
+    if ($rawUser === 'postgres' || empty($rawUser)) {
+        $rawUser = 'postgres.zegsiotamieloewcudur';
+    }
+}
+
+define('DB_HOST',     $rawHost);
+define('DB_PORT',     $rawPort);
+define('DB_NAME',     getenv('DB_NAME')   ?: 'postgres');
+define('DB_USER',     $rawUser);
+define('DB_PASS',     getenv('DB_PASS')   ?: 'vQU.M$bd-asw@2N');
+define('DB_SCHEMA',   getenv('DB_SCHEMA') ?: 'public');
+define('DB_URL',      getenv('DB_URL')    ?: '');
 
 /**
  * Returns a reliable PDO connection instance with self-healing reconnection.
@@ -27,15 +40,15 @@ function db(bool $forceReconnect = false): PDO {
         if (DB_URL) {
             $parsed = parse_url(DB_URL);
             $dsn = sprintf(
-                'pgsql:host=%s;port=%s;dbname=%s;options=\'--client_encoding=UTF8\'',
+                'pgsql:host=%s;port=%s;dbname=%s;sslmode=require;options=\'--client_encoding=UTF8\'',
                 $parsed['host'],
-                $parsed['port'] ?? 5432,
+                $parsed['port'] ?? 6543,
                 ltrim($parsed['path'] ?? '/postgres', '/')
             );
             $user = $parsed['user'] ?? DB_USER;
             $pass = $parsed['pass'] ?? DB_PASS;
         } else {
-            $dsn  = 'pgsql:host=' . DB_HOST . ';port=' . DB_PORT . ';dbname=' . DB_NAME . ';connect_timeout=10;options=\'--client_encoding=UTF8\'';
+            $dsn  = 'pgsql:host=' . DB_HOST . ';port=' . DB_PORT . ';dbname=' . DB_NAME . ';sslmode=require;connect_timeout=10;options=\'--client_encoding=UTF8\'';
             $user = DB_USER;
             $pass = DB_PASS;
         }
