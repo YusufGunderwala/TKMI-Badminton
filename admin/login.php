@@ -44,7 +44,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Portal | TKMI Badminton</title>
-  <link rel="icon" type="image/png" href="<?= BASE_URL ?>/assets/assets/Logo.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="<?= BASE_URL ?>/assets/favicon.png">
+  <link rel="apple-touch-icon" href="<?= BASE_URL ?>/assets/favicon.png">
+  <link rel="shortcut icon" href="<?= BASE_URL ?>/assets/favicon.png">
   
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
