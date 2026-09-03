@@ -529,53 +529,67 @@ $gamesToWin = ceil($bestOf / 2);
     <!-- ============================================================ -->
     <div x-show="showGameTransitionModal" 
          x-cloak
-         class="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center z-50 p-4">
+         class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
         
-        <div class="bg-gradient-to-b from-[#102554] to-[#0a1633] border-2 border-cyan-400/50 rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl relative text-center">
+        <div class="bg-[#0d1f42]/97 backdrop-blur-2xl border border-amber-400/30 rounded-3xl max-w-sm w-full p-6 sm:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.7)] relative text-center">
             
+            <!-- Ambient glow -->
+            <div class="absolute -top-16 left-1/2 -translate-x-1/2 w-64 h-32 bg-amber-400/15 rounded-full blur-3xl pointer-events-none"></div>
+
             <!-- Trophy Badge -->
-            <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-cyan-400 to-blue-600 text-slate-950 flex items-center justify-center mx-auto mb-4 shadow-[0_0_30px_rgba(6,182,212,0.5)] border border-cyan-200">
-                <i class="ph-fill ph-trophy text-3xl sm:text-4xl text-yellow-200"></i>
+            <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-amber-300 via-[#c9a84c] to-amber-600 text-slate-950 flex items-center justify-center mx-auto mb-3 shadow-[0_0_25px_rgba(201,168,76,0.30)] border-2 border-amber-200/50 relative z-10">
+                <i class="ph-fill ph-trophy text-2xl sm:text-3xl text-slate-950 drop-shadow"></i>
             </div>
 
             <!-- Game Number Badge -->
-            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-400/20 text-cyan-300 font-mono font-bold text-xs uppercase tracking-widest mb-2">
-                <span>GAME <span x-text="transitionFinishedGameNum"></span> COMPLETE</span>
+            <div class="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono font-bold text-[10px] uppercase tracking-widest mb-3 relative z-10">
+                <i class="ph-bold ph-check-circle text-xs"></i>
+                <span>Game <span x-text="transitionFinishedGameNum"></span> Complete</span>
             </div>
 
-            <h3 class="text-2xl sm:text-3xl font-black font-display text-white mb-1">
-                <span x-text="transitionWinnerName"></span> Wins!
+            <h3 class="text-2xl sm:text-3xl font-black font-display text-white mb-1 relative z-10">
+                <span x-text="transitionWinnerName"></span> <span class="text-amber-400">Wins!</span>
             </h3>
             
-            <p class="text-xs sm:text-sm text-slate-300 mb-6 font-medium">
-                Game score: <span class="text-white font-bold" x-text="transitionPrevScoreA + ' - ' + transitionPrevScoreB"></span>
+            <p class="text-xs sm:text-sm text-slate-400 mb-5 font-medium relative z-10">
+                Game score: <span class="text-slate-200 font-bold font-mono" x-text="transitionPrevScoreA + ' – ' + transitionPrevScoreB"></span>
             </p>
 
             <!-- Current Games Standing -->
-            <div class="bg-black/40 border border-white/15 rounded-2xl p-4 mb-6">
-                <div class="text-[10px] font-mono text-slate-400 uppercase tracking-widest mb-2">Match Standings (Games Won)</div>
-                <div class="flex items-center justify-center gap-4 text-white">
-                    <div class="text-right">
-                        <div class="text-xs font-bold truncate max-w-[120px]"><?= e($pA_display) ?></div>
-                        <div class="text-2xl font-black font-display text-cyan-400" x-text="transitionGamesA"></div>
+            <div class="bg-black/35 border border-white/10 rounded-2xl p-4 mb-5 relative z-10">
+                <div class="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-3">Match Standings</div>
+                <div class="grid grid-cols-3 items-center gap-2">
+                    <!-- Player A -->
+                    <div class="flex flex-col items-center">
+                        <div class="text-[11px] font-bold text-slate-300 truncate max-w-full mb-1"><?= e($pA_display) ?></div>
+                        <div class="text-3xl font-black font-mono"
+                             :class="transitionGamesA > transitionGamesB ? 'text-amber-400' : 'text-slate-300'"
+                             x-text="transitionGamesA"></div>
                     </div>
-                    <div class="text-slate-500 font-bold text-lg">—</div>
-                    <div class="text-left">
-                        <div class="text-xs font-bold truncate max-w-[120px]"><?= e($pB_display) ?></div>
-                        <div class="text-2xl font-black font-display text-amber-400" x-text="transitionGamesB"></div>
+                    <!-- Divider -->
+                    <div class="text-slate-600 font-bold text-2xl font-mono">–</div>
+                    <!-- Player B -->
+                    <div class="flex flex-col items-center">
+                        <div class="text-[11px] font-bold text-slate-300 truncate max-w-full mb-1"><?= e($pB_display) ?></div>
+                        <div class="text-3xl font-black font-mono"
+                             :class="transitionGamesB > transitionGamesA ? 'text-amber-400' : 'text-slate-300'"
+                             x-text="transitionGamesB"></div>
                     </div>
                 </div>
+                <div class="text-[10px] text-slate-600 font-mono uppercase tracking-wider mt-2">Games Won</div>
             </div>
 
             <!-- Start Next Game Button -->
             <button type="button" 
                     @click="startNextGame()" 
-                    class="w-full bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-600 hover:from-cyan-300 hover:to-blue-400 text-white font-black py-3.5 px-6 rounded-2xl shadow-xl hover:shadow-cyan-500/30 transition-all flex items-center justify-center gap-2 text-sm uppercase tracking-wider cursor-pointer">
+                    class="w-full bg-gradient-to-r from-amber-400 via-[#c9a84c] to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black py-3 px-6 rounded-xl shadow-lg hover:shadow-amber-500/20 transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-wider cursor-pointer relative z-10">
+                <i class="ph-bold ph-play text-sm"></i>
                 <span>Start Game <span x-text="transitionNextGameNum"></span></span>
-                <i class="ph-bold ph-arrow-right text-base"></i>
+                <i class="ph-bold ph-arrow-right text-sm"></i>
             </button>
         </div>
     </div>
+
 
     <!-- ============================================================ -->
     <!-- EPIC CHAMPIONSHIP MATCH COMPLETED / VICTORY OVERLAY          -->
