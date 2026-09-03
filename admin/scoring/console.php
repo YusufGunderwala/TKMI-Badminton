@@ -552,12 +552,12 @@ $gamesToWin = ceil($bestOf / 2);
                 <div class="flex items-center justify-center gap-4 text-white">
                     <div class="text-right">
                         <div class="text-xs font-bold truncate max-w-[120px]"><?= e($pA_display) ?></div>
-                        <div class="text-2xl font-black font-display text-cyan-400" x-text="games_a"></div>
+                        <div class="text-2xl font-black font-display text-cyan-400" x-text="transitionGamesA"></div>
                     </div>
                     <div class="text-slate-500 font-bold text-lg">—</div>
                     <div class="text-left">
                         <div class="text-xs font-bold truncate max-w-[120px]"><?= e($pB_display) ?></div>
-                        <div class="text-2xl font-black font-display text-amber-400" x-text="games_b"></div>
+                        <div class="text-2xl font-black font-display text-amber-400" x-text="transitionGamesB"></div>
                     </div>
                 </div>
             </div>
@@ -854,14 +854,18 @@ $gamesToWin = ceil($bestOf / 2);
             transitionPrevScoreB: 0,
             transitionFinishedGameNum: 1,
             transitionNextGameNum: 2,
+            transitionGamesA: <?= (int)$match['games_a'] ?>,
+            transitionGamesB: <?= (int)$match['games_b'] ?>,
 
-            triggerGameWon(wonBy, scoreA, scoreB, finishedGameNum) {
+            triggerGameWon(wonBy, scoreA, scoreB, finishedGameNum, nextGamesA, nextGamesB) {
                 this.transitionGameWonBy = wonBy;
                 this.transitionWinnerName = (wonBy === 'A') ? '<?= e($pA_display) ?>' : '<?= e($pB_display) ?>';
                 this.transitionPrevScoreA = scoreA;
                 this.transitionPrevScoreB = scoreB;
                 this.transitionFinishedGameNum = finishedGameNum;
                 this.transitionNextGameNum = finishedGameNum + 1;
+                this.transitionGamesA = nextGamesA !== undefined ? nextGamesA : this.games_a;
+                this.transitionGamesB = nextGamesB !== undefined ? nextGamesB : this.games_b;
                 this.showGameTransitionModal = true;
                 if (typeof fireConfetti === 'function') {
                     try { fireConfetti('stars'); } catch(e) {}
@@ -872,6 +876,8 @@ $gamesToWin = ceil($bestOf / 2);
                 this.showGameTransitionModal = false;
                 this.score_a = 0;
                 this.score_b = 0;
+                if (this.transitionGamesA !== undefined) this.games_a = Math.max(this.games_a, this.transitionGamesA);
+                if (this.transitionGamesB !== undefined) this.games_b = Math.max(this.games_b, this.transitionGamesB);
                 this.notify("Starting Game " + (this.games_a + this.games_b + 1) + " of " + this.bestOf);
             },
 
@@ -960,7 +966,7 @@ $gamesToWin = ceil($bestOf / 2);
                         const finishedGameNum = this.games_a + this.games_b + 1;
                         this.games_a = tempGamesA;
                         this.games_b = tempGamesB;
-                        this.triggerGameWon(gameWinner, sA, sB, finishedGameNum);
+                        this.triggerGameWon(gameWinner, sA, sB, finishedGameNum, tempGamesA, tempGamesB);
                     }
                 }
 
@@ -1046,18 +1052,21 @@ $gamesToWin = ceil($bestOf / 2);
                             return;
                         }
 
-                        // Reconcile games won if game finished on server
-                        if (data.games_a !== this.games_a || data.games_b !== this.games_b) {
+                        // Reconcile games won if game finished on server (prevent in-flight older requests from clobbering higher games count)
+                        if (item.actionName === 'undo_last') {
                             this.games_a = data.games_a;
                             this.games_b = data.games_b;
+                        } else {
+                            this.games_a = Math.max(this.games_a, data.games_a);
+                            this.games_b = Math.max(this.games_b, data.games_b);
                         }
+                        this.transitionGamesA = this.games_a;
+                        this.transitionGamesB = this.games_b;
 
                         // Reconcile points if queue is empty and modal is closed
                         if (this.actionQueue.length === 0 && !this.showGameTransitionModal) {
                             this.score_a = data.score_a;
                             this.score_b = data.score_b;
-                            this.games_a = data.games_a;
-                            this.games_b = data.games_b;
                         }
                     } else {
                         // Server rejected action or match already completed
