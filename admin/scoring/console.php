@@ -1039,6 +1039,13 @@ $gamesToWin = ceil($bestOf / 2);
                         if (typeof fireConfetti === 'function') {
                             try { fireConfetti('fireworks'); } catch(e) {}
                         }
+
+                        // Queue the final point — this will commit the result to DB.
+                        // Then after the queue drains, fire confirm_completion as a safety net
+                        // in case the add_point request fails at the network level.
+                        this.queueAction('add_point', { side: player });
+                        this.scheduleConfirmCompletion();
+                        return; // Skip the queueAction at the bottom
                     } else {
                         // GAME COMPLETE (Transition to Next Game)!
                         const sA = this.score_a;
@@ -1130,6 +1137,7 @@ $gamesToWin = ceil($bestOf / 2);
                                 try { fireConfetti('fireworks'); } catch(e) {}
                             }
                             this.notify("🏆 Match Finished! Official Result Confirmed.");
+                            // Server already finalized this match — no need for a separate confirm call
                             return;
                         }
 
@@ -1192,6 +1200,49 @@ $gamesToWin = ceil($bestOf / 2);
 
                 this.queueAction(this.modalAction, extra);
                 this.showOptions = false;
+            },
+
+            // ----------------------------------------------------------------
+            // GUARANTEED SERVER FINALIZATION
+            // Schedules a confirm_completion call 2.5s after optimistic match
+            // completion. If the server already processed the last add_point
+            // (is_completed: true), the confirm call is a no-op. Otherwise it
+            // writes ended_at + winner IDs to the DB, fixing the stuck hub bug.
+            // ----------------------------------------------------------------
+            scheduleConfirmCompletion() {
+                // Wait a bit for the queued add_point to land first
+                setTimeout(() => this.confirmMatchOnServer(0), 2500);
+            },
+
+            async confirmMatchOnServer(attempt) {
+                const maxAttempts = 5;
+                if (attempt >= maxAttempts) {
+                    console.warn('[TKMI] confirm_completion gave up after', maxAttempts, 'attempts');
+                    return;
+                }
+                try {
+                    const fd = new FormData();
+                    fd.append('match_id', <?= $matchId ?>);
+                    fd.append('action', 'confirm_completion');
+                    fd.append('request_id', this.generateUUID());
+                    fd.append('csrf_token', '<?= $csrf ?>');
+                    const resp = await fetch('<?= BASE_URL ?>/api/score.php', { method: 'POST', body: fd });
+                    const data = await resp.json();
+                    if (data.success && data.is_completed) {
+                        // Confirmed — update local state from server
+                        this.games_a = data.games_a;
+                        this.games_b = data.games_b;
+                        console.log('[TKMI] Match confirmed completed on server.');
+                    } else if (!data.success) {
+                        // Retry with backoff
+                        const delay = Math.min(1000 * Math.pow(2, attempt), 15000);
+                        console.warn('[TKMI] confirm_completion attempt', attempt + 1, 'failed. Retrying in', delay, 'ms');
+                        setTimeout(() => this.confirmMatchOnServer(attempt + 1), delay);
+                    }
+                } catch (e) {
+                    const delay = Math.min(1000 * Math.pow(2, attempt), 15000);
+                    setTimeout(() => this.confirmMatchOnServer(attempt + 1), delay);
+                }
             },
 
             getWinnerSide() {

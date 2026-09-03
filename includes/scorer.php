@@ -391,6 +391,90 @@ class Scorer {
         return null;
     }
 
+    /**
+     * Idempotently confirm match completion.
+     * Called by the scoring console when the client-side detects the match is
+     * finished (by game count) but the server's DB may not have ended_at set
+     * yet (e.g. the last add_point API call failed at the network level).
+     *
+     * Safe to call multiple times — if already completed, returns current state.
+     */
+    public static function confirmCompletion(int $matchId, int $adminId, string $requestId): array {
+        $pdo = db();
+        try {
+            $pdo->beginTransaction();
+
+            // Lock row
+            $pdo->prepare('SELECT id FROM matches WHERE id = ? FOR UPDATE')->execute([$matchId]);
+            $match = self::getMatchData($matchId);
+
+            // Already properly finalized — nothing to do
+            if (in_array($match['status'], [MATCH_COMPLETED, MATCH_WALKOVER, MATCH_RETIRED])) {
+                $pdo->rollBack();
+                return self::getStateResponse($match);
+            }
+
+            // Match must be in_progress and have enough games won
+            if ($match['status'] !== MATCH_IN_PROGRESS) {
+                $pdo->rollBack();
+                return ['success' => false, 'error' => 'Match not in progress.'];
+            }
+
+            $gamesA = (int)$match['games_a'];
+            $gamesB = (int)$match['games_b'];
+            $gamesNeeded = (int)ceil((int)$match['best_of'] / 2);
+
+            if ($gamesA < $gamesNeeded && $gamesB < $gamesNeeded) {
+                $pdo->rollBack();
+                return ['success' => false, 'error' => 'Match not yet complete by game count.'];
+            }
+
+            $isDoubles = !empty($match['team_a_id']);
+            $winnerSide = ($gamesA >= $gamesNeeded) ? 'A' : 'B';
+            $winnerId = ($winnerSide === 'A')
+                ? ($isDoubles ? $match['team_a_id'] : $match['participant_a_id'])
+                : ($isDoubles ? $match['team_b_id'] : $match['participant_b_id']);
+            $loserId = ($winnerSide === 'A')
+                ? ($isDoubles ? $match['team_b_id'] : $match['participant_b_id'])
+                : ($isDoubles ? $match['team_a_id'] : $match['participant_a_id']);
+
+            // Log a synthetic completion event so audit trail is intact
+            $stmtSeq = $pdo->prepare('SELECT COALESCE(MAX(sequence_no), 0) + 1 FROM score_events WHERE match_id = ?');
+            $stmtSeq->execute([$matchId]);
+            $sequenceNo = $stmtSeq->fetchColumn();
+
+            $pdo->prepare("
+                INSERT INTO score_events (
+                    match_id, request_id, sequence_no, action_type, side,
+                    previous_score_a, previous_score_b, previous_games_a, previous_games_b,
+                    new_score_a, new_score_b, new_games_a, new_games_b,
+                    match_completed, notes, created_by
+                ) VALUES (?, ?, ?, 'confirm_completion', ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 'Auto-confirmed by client after completion', ?)
+            ")->execute([
+                $matchId, $requestId, $sequenceNo, $winnerSide,
+                $match['score_a'], $match['score_b'], $gamesA, $gamesB,
+                $match['score_a'], $match['score_b'], $gamesA, $gamesB,
+                $adminId
+            ]);
+
+            // Finalize properly with ended_at, winner/loser IDs
+            self::finalizeMatchRecords(
+                $pdo, $match,
+                $winnerId, $loserId,
+                (int)$match['score_a'], (int)$match['score_b'],
+                $gamesA, $gamesB,
+                $isDoubles, MATCH_COMPLETED
+            );
+
+            $pdo->commit();
+            return self::getStateResponse(self::getMatchData($matchId));
+
+        } catch (Exception $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            throw new Exception("Confirm completion failed: " . $e->getMessage());
+        }
+    }
+
     private static function finalizeMatchRecords(PDO $pdo, array $match, int $winnerId, int $loserId, int $scoreA, int $scoreB, int $gamesA, int $gamesB, bool $isDoubles, string $status, ?string $walkoverReason = null, ?string $walkoverNotes = null): void {
         $matchId = $match['id'];
         

@@ -59,6 +59,13 @@ try {
         $result = Scorer::declareRetirement($matchId, $retiredSide, $reason, $notes, $admin['id'], $requestId);
         echo json_encode($result);
     }
+    elseif ($action === 'confirm_completion') {
+        // Idempotent finalization — called by client after optimistic match-win
+        // to ensure the DB is properly marked completed even if the last point
+        // API call failed at the network level.
+        $result = Scorer::confirmCompletion($matchId, $admin['id'], $requestId);
+        echo json_encode($result);
+    }
     else {
         echo json_encode(['success' => false, 'error' => 'Unknown action.']);
     }
