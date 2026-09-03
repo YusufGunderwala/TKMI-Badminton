@@ -40,7 +40,10 @@ class Scorer {
             $match = self::getMatchData($matchId);
             
             if (in_array($match['status'], [MATCH_COMPLETED, MATCH_WALKOVER, MATCH_RETIRED])) {
-                throw new Exception("Match is already completed.");
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+                return self::getStateResponse($match);
             }
 
             if ($match['status'] === MATCH_SCHEDULED) {

@@ -512,11 +512,64 @@ $gamesToWin = ceil($bestOf / 2);
     </main>
 
     <!-- ============================================================ -->
+    <!-- GAME TRANSITION MODAL (BETWEEN GAMES IN BEST-OF-3/5)         -->
+    <!-- ============================================================ -->
+    <div x-show="showGameTransitionModal" 
+         x-cloak
+         class="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center z-50 p-4">
+        
+        <div class="bg-gradient-to-b from-[#102554] to-[#0a1633] border-2 border-cyan-400/50 rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl relative text-center">
+            
+            <!-- Trophy Badge -->
+            <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-cyan-400 to-blue-600 text-slate-950 flex items-center justify-center mx-auto mb-4 shadow-[0_0_30px_rgba(6,182,212,0.5)] border border-cyan-200">
+                <i class="ph-fill ph-trophy text-3xl sm:text-4xl text-yellow-200"></i>
+            </div>
+
+            <!-- Game Number Badge -->
+            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-400/20 text-cyan-300 font-mono font-bold text-xs uppercase tracking-widest mb-2">
+                <span>GAME <span x-text="transitionFinishedGameNum"></span> COMPLETE</span>
+            </div>
+
+            <h3 class="text-2xl sm:text-3xl font-black font-display text-white mb-1">
+                <span x-text="transitionWinnerName"></span> Wins!
+            </h3>
+            
+            <p class="text-xs sm:text-sm text-slate-300 mb-6 font-medium">
+                Game score: <span class="text-white font-bold" x-text="transitionPrevScoreA + ' - ' + transitionPrevScoreB"></span>
+            </p>
+
+            <!-- Current Games Standing -->
+            <div class="bg-black/40 border border-white/15 rounded-2xl p-4 mb-6">
+                <div class="text-[10px] font-mono text-slate-400 uppercase tracking-widest mb-2">Match Standings (Games Won)</div>
+                <div class="flex items-center justify-center gap-4 text-white">
+                    <div class="text-right">
+                        <div class="text-xs font-bold truncate max-w-[120px]"><?= e($pA_display) ?></div>
+                        <div class="text-2xl font-black font-display text-cyan-400" x-text="games_a"></div>
+                    </div>
+                    <div class="text-slate-500 font-bold text-lg">—</div>
+                    <div class="text-left">
+                        <div class="text-xs font-bold truncate max-w-[120px]"><?= e($pB_display) ?></div>
+                        <div class="text-2xl font-black font-display text-amber-400" x-text="games_b"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Start Next Game Button -->
+            <button type="button" 
+                    @click="startNextGame()" 
+                    class="w-full bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-600 hover:from-cyan-300 hover:to-blue-400 text-white font-black py-3.5 px-6 rounded-2xl shadow-xl hover:shadow-cyan-500/30 transition-all flex items-center justify-center gap-2 text-sm uppercase tracking-wider cursor-pointer">
+                <span>Start Game <span x-text="transitionNextGameNum"></span></span>
+                <i class="ph-bold ph-arrow-right text-base"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
     <!-- EPIC CHAMPIONSHIP MATCH COMPLETED / VICTORY OVERLAY          -->
     <!-- ============================================================ -->
     <div class="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 bg-gradient-to-br from-[#0e214d] via-[#152e69] to-[#0a1733] text-center z-40 relative overflow-y-auto" 
          x-show="isCompleted" 
-         style="display: none;">
+         x-cloak>
         
         <!-- Festive Victory Aura & Beams -->
         <div class="absolute -top-20 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-gradient-to-b from-[#c9a84c]/25 via-blue-500/20 to-transparent rounded-full blur-[140px] pointer-events-none"></div>
@@ -770,6 +823,61 @@ $gamesToWin = ceil($bestOf / 2);
             isQueueRunning: false,
             lastTapTime: 0,
 
+            // Game Transition Modal State (Between Games)
+            showGameTransitionModal: false,
+            transitionWinnerName: '',
+            transitionGameWonBy: '',
+            transitionPrevScoreA: 0,
+            transitionPrevScoreB: 0,
+            transitionFinishedGameNum: 1,
+            transitionNextGameNum: 2,
+
+            triggerGameWon(wonBy, scoreA, scoreB, finishedGameNum) {
+                this.transitionGameWonBy = wonBy;
+                this.transitionWinnerName = (wonBy === 'A') ? '<?= e($pA_display) ?>' : '<?= e($pB_display) ?>';
+                this.transitionPrevScoreA = scoreA;
+                this.transitionPrevScoreB = scoreB;
+                this.transitionFinishedGameNum = finishedGameNum;
+                this.transitionNextGameNum = finishedGameNum + 1;
+                this.showGameTransitionModal = true;
+                if (typeof fireConfetti === 'function') {
+                    try { fireConfetti('stars'); } catch(e) {}
+                }
+            },
+
+            startNextGame() {
+                this.showGameTransitionModal = false;
+                this.score_a = 0;
+                this.score_b = 0;
+                this.notify("Starting Game " + (this.games_a + this.games_b + 1) + " of " + this.bestOf);
+            },
+
+            checkWinCondition(scoreA, scoreB) {
+                const target = this.pointsPerGame;
+                const deuce = this.deuceEnabled;
+                const trigger = this.deuceTrigger;
+                const cap = this.deuceCap;
+
+                if (!deuce) {
+                    if (scoreA >= target) return 'A';
+                    if (scoreB >= target) return 'B';
+                    return null;
+                }
+
+                const maxS = Math.max(scoreA, scoreB);
+                const diff = Math.abs(scoreA - scoreB);
+                const leader = (scoreA > scoreB) ? 'A' : 'B';
+
+                if (maxS < target) return null;
+                if (maxS >= cap) return leader;
+                if (scoreA >= trigger && scoreB >= trigger) {
+                    if (diff >= 2) return leader;
+                    return null;
+                }
+                if (maxS >= target) return leader;
+                return null;
+            },
+
             generateUUID() {
                 return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
                     var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
@@ -806,17 +914,50 @@ $gamesToWin = ceil($bestOf / 2);
                     }
                 }
 
-                // 2. Tactile Haptic Buzz on Mobile / Tablet
+                // 2. Check Win Condition Optimistically
+                const gameWinner = this.checkWinCondition(this.score_a, this.score_b);
+                if (gameWinner) {
+                    const tempGamesA = this.games_a + (gameWinner === 'A' ? 1 : 0);
+                    const tempGamesB = this.games_b + (gameWinner === 'B' ? 1 : 0);
+
+                    if (tempGamesA >= this.gamesNeeded || tempGamesB >= this.gamesNeeded) {
+                        // MATCH COMPLETE!
+                        this.games_a = tempGamesA;
+                        this.games_b = tempGamesB;
+                        this.isCompleted = true;
+                        this.serverWinnerSide = gameWinner;
+                        this.notify("🏆 Match Won by " + (gameWinner === 'A' ? '<?= e($pA_display) ?>' : '<?= e($pB_display) ?>') + "!");
+                        if (typeof fireConfetti === 'function') {
+                            try { fireConfetti('fireworks'); } catch(e) {}
+                        }
+                    } else {
+                        // GAME COMPLETE (Transition to Next Game)!
+                        const sA = this.score_a;
+                        const sB = this.score_b;
+                        const finishedGameNum = this.games_a + this.games_b + 1;
+                        this.games_a = tempGamesA;
+                        this.games_b = tempGamesB;
+                        this.triggerGameWon(gameWinner, sA, sB, finishedGameNum);
+                    }
+                }
+
+                // 3. Tactile Haptic Buzz on Mobile / Tablet
                 if (navigator.vibrate) {
                     try { navigator.vibrate(25); } catch(e) {}
                 }
 
-                // 3. Queue Action for Atomic Cloud Persistence
+                // 4. Queue Action for Atomic Cloud Persistence
                 this.queueAction('add_point', { side: player });
             },
 
             undoLast() {
-                if (this.isCompleted) return;
+                // If game transition modal is open, undo closes it
+                if (this.showGameTransitionModal) {
+                    this.showGameTransitionModal = false;
+                }
+                if (this.isCompleted) {
+                    this.isCompleted = false;
+                }
 
                 const now = Date.now();
                 if (now - this.lastTapTime < 130) return;
@@ -875,29 +1016,33 @@ $gamesToWin = ceil($bestOf / 2);
                             this.score_b = data.score_b;
                             this.games_a = data.games_a;
                             this.games_b = data.games_b;
-                            if (typeof fireConfetti === 'function') fireConfetti('fireworks');
-                            this.notify("🏆 Match Completed! Recording final result...");
-                            const targetUrl = data.redirect_url || '<?= BASE_URL ?>/admin/scoring/index.php?tournament_id=<?= $match['tournament_id'] ?>';
-                            setTimeout(() => { window.location.href = targetUrl; }, 2000);
+                            this.showGameTransitionModal = false;
+                            if (typeof fireConfetti === 'function') {
+                                try { fireConfetti('fireworks'); } catch(e) {}
+                            }
                             return;
                         }
 
-                        // Reconcile games won if game finished
+                        // Reconcile games won if game finished on server
                         if (data.games_a !== this.games_a || data.games_b !== this.games_b) {
                             this.games_a = data.games_a;
                             this.games_b = data.games_b;
-                            this.notify("Game won! Starting next game...");
                         }
 
-                        // Reconcile points if queue is empty (all pending taps processed)
-                        if (this.actionQueue.length === 0) {
+                        // Reconcile points if queue is empty and modal is closed
+                        if (this.actionQueue.length === 0 && !this.showGameTransitionModal) {
                             this.score_a = data.score_a;
                             this.score_b = data.score_b;
                             this.games_a = data.games_a;
                             this.games_b = data.games_b;
                         }
                     } else {
-                        // Server rejected action
+                        // Server rejected action or match already completed
+                        if (data.error && data.error.includes("already completed")) {
+                            this.isCompleted = true;
+                            this.actionQueue = [];
+                            return;
+                        }
                         this.notify("Error: " + (data.error || "Action failed"));
                         if (data.score_a !== undefined) {
                             this.score_a = data.score_a;
