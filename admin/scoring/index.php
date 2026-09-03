@@ -713,72 +713,128 @@ document.addEventListener('DOMContentLoaded', () => {
     const tournamentId = <?= (int)$tournamentId ?>;
     if (!tournamentId) return;
 
+    // ---------------------------------------------------------------
+    // Set of match IDs that are CONFIRMED completed from DB or SSE.
+    // Once completed, we NEVER revert a card back to "ON COURT".
+    // This prevents the race-condition where SSE fires with
+    // is_completed=true but the next tick reverts to in_progress
+    // before the DB transaction fully commits.
+    // ---------------------------------------------------------------
+    const confirmedCompleted = new Set();
+
+    // Pre-populate from server-rendered PHP (matches already completed at page load)
+    <?php
+    $doneIds = array_map(fn($m) => (int)$m['id'], array_filter($matches ?? [], fn($m) => in_array($m['status'], ['completed','walkover','retired'])));
+    echo 'const preCompletedIds = ' . json_encode(array_values($doneIds)) . ';';
+    echo 'preCompletedIds.forEach(id => confirmedCompleted.add(id));';
+    ?>
+
+    // ---------------------------------------------------------------
+    // Shared card renderer — called by both SSE and HTTP poll
+    // ---------------------------------------------------------------
+    function applyMatchUpdate(m) {
+        const card   = document.getElementById('hub-match-card-' + m.id);
+        if (!card) return;
+
+        const badge   = document.getElementById('hub-badge-'   + m.id);
+        const scoreA  = document.getElementById('hub-score-a-' + m.id);
+        const scoreB  = document.getElementById('hub-score-b-' + m.id);
+        const rowA    = document.getElementById('hub-row-a-'   + m.id);
+        const rowB    = document.getElementById('hub-row-b-'   + m.id);
+        const subtext = document.getElementById('hub-subtext-' + m.id);
+        const action  = document.getElementById('hub-action-'  + m.id);
+
+        if (m.is_completed) {
+            // Mark permanently completed — will never revert
+            confirmedCompleted.add(m.id);
+
+            card.className = 'bg-white border border-slate-200 shadow-sm rounded-2xl p-5 flex flex-col justify-between hover:border-[#0f2044] transition-all';
+
+            if (badge) {
+                if (m.status === 'walkover') {
+                    badge.innerHTML = `<span class="px-2 py-0.5 bg-amber-50 text-amber-800 text-[10px] font-black rounded uppercase tracking-wider border border-amber-200">⚡ Walkover</span>`;
+                } else {
+                    badge.innerHTML = `<span class="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded uppercase tracking-wider border border-emerald-200">✓ Completed</span>`;
+                }
+            }
+
+            if (scoreA) scoreA.innerText = m.games_a;
+            if (scoreB) scoreB.innerText = m.games_b;
+
+            if (rowA && rowB) {
+                if (m.winner_side === 'A') {
+                    rowA.className = 'flex items-center justify-between p-2.5 rounded-lg bg-emerald-50 text-emerald-900 font-black';
+                    rowB.className = 'flex items-center justify-between p-2.5 rounded-lg bg-slate-50 text-slate-800 font-bold';
+                } else if (m.winner_side === 'B') {
+                    rowA.className = 'flex items-center justify-between p-2.5 rounded-lg bg-slate-50 text-slate-800 font-bold';
+                    rowB.className = 'flex items-center justify-between p-2.5 rounded-lg bg-emerald-50 text-emerald-900 font-black';
+                }
+            }
+
+            if (subtext) {
+                const breakdown = m.score_breakdown ? ` <span class="text-slate-400 font-normal">(${m.score_breakdown})</span>` : '';
+                subtext.innerHTML = `Games: <span class="text-slate-800 font-black">${m.games_a} - ${m.games_b}</span>${breakdown}`;
+            }
+
+            if (action) {
+                action.innerHTML = `<a href="<?= BASE_URL ?>/admin/scoring/console.php?id=${m.id}" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 px-4 rounded-xl text-center text-sm transition flex items-center justify-center gap-2"><i class="ph-bold ph-eye"></i> View Result / Edit</a>`;
+            }
+
+        } else if (m.status === 'in_progress') {
+            // GUARD: Never revert a card we've already confirmed as completed
+            if (confirmedCompleted.has(m.id)) return;
+
+            card.className = 'bg-white border border-red-400 ring-2 ring-red-100 shadow-md rounded-2xl p-5 flex flex-col justify-between hover:border-[#0f2044] transition-all';
+            if (badge) {
+                badge.innerHTML = `<span class="px-2 py-0.5 bg-red-500 text-white text-[10px] font-black rounded uppercase tracking-wider flex items-center gap-1 animate-pulse"><span>●</span> ON COURT</span>`;
+            }
+            if (scoreA) scoreA.innerText = m.score_a;
+            if (scoreB) scoreB.innerText = m.score_b;
+            if (subtext) {
+                subtext.innerHTML = `<span class="text-red-600 font-black animate-pulse">Live Sets: ${m.games_a} - ${m.games_b} (Score: ${m.score_a} - ${m.score_b})</span>`;
+            }
+            if (action) {
+                action.innerHTML = `<a href="<?= BASE_URL ?>/admin/scoring/console.php?id=${m.id}" class="w-full bg-red-600 hover:bg-red-700 text-white font-black py-2.5 px-4 rounded-xl text-center text-sm shadow-md transition flex items-center justify-center gap-2"><span class="w-2 h-2 rounded-full bg-white animate-ping"></span> Resume Live Scoring</a>`;
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------
+    // 1. SSE real-time stream (fast path — sub-second updates)
+    // ---------------------------------------------------------------
     try {
         const es = new EventSource('<?= BASE_URL ?>/sse/live.php?tournament_id=' + tournamentId);
         es.onmessage = (e) => {
             try {
                 const data = JSON.parse(e.data);
-                const matches = data.matches || data.live_matches || [];
-                matches.forEach(m => {
-                    const card = document.getElementById('hub-match-card-' + m.id);
-                    if (!card) return;
-
-                    const badge = document.getElementById('hub-badge-' + m.id);
-                    const scoreA = document.getElementById('hub-score-a-' + m.id);
-                    const scoreB = document.getElementById('hub-score-b-' + m.id);
-                    const rowA = document.getElementById('hub-row-a-' + m.id);
-                    const rowB = document.getElementById('hub-row-b-' + m.id);
-                    const subtext = document.getElementById('hub-subtext-' + m.id);
-                    const action = document.getElementById('hub-action-' + m.id);
-
-                    if (m.is_completed) {
-                        // Card is completed
-                        card.className = 'bg-white border border-slate-200 shadow-sm rounded-2xl p-5 flex flex-col justify-between hover:border-[#0f2044] transition-all';
-                        if (badge) {
-                            badge.innerHTML = `<span class="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded uppercase tracking-wider border border-emerald-200">Completed</span>`;
-                        }
-                        if (scoreA) scoreA.innerText = m.games_a;
-                        if (scoreB) scoreB.innerText = m.games_b;
-                        
-                        if (rowA && rowB) {
-                            if (m.winner_side === 'A') {
-                                rowA.className = 'flex items-center justify-between p-2.5 rounded-lg bg-emerald-50 text-emerald-900 font-black';
-                                rowB.className = 'flex items-center justify-between p-2.5 rounded-lg bg-slate-50 text-slate-800 font-bold';
-                            } else if (m.winner_side === 'B') {
-                                rowA.className = 'flex items-center justify-between p-2.5 rounded-lg bg-slate-50 text-slate-800 font-bold';
-                                rowB.className = 'flex items-center justify-between p-2.5 rounded-lg bg-emerald-50 text-emerald-900 font-black';
-                            }
-                        }
-
-                        if (subtext) {
-                            const breakdown = m.score_breakdown ? ` <span class="text-slate-400 font-normal">(${m.score_breakdown})</span>` : '';
-                            subtext.innerHTML = `Games: <span class="text-slate-800 font-black">${m.games_a} - ${m.games_b}</span>${breakdown}`;
-                        }
-
-                        if (action) {
-                            action.innerHTML = `<a href="<?= BASE_URL ?>/admin/scoring/console.php?id=${m.id}" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 px-4 rounded-xl text-center text-sm transition flex items-center justify-center gap-2"><i class="ph-bold ph-eye"></i> View Result / Edit</a>`;
-                        }
-                    } else if (m.status === 'in_progress') {
-                        // Card is in progress / on court
-                        card.className = 'bg-white border border-red-400 ring-2 ring-red-100 shadow-md rounded-2xl p-5 flex flex-col justify-between hover:border-[#0f2044] transition-all';
-                        if (badge) {
-                            badge.innerHTML = `<span class="px-2 py-0.5 bg-red-500 text-white text-[10px] font-black rounded uppercase tracking-wider flex items-center gap-1 animate-pulse"><span>●</span> ON COURT</span>`;
-                        }
-                        if (scoreA) scoreA.innerText = m.score_a;
-                        if (scoreB) scoreB.innerText = m.score_b;
-
-                        if (subtext) {
-                            subtext.innerHTML = `<span class="text-red-600 font-black animate-pulse">Live Sets: ${m.games_a} - ${m.games_b} (Score: ${m.score_a} - ${m.score_b})</span>`;
-                        }
-
-                        if (action) {
-                            action.innerHTML = `<a href="<?= BASE_URL ?>/admin/scoring/console.php?id=${m.id}" class="w-full bg-red-600 hover:bg-red-700 text-white font-black py-2.5 px-4 rounded-xl text-center text-sm shadow-md transition flex items-center justify-center gap-2"><span class="w-2 h-2 rounded-full bg-white animate-ping"></span> Resume Live Scoring</a>`;
-                        }
-                    }
-                });
+                // data.matches contains both live and recently completed
+                const matches = data.matches || [];
+                matches.forEach(m => applyMatchUpdate(m));
             } catch(err) {}
         };
+        es.onerror = () => {
+            // SSE failed — the DB poll below is the fallback
+        };
     } catch (e) {}
+
+    // ---------------------------------------------------------------
+    // 2. DB Poll fallback — every 15 seconds, read match status
+    //    directly from the database. This is the definitive truth.
+    //    Guarantees hub catches up even if SSE misses the completion.
+    // ---------------------------------------------------------------
+    async function pollMatchStatuses() {
+        try {
+            const resp = await fetch('<?= BASE_URL ?>/api/matches.php?tournament_id=' + tournamentId, { credentials: 'same-origin' });
+            if (!resp.ok) return;
+            const data = await resp.json();
+            if (!data.success || !data.matches) return;
+            data.matches.forEach(m => applyMatchUpdate(m));
+        } catch (err) {}
+    }
+
+    // Poll immediately on load, then every 15 seconds
+    pollMatchStatuses();
+    setInterval(pollMatchStatuses, 15000);
 });
 </script>
 
