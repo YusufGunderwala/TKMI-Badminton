@@ -46,9 +46,33 @@ while (true) {
                     SELECT m.id, m.tournament_id, m.score_a, m.score_b, m.games_a, m.games_b,
                            pa.display_name as player_a, pb.display_name as player_b,
                            ta.display_name as team_a, tb.display_name as team_b,
-                           rc.best_of, rc.points_per_game, rc.deuce_enabled, rc.deuce_trigger, rc.deuce_cap
+                           COALESCE(rc.best_of, 
+                               CASE WHEN m.round_key IN ('final', 'bronze') THEN 3 ELSE 3 END
+                           ) as best_of,
+                           COALESCE(rc.points_per_game, 
+                               CASE 
+                                   WHEN m.round_key = 'final' THEN 21 
+                                   WHEN m.round_key IN ('r16', 'qf', 'sf', 'bronze') THEN 15 
+                                   ELSE 11 
+                               END
+                           ) as points_per_game,
+                           COALESCE(rc.deuce_enabled, true) as deuce_enabled,
+                           COALESCE(rc.deuce_trigger, 
+                               CASE 
+                                   WHEN m.round_key = 'final' THEN 20 
+                                   WHEN m.round_key IN ('r16', 'qf', 'sf', 'bronze') THEN 14 
+                                   ELSE 10 
+                               END
+                           ) as deuce_trigger,
+                           COALESCE(rc.deuce_cap, 
+                               CASE 
+                                   WHEN m.round_key = 'final' THEN 26 
+                                   WHEN m.round_key IN ('r16', 'qf', 'sf', 'bronze') THEN 21 
+                                   ELSE 16 
+                               END
+                           ) as deuce_cap
                     FROM matches m
-                    JOIN round_configs rc ON m.tournament_id = rc.tournament_id AND m.round_key = rc.round_key
+                    LEFT JOIN round_configs rc ON m.tournament_id = rc.tournament_id AND m.round_key = rc.round_key
                     LEFT JOIN players pa ON m.participant_a_id = pa.id
                     LEFT JOIN players pb ON m.participant_b_id = pb.id
                     LEFT JOIN teams ta ON m.team_a_id = ta.id

@@ -27,10 +27,34 @@ $stmt = $pdo->prepare('
            pb.display_name as pb_name, pb.full_name as pb_full, pb.mohallah as pb_mohallah, pb.photo_path as pb_photo, pb.its_id as pb_its,
            ta.display_name as ta_name, tb.display_name as tb_name,
            t.name as tourney_name, t.match_type, t.gender,
-           rc.best_of, rc.points_per_game, rc.deuce_enabled, rc.deuce_trigger, rc.deuce_cap
+           COALESCE(rc.best_of, 
+               CASE WHEN m.round_key IN (\'final\', \'bronze\') THEN 3 ELSE 3 END
+           ) as best_of,
+           COALESCE(rc.points_per_game, 
+               CASE 
+                   WHEN m.round_key = \'final\' THEN 21 
+                   WHEN m.round_key IN (\'r16\', \'qf\', \'sf\', \'bronze\') THEN 15 
+                   ELSE 11 
+               END
+           ) as points_per_game,
+           COALESCE(rc.deuce_enabled, true) as deuce_enabled,
+           COALESCE(rc.deuce_trigger, 
+               CASE 
+                   WHEN m.round_key = \'final\' THEN 20 
+                   WHEN m.round_key IN (\'r16\', \'qf\', \'sf\', \'bronze\') THEN 14 
+                   ELSE 10 
+               END
+           ) as deuce_trigger,
+           COALESCE(rc.deuce_cap, 
+               CASE 
+                   WHEN m.round_key = \'final\' THEN 26 
+                   WHEN m.round_key IN (\'r16\', \'qf\', \'sf\', \'bronze\') THEN 21 
+                   ELSE 16 
+               END
+           ) as deuce_cap
     FROM matches m
     JOIN tournaments t ON m.tournament_id = t.id
-    JOIN round_configs rc ON m.tournament_id = rc.tournament_id AND m.round_key = rc.round_key
+    LEFT JOIN round_configs rc ON m.tournament_id = rc.tournament_id AND m.round_key = rc.round_key
     LEFT JOIN players pa ON m.participant_a_id = pa.id
     LEFT JOIN players pb ON m.participant_b_id = pb.id
     LEFT JOIN teams ta ON m.team_a_id = ta.id
