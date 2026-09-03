@@ -44,6 +44,14 @@ if (!$match) {
 }
 
 $isDoubles = !empty($match['team_a_id']);
+$hasParticipantA = $isDoubles ? !empty($match['team_a_id']) : !empty($match['participant_a_id']);
+$hasParticipantB = $isDoubles ? !empty($match['team_b_id']) : !empty($match['participant_b_id']);
+
+if (!$hasParticipantA || !$hasParticipantB) {
+    flash_set('scoring', 'This match cannot be scored yet because its participants have not qualified from previous rounds.', 'error');
+    header('Location: ' . BASE_URL . '/admin/scoring/index.php?tournament_id=' . $match['tournament_id']);
+    exit;
+}
 $pA_display = $isDoubles ? ($match['ta_name'] ?: 'Team A') : ($match['pa_name'] ?: 'Player A');
 $pB_display = $isDoubles ? ($match['tb_name'] ?: 'Team B') : ($match['pb_name'] ?: 'Player B');
 

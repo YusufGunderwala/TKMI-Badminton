@@ -25,6 +25,7 @@ $matches = [];
 $groupedMatches = [];
 
 if ($selectedTourney) {
+    // 1. Fetch all tournament matches in creation order
     $stmt = $pdo->prepare('
         SELECT m.*, 
                pa.display_name as pa_name, pb.display_name as pb_name,
@@ -35,15 +36,12 @@ if ($selectedTourney) {
         LEFT JOIN teams ta ON m.team_a_id = ta.id
         LEFT JOIN teams tb ON m.team_b_id = tb.id
         WHERE m.tournament_id = ?
-        ORDER BY 
-            CASE m.status WHEN \'in_progress\' THEN 1 WHEN \'scheduled\' THEN 2 ELSE 3 END,
-            CASE m.stage WHEN \'stage1\' THEN 1 WHEN \'stage2\' THEN 2 ELSE 3 END,
-            m.round_key ASC, m.match_number ASC
+        ORDER BY m.id ASC
     ');
     $stmt->execute([$tournamentId]);
     $matches = $stmt->fetchAll();
 
-    // Fetch all games for this tournament to show full score history
+    // 2. Fetch all games for this tournament to show full score history
     $gamesStmt = $pdo->prepare('
         SELECT g.* 
         FROM games g
@@ -58,12 +56,121 @@ if ($selectedTourney) {
         $matchGames[$g['match_id']][] = $g;
     }
 
-    foreach ($matches as $m) {
+    // 3. Build Feeder / Dependency relationships for bracket progression
+    $incomingFeeders = [];
+    foreach ($matches as $src) {
+        if (!empty($src['next_match_id_winner'])) {
+            $incomingFeeders[$src['next_match_id_winner']]['winner'][] = $src;
+        }
+        if (!empty($src['next_match_id_loser'])) {
+            $incomingFeeders[$src['next_match_id_loser']]['loser'][] = $src;
+        }
+    }
+
+    // 4. Enrich each match with dependency labels and readiness
+    $liveMatchCount = 0;
+    foreach ($matches as &$m) {
         $isDoubles = !empty($m['team_a_id']);
-        $m['display_a'] = $isDoubles ? ($m['ta_name'] ?: 'Team A') : ($m['pa_name'] ?: 'Player A');
-        $m['display_b'] = $isDoubles ? ($m['tb_name'] ?: 'Team B') : ($m['pb_name'] ?: 'Player B');
+        $hasParticipantA = $isDoubles ? !empty($m['team_a_id']) : !empty($m['participant_a_id']);
+        $hasParticipantB = $isDoubles ? !empty($m['team_b_id']) : !empty($m['participant_b_id']);
+        $m['is_ready'] = $hasParticipantA && $hasParticipantB;
+
+        if ($m['status'] === 'in_progress') {
+            $liveMatchCount++;
+        }
+
+        // Slot A
+        if ($hasParticipantA) {
+            $m['display_a'] = $isDoubles ? $m['ta_name'] : $m['pa_name'];
+            $m['is_pending_a'] = false;
+        } else {
+            $m['is_pending_a'] = true;
+            if ($m['round_key'] === '3rd' || $m['round_key'] === '3rd_place') {
+                $f = $incomingFeeders[$m['id']]['loser'][0] ?? null;
+                $m['display_a'] = $f ? 'Loser of ' . getRoundLabel($f['round_key']) . ' #' . $f['match_number'] : 'Semi Final #1 Loser';
+            } else {
+                $f = $incomingFeeders[$m['id']]['winner'][0] ?? null;
+                $m['display_a'] = $f ? 'Winner of ' . getRoundLabel($f['round_key']) . ' #' . $f['match_number'] : 'Previous Match Winner';
+            }
+        }
+
+        // Slot B
+        if ($hasParticipantB) {
+            $m['display_b'] = $isDoubles ? $m['tb_name'] : $m['pb_name'];
+            $m['is_pending_b'] = false;
+        } else {
+            $m['is_pending_b'] = true;
+            if ($m['round_key'] === '3rd' || $m['round_key'] === '3rd_place') {
+                $f = $incomingFeeders[$m['id']]['loser'][1] ?? null;
+                $m['display_b'] = $f ? 'Loser of ' . getRoundLabel($f['round_key']) . ' #' . $f['match_number'] : 'Semi Final #2 Loser';
+            } else {
+                $f = $incomingFeeders[$m['id']]['winner'][1] ?? null;
+                $m['display_b'] = $f ? 'Winner of ' . getRoundLabel($f['round_key']) . ' #' . $f['match_number'] : 'Previous Match Winner';
+            }
+        }
+
         $m['games'] = $matchGames[$m['id']] ?? [];
-        $groupedMatches[$m['round_key']][] = $m;
+    }
+    unset($m);
+
+    // 5. Group into Stage 1 and Stage 2 with chronological ordering
+    $roundWeights = [
+        ROUND_STAGE1_R1       => 1,
+        ROUND_STAGE1_R2       => 2,
+        ROUND_STAGE1_SURVIVAL => 3,
+        ROUND_R16             => 4,
+        ROUND_QF              => 5,
+        ROUND_SF              => 6,
+        ROUND_3RD_PLACE       => 7,
+        '3rd'                 => 7,
+        ROUND_FINAL           => 8,
+    ];
+
+    $stage1Grouped = [];
+    $stage2Grouped = [];
+    $otherGrouped = [];
+
+    foreach ($matches as $m) {
+        $rk = $m['round_key'];
+        if (in_array($rk, [ROUND_STAGE1_R1, ROUND_STAGE1_R2, ROUND_STAGE1_SURVIVAL])) {
+            $stage1Grouped[$rk][] = $m;
+        } elseif (in_array($rk, [ROUND_R16, ROUND_QF, ROUND_SF, ROUND_3RD_PLACE, '3rd', ROUND_FINAL])) {
+            $stage2Grouped[$rk][] = $m;
+        } else {
+            $otherGrouped[$rk][] = $m;
+        }
+    }
+
+    uksort($stage1Grouped, fn($a, $b) => ($roundWeights[$a] ?? 99) <=> ($roundWeights[$b] ?? 99));
+    uksort($stage2Grouped, fn($a, $b) => ($roundWeights[$a] ?? 99) <=> ($roundWeights[$b] ?? 99));
+
+    // Backward-compat for single groupedMatches
+    $groupedMatches = array_merge($stage1Grouped, $stage2Grouped, $otherGrouped);
+
+    // 6. Fetch Stage 1 Swiss Qualification Records (if applicable)
+    $tier1Qualifiers = [];
+    $tier2Qualifiers = [];
+    $eliminatedCount = 0;
+
+    if ($selectedTourney['format'] === 'swiss_knockout') {
+        $recStmt = $pdo->prepare('
+            SELECT p.id, p.display_name, p.mohallah, ptr.wins, ptr.losses
+            FROM player_tournament_records ptr
+            JOIN players p ON ptr.player_id = p.id
+            WHERE ptr.tournament_id = ?
+            ORDER BY ptr.wins DESC, ptr.losses ASC, p.display_name ASC
+        ');
+        $recStmt->execute([$tournamentId]);
+        $allRecords = $recStmt->fetchAll();
+        foreach ($allRecords as $r) {
+            if ($r['wins'] === 2 && $r['losses'] === 0) {
+                $tier1Qualifiers[] = $r;
+            } elseif ($r['wins'] === 2 && $r['losses'] === 1) {
+                $tier2Qualifiers[] = $r;
+            } elseif ($r['losses'] >= 2) {
+                $eliminatedCount++;
+            }
+        }
     }
 }
 
@@ -88,6 +195,8 @@ include __DIR__ . '/../includes/header.php';
         </a>
     <?php endif; ?>
 </div>
+
+<?= flash_html('scoring') ?>
 
 <?php if (!$selectedTourney): ?>
     <!-- Tournament Selection View -->
@@ -139,7 +248,15 @@ include __DIR__ . '/../includes/header.php';
             <div>
                 <div class="flex items-center gap-2">
                     <h3 class="text-2xl font-black font-display text-[#0f2044]"><?= e($selectedTourney['name']) ?></h3>
-                    <span class="px-2 py-0.5 bg-red-50 text-red-600 text-[10px] font-black uppercase tracking-wider rounded border border-red-200 animate-pulse">● LIVE</span>
+                    <?php if ($liveMatchCount > 0): ?>
+                        <span class="px-2.5 py-0.5 bg-red-500 text-white text-[10px] font-black uppercase tracking-wider rounded-full flex items-center gap-1 shadow-xs animate-pulse">
+                            <span>●</span> <?= $liveMatchCount ?> ON COURT
+                        </span>
+                    <?php else: ?>
+                        <span class="px-2.5 py-0.5 bg-blue-50 text-blue-700 text-[10px] font-bold uppercase tracking-wider rounded-full border border-blue-200">
+                            Active Tournament
+                        </span>
+                    <?php endif; ?>
                 </div>
                 <p class="text-xs font-bold text-slate-400 mt-0.5"><?= e($selectedTourney['gender']) ?> <?= ucfirst(e($selectedTourney['match_type'])) ?> &bull; <?= count($matches) ?> total matches</p>
             </div>
@@ -337,92 +454,248 @@ include __DIR__ . '/../includes/header.php';
             </a>
         </div>
     <?php else: ?>
-        <div class="space-y-10">
-            <?php foreach ($groupedMatches as $roundKey => $rMatches): ?>
-                <div>
-                    <div class="flex items-center gap-3 mb-4 border-b border-slate-200 pb-3">
-                        <span class="w-3 h-3 rounded-full bg-[#c9a84c]"></span>
-                        <h3 class="text-lg font-black font-display text-[#0f2044] uppercase tracking-wider">
-                            <?= getRoundLabel($roundKey) ?>
-                        </h3>
-                        <span class="text-xs font-bold text-slate-400 ml-auto"><?= count($rMatches) ?> matches</span>
-                    </div>
+        <?php
+        // Helper closure to render a single round section consistently
+        $renderRoundSection = function($roundKey, $rMatches) {
+        ?>
+            <div class="mb-10">
+                <div class="flex items-center gap-3 mb-4 border-b border-slate-200 pb-3">
+                    <span class="w-3 h-3 rounded-full bg-[#c9a84c]"></span>
+                    <h4 class="text-base font-black font-display text-[#0f2044] uppercase tracking-wider">
+                        <?= getRoundLabel($roundKey) ?>
+                    </h4>
+                    <span class="text-xs font-bold text-slate-400 ml-auto"><?= count($rMatches) ?> matches</span>
+                </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                        <?php foreach ($rMatches as $m): 
-                            $isLive = $m['status'] === 'in_progress';
-                            $isDone = in_array($m['status'], ['completed', 'walkover', 'retired']);
-                            $isScheduled = $m['status'] === 'scheduled';
-                        ?>
-                            <div class="bg-white border <?= $isLive ? 'border-red-400 ring-2 ring-red-100 shadow-md' : 'border-slate-200 shadow-sm' ?> rounded-2xl p-5 flex flex-col justify-between hover:border-[#0f2044] transition-all">
-                                <div>
-                                    <div class="flex justify-between items-center mb-3">
-                                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Match #<?= $m['match_number'] ?></span>
-                                        <?php if ($isLive): ?>
-                                            <span class="px-2 py-0.5 bg-red-500 text-white text-[10px] font-black rounded uppercase tracking-wider flex items-center gap-1 animate-pulse">
-                                                <span>●</span> ON COURT
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                    <?php foreach ($rMatches as $m): 
+                        $isLive = $m['status'] === 'in_progress';
+                        $isDone = in_array($m['status'], ['completed', 'walkover', 'retired']);
+                        $isScheduled = $m['status'] === 'scheduled';
+                        $isReady = $m['is_ready'] && $isScheduled;
+                        $isPending = !$m['is_ready'] && $isScheduled;
+
+                        $cardBorder = 'border-slate-200 shadow-sm';
+                        if ($isLive) {
+                            $cardBorder = 'border-red-400 ring-2 ring-red-100 shadow-md';
+                        } elseif ($isPending) {
+                            $cardBorder = 'border-slate-200 bg-slate-50/60 shadow-2xs';
+                        }
+                    ?>
+                        <div class="bg-white border <?= $cardBorder ?> rounded-2xl p-5 flex flex-col justify-between hover:border-[#0f2044] transition-all">
+                            <div>
+                                <div class="flex justify-between items-center mb-3">
+                                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Match #<?= $m['match_number'] ?></span>
+                                    <?php if ($isLive): ?>
+                                        <span class="px-2 py-0.5 bg-red-500 text-white text-[10px] font-black rounded uppercase tracking-wider flex items-center gap-1 animate-pulse">
+                                            <span>●</span> ON COURT
+                                        </span>
+                                    <?php elseif ($isDone): ?>
+                                        <?php if ($m['status'] === 'walkover'): ?>
+                                            <span class="px-2 py-0.5 bg-amber-50 text-amber-800 text-[10px] font-black rounded uppercase tracking-wider border border-amber-200">
+                                                ⚡ WALKOVER
                                             </span>
-                                        <?php elseif ($isDone): ?>
+                                        <?php else: ?>
                                             <span class="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded uppercase tracking-wider border border-emerald-200">
                                                 <?= ucfirst($m['status']) ?>
                                             </span>
-                                        <?php else: ?>
-                                            <span class="px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] font-bold rounded uppercase tracking-wider">
-                                                Scheduled
-                                            </span>
                                         <?php endif; ?>
-                                    </div>
+                                    <?php elseif ($isReady): ?>
+                                        <span class="px-2 py-0.5 bg-blue-50 text-blue-700 text-[10px] font-bold rounded uppercase tracking-wider border border-blue-200">
+                                            READY TO PLAY
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="px-2 py-0.5 bg-slate-100 text-slate-400 text-[10px] font-bold rounded uppercase tracking-wider flex items-center gap-1">
+                                            <i class="ph-bold ph-lock"></i> LOCKED
+                                        </span>
+                                    <?php endif; ?>
+                                </div>
 
-                                    <!-- Participants -->
-                                    <div class="space-y-2 mb-4">
-                                        <div class="flex items-center justify-between p-2.5 rounded-lg <?= ($isDone && $m['winner_player_id'] == $m['participant_a_id']) ? 'bg-emerald-50 text-emerald-900 font-black' : 'bg-slate-50 text-slate-800 font-bold' ?>">
-                                            <span class="truncate pr-2 text-sm"><?= e($m['display_a']) ?></span>
-                                            <span class="font-black text-base"><?= $isLive ? $m['score_a'] : $m['games_a'] ?></span>
-                                        </div>
-                                        <div class="flex items-center justify-between p-2.5 rounded-lg <?= ($isDone && $m['winner_player_id'] == $m['participant_b_id']) ? 'bg-emerald-50 text-emerald-900 font-black' : 'bg-slate-50 text-slate-800 font-bold' ?>">
-                                            <span class="truncate pr-2 text-sm"><?= e($m['display_b']) ?></span>
-                                            <span class="font-black text-base"><?= $isLive ? $m['score_b'] : $m['games_b'] ?></span>
-                                        </div>
+                                <!-- Participants -->
+                                <div class="space-y-2 mb-4">
+                                    <div class="flex items-center justify-between p-2.5 rounded-lg <?= ($isDone && $m['winner_player_id'] == $m['participant_a_id']) ? 'bg-emerald-50 text-emerald-900 font-black' : ($m['is_pending_a'] ? 'bg-slate-100/70 text-slate-400 font-medium italic border border-dashed border-slate-200' : 'bg-slate-50 text-slate-800 font-bold') ?>">
+                                        <span class="truncate pr-2 text-sm flex items-center gap-1.5">
+                                            <?php if ($m['is_pending_a']): ?>
+                                                <i class="ph-bold ph-arrow-elbow-down-right text-xs text-slate-400 flex-shrink-0"></i>
+                                            <?php endif; ?>
+                                            <?= e($m['display_a']) ?>
+                                        </span>
+                                        <span class="font-black text-base <?= $m['is_pending_a'] ? 'text-slate-300' : '' ?>">
+                                            <?= $isLive ? $m['score_a'] : ($isDone ? $m['games_a'] : '-') ?>
+                                        </span>
                                     </div>
-                                    <div class="mb-4 text-[10px] uppercase tracking-widest text-center font-bold text-slate-400">
-                                        <?php 
-                                        if ($isDone) {
-                                            if (!empty($m['games'])) {
-                                                $scoreStrings = array_map(fn($g) => $g['score_a'] . '-' . $g['score_b'], $m['games']);
-                                                echo "Scores: <span class='text-slate-800 font-black'>" . implode(', ', $scoreStrings) . "</span>";
-                                            } else {
-                                                echo "Score: <span class='text-slate-800 font-black'>{$m['score_a']} - {$m['score_b']}</span>";
-                                            }
-                                        }
-                                        elseif ($isLive) {
-                                            echo "<span class='text-red-600 font-black animate-pulse'>Live Sets: {$m['games_a']} - {$m['games_b']}</span>";
-                                        }
-                                        else {
-                                            echo "Upcoming match";
-                                        }
-                                        ?>
+                                    <div class="flex items-center justify-between p-2.5 rounded-lg <?= ($isDone && $m['winner_player_id'] == $m['participant_b_id']) ? 'bg-emerald-50 text-emerald-900 font-black' : ($m['is_pending_b'] ? 'bg-slate-100/70 text-slate-400 font-medium italic border border-dashed border-slate-200' : 'bg-slate-50 text-slate-800 font-bold') ?>">
+                                        <span class="truncate pr-2 text-sm flex items-center gap-1.5">
+                                            <?php if ($m['is_pending_b']): ?>
+                                                <i class="ph-bold ph-arrow-elbow-down-right text-xs text-slate-400 flex-shrink-0"></i>
+                                            <?php endif; ?>
+                                            <?= e($m['display_b']) ?>
+                                        </span>
+                                        <span class="font-black text-base <?= $m['is_pending_b'] ? 'text-slate-300' : '' ?>">
+                                            <?= $isLive ? $m['score_b'] : ($isDone ? $m['games_b'] : '-') ?>
+                                        </span>
                                     </div>
                                 </div>
 
-                                <!-- Action Button -->
-                                <?php if ($isLive): ?>
-                                    <a href="<?= BASE_URL ?>/admin/scoring/console.php?id=<?= $m['id'] ?>" class="w-full bg-red-600 hover:bg-red-700 text-white font-black py-2.5 px-4 rounded-xl text-center text-sm shadow-md transition flex items-center justify-center gap-2">
-                                        <span class="w-2 h-2 rounded-full bg-white animate-ping"></span> Resume Live Scoring
-                                    </a>
-                                <?php elseif ($isScheduled): ?>
-                                    <a href="<?= BASE_URL ?>/admin/scoring/console.php?id=<?= $m['id'] ?>" class="w-full bg-[#0f2044] hover:bg-blue-900 text-white font-bold py-2.5 px-4 rounded-xl text-center text-sm shadow-sm transition flex items-center justify-center gap-2">
-                                        <i class="ph-bold ph-play"></i> Start Scoring
-                                    </a>
-                                <?php else: ?>
-                                    <a href="<?= BASE_URL ?>/admin/scoring/console.php?id=<?= $m['id'] ?>" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 px-4 rounded-xl text-center text-sm transition flex items-center justify-center gap-2">
-                                        <i class="ph-bold ph-eye"></i> View Result / Edit
-                                    </a>
-                                <?php endif; ?>
+                                <!-- Score / Details Subtext -->
+                                <div class="mb-4 text-[11px] text-center font-bold text-slate-500">
+                                    <?php 
+                                    if ($isDone) {
+                                        if ($m['status'] === 'walkover') {
+                                            echo "<span class='text-amber-700 font-black'>Awarded 2 - 0" . (!empty($m['walkover_reason']) ? " (" . e($m['walkover_reason']) . ")" : "") . "</span>";
+                                        } else {
+                                            $hasNonZeroGames = false;
+                                            if (!empty($m['games'])) {
+                                                foreach ($m['games'] as $g) {
+                                                    if ($g['score_a'] > 0 || $g['score_b'] > 0) {
+                                                        $hasNonZeroGames = true; break;
+                                                    }
+                                                }
+                                            }
+                                            if ($hasNonZeroGames) {
+                                                $scoreStrings = array_map(fn($g) => $g['score_a'] . '-' . $g['score_b'], $m['games']);
+                                                echo "Games: <span class='text-slate-800 font-black'>{$m['games_a']} - {$m['games_b']}</span> <span class='text-slate-400 font-normal'>(" . implode(', ', $scoreStrings) . ")</span>";
+                                            } else {
+                                                echo "Final Result: <span class='text-slate-800 font-black'>{$m['games_a']} - {$m['games_b']}</span>";
+                                            }
+                                        }
+                                    }
+                                    elseif ($isLive) {
+                                        echo "<span class='text-red-600 font-black animate-pulse'>Live Sets: {$m['games_a']} - {$m['games_b']} (Score: {$m['score_a']} - {$m['score_b']})</span>";
+                                    }
+                                    elseif ($isReady) {
+                                        echo "<span class='text-blue-600 font-medium'>Ready to Play &bull; Best of {$m['best_of']}</span>";
+                                    }
+                                    else {
+                                        echo "<span class='text-slate-400 font-medium italic flex items-center justify-center gap-1'><i class='ph-bold ph-hourglass-simple'></i> Waiting for qualifiers</span>";
+                                    }
+                                    ?>
+                                </div>
                             </div>
-                        <?php endforeach; ?>
+
+                            <!-- Action Button -->
+                            <?php if ($isLive): ?>
+                                <a href="<?= BASE_URL ?>/admin/scoring/console.php?id=<?= $m['id'] ?>" class="w-full bg-red-600 hover:bg-red-700 text-white font-black py-2.5 px-4 rounded-xl text-center text-sm shadow-md transition flex items-center justify-center gap-2">
+                                    <span class="w-2 h-2 rounded-full bg-white animate-ping"></span> Resume Live Scoring
+                                </a>
+                            <?php elseif ($isReady): ?>
+                                <a href="<?= BASE_URL ?>/admin/scoring/console.php?id=<?= $m['id'] ?>" class="w-full bg-[#0f2044] hover:bg-blue-900 text-white font-bold py-2.5 px-4 rounded-xl text-center text-sm shadow-sm transition flex items-center justify-center gap-2">
+                                    <i class="ph-bold ph-play"></i> Start Scoring
+                                </a>
+                            <?php elseif ($isPending): ?>
+                                <button disabled class="w-full bg-slate-100 text-slate-400 font-bold py-2.5 px-4 rounded-xl text-center text-xs cursor-not-allowed flex items-center justify-center gap-1.5 border border-slate-200">
+                                    <i class="ph-bold ph-lock"></i>
+                                    <span>Locked &bull; Waiting for Qualifiers</span>
+                                </button>
+                            <?php else: ?>
+                                <a href="<?= BASE_URL ?>/admin/scoring/console.php?id=<?= $m['id'] ?>" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 px-4 rounded-xl text-center text-sm transition flex items-center justify-center gap-2">
+                                    <i class="ph-bold ph-eye"></i> View Result / Edit
+                                </a>
+                            <?php endif; ?>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        <?php
+        };
+        ?>
+
+        <div class="space-y-12">
+            <!-- STAGE 1: SWISS QUALIFIER -->
+            <?php if (!empty($stage1Grouped)): ?>
+                <div>
+                    <div class="flex items-center gap-3 border-b-2 border-slate-200 pb-3 mb-6">
+                        <span class="px-3 py-1 bg-slate-900 text-[#c9a84c] rounded-xl text-xs font-black uppercase tracking-wider">Stage 1</span>
+                        <h3 class="text-xl font-black font-display text-[#0f2044]">Swiss Qualifier Rounds</h3>
+                        <span class="text-xs font-bold text-slate-400 ml-auto hidden sm:inline">Two-Loss Elimination Rule Active</span>
+                    </div>
+
+                    <?php foreach ($stage1Grouped as $rk => $rMatches): ?>
+                        <?php $renderRoundSection($rk, $rMatches); ?>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+
+            <!-- STAGE 1 -> STAGE 2 QUALIFICATION SUMMARY BANNER -->
+            <?php if (!empty($stage2Grouped) && (!empty($tier1Qualifiers) || !empty($tier2Qualifiers))): ?>
+                <div class="bg-gradient-to-br from-[#0f2044] via-[#16306e] to-[#0a152e] rounded-3xl p-6 sm:p-7 border-2 border-[#c9a84c]/50 shadow-xl text-white relative overflow-hidden">
+                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
+                        <div>
+                            <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#c9a84c]/20 text-[#ffd978] text-[11px] font-black uppercase tracking-widest border border-[#c9a84c]/30 mb-2">
+                                <i class="ph-fill ph-shield-check text-sm text-[#c9a84c]"></i>
+                                STAGE 1 QUALIFIERS DETERMINED &bull; <?= count($tier1Qualifiers) + count($tier2Qualifiers) ?> ADVANCED
+                            </div>
+                            <h3 class="text-2xl font-black font-display text-white">Knockout Stage Progression</h3>
+                            <p class="text-xs sm:text-sm text-blue-200/90 mt-1 max-w-2xl">
+                                Players who secured 2 wins in Stage 1 have advanced to Stage 2 Single Elimination. Stage 2 begins at Quarter Finals for 8 qualifiers.
+                            </p>
+                        </div>
+                        
+                        <div class="flex flex-wrap items-center gap-3">
+                            <div class="px-4 py-2.5 rounded-2xl bg-white/10 border border-white/15 text-center min-w-[100px]">
+                                <div class="text-[10px] uppercase font-black tracking-wider text-amber-300">Tier 1 (2-0)</div>
+                                <div class="text-lg font-black font-display text-white mt-0.5"><?= count($tier1Qualifiers) ?> Qualified</div>
+                            </div>
+                            <div class="px-4 py-2.5 rounded-2xl bg-white/10 border border-white/15 text-center min-w-[100px]">
+                                <div class="text-[10px] uppercase font-black tracking-wider text-cyan-300">Survival (2-1)</div>
+                                <div class="text-lg font-black font-display text-white mt-0.5"><?= count($tier2Qualifiers) ?> Qualified</div>
+                            </div>
+                            <div class="px-4 py-2.5 rounded-2xl bg-white/10 border border-white/15 text-center min-w-[100px]">
+                                <div class="text-[10px] uppercase font-black tracking-wider text-red-300">Eliminated</div>
+                                <div class="text-lg font-black font-display text-slate-300 mt-0.5"><?= $eliminatedCount ?> Players</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Qualified Player Names -->
+                    <div class="mt-6 pt-5 border-t border-white/10 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                        <div>
+                            <div class="text-[10px] uppercase font-black tracking-widest text-[#ffd978] mb-2 flex items-center gap-1.5">
+                                <i class="ph-fill ph-crown"></i> Tier 1 Champions (2-0):
+                            </div>
+                            <div class="flex flex-wrap gap-1.5">
+                                <?php foreach ($tier1Qualifiers as $q): ?>
+                                    <span class="px-2.5 py-1 rounded-lg bg-amber-400/20 text-amber-200 border border-amber-400/30 font-bold"><?= e($q['display_name']) ?></span>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] uppercase font-black tracking-widest text-cyan-300 mb-2 flex items-center gap-1.5">
+                                <i class="ph-fill ph-shield"></i> Survival Qualifiers (2-1):
+                            </div>
+                            <div class="flex flex-wrap gap-1.5">
+                                <?php foreach ($tier2Qualifiers as $q): ?>
+                                    <span class="px-2.5 py-1 rounded-lg bg-cyan-400/20 text-cyan-200 border border-cyan-400/30 font-bold"><?= e($q['display_name']) ?></span>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            <?php endforeach; ?>
+            <?php endif; ?>
+
+            <!-- STAGE 2: SINGLE ELIMINATION KNOCKOUT -->
+            <?php if (!empty($stage2Grouped)): ?>
+                <div>
+                    <div class="flex items-center gap-3 border-b-2 border-slate-200 pb-3 mb-6">
+                        <span class="px-3 py-1 bg-[#c9a84c] text-slate-900 rounded-xl text-xs font-black uppercase tracking-wider">Stage 2</span>
+                        <h3 class="text-xl font-black font-display text-[#0f2044]">Single Elimination Knockout</h3>
+                        <span class="text-xs font-bold text-slate-400 ml-auto hidden sm:inline">Pure Single Elimination &bull; Lose Once = Eliminated</span>
+                    </div>
+
+                    <?php foreach ($stage2Grouped as $rk => $rMatches): ?>
+                        <?php $renderRoundSection($rk, $rMatches); ?>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+
+            <!-- OTHER FORMATS (e.g. Round Robin / Pools) -->
+            <?php if (!empty($otherGrouped)): ?>
+                <div>
+                    <?php foreach ($otherGrouped as $rk => $rMatches): ?>
+                        <?php $renderRoundSection($rk, $rMatches); ?>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
         </div>
     <?php endif; ?>
 
