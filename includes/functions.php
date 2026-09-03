@@ -91,8 +91,11 @@ function uploadImage(array $file, string $destDir, string $prefix = 'img'): stri
     $mime = mime_content_type($file['tmp_name']);
     if (!in_array($mime, ALLOWED_IMAGE_TYPES, true)) return false;
 
-    $ext      = pathinfo($file['name'], PATHINFO_EXTENSION);
-    $filename = $prefix . '_' . uniqid() . '.' . strtolower($ext);
+    $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+    $allowedExts = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+    if (!in_array($ext, $allowedExts, true)) return false;
+
+    $filename = $prefix . '_' . uniqid() . '.' . $ext;
     $destPath = rtrim($destDir, '/') . '/' . $filename;
 
     if (!is_dir($destDir)) mkdir($destDir, 0755, true);
