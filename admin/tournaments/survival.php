@@ -76,7 +76,10 @@ $playerData = [];
 foreach (array_merge($path1Ids, $path2Ids) as $pid) {
     $p = getPlayer($pid);
     $playerData[$pid] = [
-        'name' => $p['display_name'] . ' (' . $p['its_id'] . ')',
+        'id' => $pid,
+        'name' => $p['display_name'],
+        'its' => $p['its_id'],
+        'mohallah' => $p['mohallah'] ?? 'TKMI',
         'history' => Matchmaker::getPreviousOpponents($id, $pid)
     ];
 }
@@ -122,61 +125,108 @@ include __DIR__ . '/../includes/header.php';
         <?= csrf_field() ?>
         <input type="hidden" name="pair_count" :value="matches.length">
         
-        <div class="p-6 space-y-4">
-            <div class="grid grid-cols-12 gap-4 text-xs font-semibold text-gray-400 uppercase tracking-wide border-b pb-2">
-                <div class="col-span-1 text-center">Match</div>
-                <div class="col-span-5">Path 1 (Won R1, Lost R2)</div>
-                <div class="col-span-1 text-center"></div>
-                <div class="col-span-5">Path 2 (Lost R1, Won R2)</div>
-            </div>
-
+        <div class="p-4 sm:p-6 space-y-5 bg-slate-100/50">
             <template x-for="(match, index) in matches" :key="index">
-                <div class="grid grid-cols-12 gap-4 items-center p-3 rounded-lg border transition"
-                     :class="match.isRematch ? 'bg-red-50 border-red-200' : 'bg-white border-transparent hover:bg-gray-50'">
+                <div class="relative bg-white rounded-2xl border shadow-sm transition-all duration-300 hover:shadow-md"
+                     :class="match.isRematch ? 'border-red-300 ring-2 ring-red-500/20' : 'border-slate-200 hover:border-blue-300'">
                     
-                    <div class="col-span-1 text-center font-bold text-gray-400" x-text="index + 1"></div>
-                    
-                    <!-- Path 1 (Fixed Left Side) -->
-                    <div class="col-span-5">
-                        <input type="hidden" :name="'pA_' + index" :value="match.pA">
-                        <div class="font-medium text-tkmi-navy" x-text="players[match.pA].name"></div>
+                    <!-- Top Status Bar -->
+                    <div class="flex items-center justify-between px-4 py-2.5 border-b rounded-t-2xl"
+                         :class="match.isRematch ? 'bg-red-50/80 border-red-100' : 'bg-slate-50 border-slate-100'">
+                        <div class="flex items-center gap-2">
+                            <span class="bg-[#0f2044] text-[#c9a84c] text-[10px] font-black tracking-widest uppercase px-2 py-0.5 rounded-sm">
+                                Match <span x-text="index + 1"></span>
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide"
+                             :class="match.isRematch ? 'text-red-600' : 'text-emerald-600'">
+                            <template x-if="match.isRematch">
+                                <span class="flex items-center gap-1"><i class="ph-fill ph-warning-circle text-sm"></i> Rematch (Played in R1)</span>
+                            </template>
+                            <template x-if="!match.isRematch && match.pB != 0">
+                                <span class="text-emerald-600/80 flex items-center gap-1"><i class="ph-fill ph-check-circle text-sm"></i> Clean Matchup</span>
+                            </template>
+                        </div>
                     </div>
-                    
-                    <div class="col-span-1 text-center text-gray-400 text-xs font-bold">VS</div>
-                    
-                    <!-- Path 2 (Dropdown Right Side) -->
-                    <div class="col-span-5">
-                        <div x-data="{ 
-                            open: false,
-                            get selectedText() { return match.pB != '0' ? players[match.pB].name : '-- Select Opponent --' }
-                        }" class="relative w-full">
-                            <input type="hidden" :name="'pB_' + index" x-model="match.pB">
-                            <button type="button" @click="open = !open" @click.away="open = false" 
-                                    class="w-full flex items-center justify-between bg-white border text-sm font-bold rounded-lg p-2.5 transition-colors text-left"
-                                    :class="match.isRematch ? 'border-red-400 focus:ring-red-400 bg-red-50 text-red-700' : 'border-slate-200 text-slate-700 hover:bg-slate-50'">
-                                <span x-text="selectedText"></span>
-                                <i class="ph-bold ph-caret-down text-slate-400 text-sm transition-transform duration-200" :class="open ? 'rotate-180' : ''"></i>
-                            </button>
 
-                            <div x-show="open" 
-                                 x-transition.opacity.duration.200ms
-                                 class="absolute left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden z-50 max-h-48 overflow-y-auto custom-scrollbar"
-                                 style="display: none;">
-                                <button type="button" @click="match.pB = '0'; checkConflicts(); open = false;" class="w-full text-left px-3 py-2 text-sm font-bold text-slate-400 hover:bg-slate-50 border-b border-slate-50">-- Select Opponent --</button>
-                                <template x-for="pB_id in path2" :key="pB_id">
-                                    <button type="button" 
-                                            @click="match.pB = pB_id; checkConflicts(); open = false;"
-                                            class="w-full text-left px-3 py-2 text-sm font-bold hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0"
-                                            :class="match.pB == pB_id ? 'bg-blue-50 text-blue-700' : 'text-slate-600'">
-                                        <span x-text="players[pB_id].name"></span>
-                                    </button>
-                                </template>
+                    <!-- Duel Arena -->
+                    <div class="p-4 sm:p-5 flex flex-col md:flex-row items-stretch gap-4 sm:gap-6 relative">
+                        
+                        <!-- Left Fighter (Path 1) -->
+                        <div class="flex-1 bg-slate-50 border border-slate-200 rounded-xl p-3 flex items-center gap-4 relative overflow-hidden shadow-xs">
+                            <div class="absolute top-0 left-0 w-1.5 h-full bg-emerald-500"></div>
+                            <input type="hidden" :name="'pA_' + index" :value="match.pA">
+                            
+                            <div class="w-12 h-12 sm:w-14 sm:h-14 bg-white rounded-full flex items-center justify-center flex-shrink-0 border-2 border-emerald-100 shadow-sm">
+                                <i class="ph-fill ph-user text-2xl text-emerald-500"></i>
+                            </div>
+                            
+                            <div class="flex-1 min-w-0 py-1">
+                                <div class="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-emerald-600 mb-0.5">Path 1 (Won R1)</div>
+                                <div class="text-sm sm:text-base font-bold text-slate-800 truncate" x-text="players[match.pA].name"></div>
+                                <div class="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-1 sm:mt-1.5">
+                                    <span class="inline-flex items-center text-[9px] sm:text-[10px] font-bold text-slate-500 bg-slate-200/70 px-1.5 py-0.5 rounded" x-text="'ITS: ' + players[match.pA].its"></span>
+                                    <span class="inline-flex items-center text-[9px] sm:text-[10px] font-bold text-slate-500 bg-slate-200/70 px-1.5 py-0.5 rounded" x-text="players[match.pA].mohallah"></span>
+                                </div>
                             </div>
                         </div>
-                        
-                        <div x-show="match.isRematch" class="text-red-500 text-xs font-bold mt-1.5 flex items-center gap-1">
-                            <i class="ph-fill ph-warning-circle"></i> Rematch! Played in R1.
+
+                        <!-- Center VS Badge -->
+                        <div class="flex-shrink-0 relative z-10 flex flex-col items-center justify-center py-2 md:py-0">
+                            <div class="w-9 h-9 sm:w-11 sm:h-11 bg-white border-2 rounded-full flex items-center justify-center shadow-sm z-10 relative"
+                                 :class="match.isRematch ? 'border-red-400 text-red-500' : 'border-slate-200 text-slate-400'">
+                                <span class="font-black italic text-xs sm:text-sm">VS</span>
+                            </div>
+                            <div class="absolute h-full w-[2px] bg-slate-200 -z-10 top-0 hidden md:block"></div>
+                            <div class="absolute w-full h-[2px] bg-slate-200 -z-10 left-0 block md:hidden"></div>
                         </div>
+
+                        <!-- Right Fighter (Path 2) -->
+                        <div class="flex-1 bg-white border-2 rounded-xl p-3 flex items-center gap-4 relative group transition-colors shadow-xs"
+                             :class="match.isRematch ? 'border-red-400 bg-red-50/40' : 'border-blue-200 hover:border-blue-400 cursor-pointer'">
+                            
+                            <div class="absolute top-0 right-0 w-1.5 h-full transition-colors"
+                                 :class="match.isRematch ? 'bg-red-500' : 'bg-blue-500'"></div>
+                            
+                            <!-- Custom Select Overlay (Click anywhere on card to select) -->
+                            <div class="absolute inset-0 z-20 opacity-0 group-hover:opacity-100 flex items-center justify-end px-4 pointer-events-none transition-opacity">
+                                <div class="w-8 h-8 rounded-full bg-white shadow flex items-center justify-center border border-slate-100 text-blue-500">
+                                    <i class="ph-bold ph-caret-down text-lg"></i>
+                                </div>
+                            </div>
+
+                            <select :name="'pB_' + index" x-model="match.pB" @change="checkConflicts()"
+                                    class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-30">
+                                <option value="0">-- Select Path 2 Opponent --</option>
+                                <template x-for="p2Id in path2" :key="p2Id">
+                                    <option :value="p2Id" x-text="players[p2Id].name + ' (' + players[p2Id].its + ')'"></option>
+                                </template>
+                            </select>
+
+                            <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center flex-shrink-0 border-2 shadow-sm transition-colors"
+                                 :class="match.isRematch ? 'bg-red-50 border-red-200' : (match.pB != 0 ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 border-slate-200 border-dashed')">
+                                <i class="ph-fill ph-user text-2xl" 
+                                   :class="match.isRematch ? 'text-red-400' : (match.pB != 0 ? 'text-blue-500' : 'text-slate-300')"></i>
+                            </div>
+                            
+                            <div class="flex-1 min-w-0 pr-6 py-1">
+                                <div class="text-[9px] sm:text-[10px] font-black uppercase tracking-wider mb-0.5 transition-colors"
+                                     :class="match.isRematch ? 'text-red-600' : 'text-blue-600'">Path 2 (Lost R1)</div>
+                                <div class="text-sm sm:text-base font-bold truncate transition-colors"
+                                     :class="match.pB != 0 ? (match.isRematch ? 'text-red-900' : 'text-slate-800') : 'text-slate-400 italic'"
+                                     x-text="match.pB != 0 ? players[match.pB].name : 'Tap to select fighter...'"></div>
+                                
+                                <div class="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-1 sm:mt-1.5" x-show="match.pB != 0">
+                                    <span class="inline-flex items-center text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded transition-colors"
+                                          :class="match.isRematch ? 'bg-red-100 text-red-600' : 'bg-blue-50 text-blue-600'" 
+                                          x-text="'ITS: ' + (match.pB != 0 ? players[match.pB].its : '')"></span>
+                                    <span class="inline-flex items-center text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded transition-colors"
+                                          :class="match.isRematch ? 'bg-red-100 text-red-600' : 'bg-blue-50 text-blue-600'" 
+                                          x-text="match.pB != 0 ? players[match.pB].mohallah : ''"></span>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </template>
