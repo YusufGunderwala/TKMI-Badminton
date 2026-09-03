@@ -11,8 +11,8 @@ require_once __DIR__ . '/auth.php';
 
 // ---- Security -----------------------------------------------
 
-function e(string $str): string {
-    return htmlspecialchars($str, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+function e(?string $str): string {
+    return htmlspecialchars($str ?? '', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
 function csrf_token(): string {

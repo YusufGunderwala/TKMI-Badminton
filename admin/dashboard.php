@@ -152,10 +152,10 @@ $recentTournaments = array_slice(getAllTournaments(), 0, 5);
                                 <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest"><?= e($um['tournament_name']) ?></span>
                                 <span class="bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded uppercase"><?= getRoundLabel($um['round_key']) ?></span>
                             </div>
-                            <div class="flex items-center justify-between gap-4 font-bold text-slate-700">
-                                <span class="truncate flex-1"><?= e($pa) ?></span>
+                            <div class="flex items-center justify-between gap-4 font-bold text-slate-700 text-sm">
+                                <span class="truncate flex-1 <?= empty($pa) ? 'text-slate-400 italic' : '' ?>"><?= e($pa ?: 'TBD') ?></span>
                                 <span class="text-xs text-slate-400">VS</span>
-                                <span class="truncate flex-1 text-right"><?= e($pb) ?></span>
+                                <span class="truncate flex-1 text-right <?= empty($pb) ? 'text-slate-400 italic' : '' ?>"><?= e($pb ?: 'TBD') ?></span>
                             </div>
                         </div>
                     <?php endforeach; ?>
