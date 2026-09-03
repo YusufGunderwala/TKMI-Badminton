@@ -254,7 +254,10 @@ $gamesToWin = ceil($bestOf / 2);
     <!-- ============================================================ -->
     <!-- MAIN LUMINOUS STADIUM SPLIT SCORING ARENA                    -->
     <!-- ============================================================ -->
-    <main class="flex-1 grid grid-cols-2 gap-2 sm:gap-4 lg:gap-6 p-2 sm:p-4 lg:p-6 2xl:p-10 relative z-10 overflow-hidden h-[calc(100dvh-60px)] sm:h-[calc(100vh-64px)]" x-show="!isCompleted">
+    <main class="flex-1 min-h-0 grid grid-cols-2 gap-2 sm:gap-4 lg:gap-6 p-2 sm:p-4 lg:p-5 relative z-10 overflow-hidden" x-show="!isCompleted">
+
+        <!-- Live Deuce Banner Alert -->
+        <div x-show="isDeuce" x-cloak class="col-span-2 -mb-1 sm:-mb-2 z-20">
             <div class="w-full bg-gradient-to-r from-red-950/90 via-amber-950/90 to-red-950/90 border-2 border-amber-400 rounded-xl sm:rounded-2xl py-2 sm:py-3 px-3 sm:px-6 flex items-center justify-between shadow-[0_0_35px_rgba(245,158,11,0.35)] backdrop-blur-xl animate-pulse">
                 <div class="flex items-center gap-2 sm:gap-3">
                     <div class="w-7 h-7 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-amber-400 to-red-500 text-slate-950 flex items-center justify-center font-black shadow-lg">
@@ -290,13 +293,13 @@ $gamesToWin = ceil($bestOf / 2);
         <!-- ============================================================ -->
         <!-- PLAYER A ARENA (Luminous Sapphire & Cyan Court)              -->
         <!-- ============================================================ -->
-        <section class="flex flex-col justify-between bg-gradient-to-b from-[#18356c]/90 via-[#122854]/90 to-[#0c1d42]/95 backdrop-blur-xl border-2 border-cyan-400/40 rounded-2xl sm:rounded-3xl p-2.5 sm:p-5 lg:p-7 shadow-2xl relative overflow-hidden group">
+        <section class="flex flex-col justify-between bg-gradient-to-b from-[#18356c]/90 via-[#122854]/90 to-[#0c1d42]/95 backdrop-blur-xl border-2 border-cyan-400/40 rounded-2xl sm:rounded-3xl p-2.5 sm:p-4 lg:p-5 shadow-2xl relative overflow-hidden group min-h-0">
             
             <!-- Ambient Blue Glow -->
             <div class="absolute -top-24 -left-24 w-72 h-72 bg-cyan-400/15 rounded-full blur-3xl pointer-events-none group-hover:bg-cyan-400/25 transition-all"></div>
 
             <!-- Player A Header Capsule -->
-            <div class="relative z-10 bg-white/10 backdrop-blur-md rounded-xl sm:rounded-2xl p-2 sm:p-3.5 border border-white/20 flex items-center justify-between shadow-md">
+            <div class="relative z-10 bg-white/10 backdrop-blur-md rounded-xl sm:rounded-2xl p-2 sm:p-3 border border-white/20 flex items-center justify-between shadow-md">
                 <div class="flex items-center gap-2 sm:gap-3 min-w-0 pr-1 sm:pr-2">
                     <!-- Avatar -->
                     <div class="relative flex-shrink-0">
@@ -351,23 +354,23 @@ $gamesToWin = ceil($bestOf / 2);
             </div>
 
             <!-- Giant Luminous Score Digit & Tap Target -->
-            <div class="my-auto flex flex-col items-center justify-center py-2 sm:py-6 lg:py-10 relative z-10">
+            <div class="my-auto flex-1 min-h-0 flex flex-col items-center justify-center py-1 sm:py-2 relative z-10">
                 <button type="button" 
                         @click="addPoint('A')"
-                        class="tap-target group/btn w-full flex flex-col items-center justify-center p-2 sm:p-4 rounded-2xl sm:rounded-3xl hover:bg-cyan-500/10 transition-all duration-200 active:scale-95 cursor-pointer relative"
+                        class="tap-target group/btn w-full flex flex-col items-center justify-center p-1 sm:p-3 rounded-2xl sm:rounded-3xl hover:bg-cyan-500/10 transition-all duration-200 active:scale-95 cursor-pointer relative"
                         title="Click or press [A] to add point for <?= e($pA_display) ?>">
                     
                     <!-- Glow Aura Behind Score -->
                     <div class="absolute inset-0 bg-cyan-400/15 rounded-full blur-3xl opacity-0 group-hover/btn:opacity-100 transition-opacity pointer-events-none"></div>
 
                     <div id="scoreDigitA" 
-                         class="text-6xl sm:text-8xl md:text-9xl lg:text-[10.5rem] 2xl:text-[15rem] 3xl:text-[19rem] font-black font-display leading-none tracking-tighter text-white drop-shadow-[0_0_35px_rgba(6,182,212,0.6)] transition-transform duration-200 select-none"
+                         class="text-6xl sm:text-7xl md:text-8xl lg:text-[7.5rem] 2xl:text-[10rem] font-black font-display leading-none tracking-tighter text-white drop-shadow-[0_0_35px_rgba(6,182,212,0.6)] transition-transform duration-200 select-none"
                          x-text="score_a">
                         0
                     </div>
 
                     <!-- Massive Glowing Power Trigger -->
-                    <div class="mt-2 sm:mt-4 w-full max-w-xs sm:max-w-sm py-2.5 sm:py-3.5 lg:py-4 px-3 sm:px-6 rounded-xl sm:rounded-2xl bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-600 hover:from-cyan-300 hover:to-blue-400 text-white font-black text-xs sm:text-sm uppercase tracking-wider sm:tracking-widest shadow-[0_10px_35px_rgba(6,182,212,0.5)] border border-cyan-200/50 group-hover/btn:scale-105 transition-all flex items-center justify-center gap-1.5 sm:gap-2">
+                    <div class="mt-1.5 sm:mt-3 w-full max-w-xs sm:max-w-sm py-2 sm:py-2.5 lg:py-3 px-3 sm:px-5 rounded-xl sm:rounded-2xl bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-600 hover:from-cyan-300 hover:to-blue-400 text-white font-black text-xs sm:text-sm uppercase tracking-wider sm:tracking-widest shadow-[0_10px_35px_rgba(6,182,212,0.5)] border border-cyan-200/50 group-hover/btn:scale-105 transition-all flex items-center justify-center gap-1.5 sm:gap-2">
                         <i class="ph-bold ph-plus-circle text-base sm:text-xl"></i>
                         <span>+ POINT A</span>
                         <kbd class="hidden lg:inline px-1.5 py-0.5 rounded bg-black/30 text-[9px] font-mono border border-white/20 ml-1">A</kbd>
@@ -378,9 +381,9 @@ $gamesToWin = ceil($bestOf / 2);
             <!-- Player A Footer: Quick Undo & Micro-actions -->
             <div class="relative z-10 flex items-center justify-between pt-2 border-t border-white/15">
                 <button type="button" 
-                        @click="undoPoint('A')" 
-                        :disabled="score_a === 0 || isProcessing"
-                        :class="score_a === 0 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-red-500/30 hover:text-white active:scale-95 cursor-pointer'"
+                        @click="undoLast()" 
+                        :disabled="(score_a === 0 && score_b === 0 && games_a === 0 && games_b === 0) || isProcessing"
+                        :class="(score_a === 0 && score_b === 0 && games_a === 0 && games_b === 0) ? 'opacity-30 cursor-not-allowed' : 'hover:bg-red-500/30 hover:text-white active:scale-95 cursor-pointer'"
                         class="px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-white/10 border border-white/20 text-slate-200 text-[10px] sm:text-xs font-bold transition flex items-center gap-1 sm:gap-1.5 shadow-sm">
                     <i class="ph-bold ph-arrow-counter-clockwise"></i>
                     <span>Undo</span>
@@ -396,13 +399,13 @@ $gamesToWin = ceil($bestOf / 2);
         <!-- ============================================================ -->
         <!-- PLAYER B ARENA (Luminous Royal Amber & Gold Court)           -->
         <!-- ============================================================ -->
-        <section class="flex flex-col justify-between bg-gradient-to-b from-[#382713]/90 via-[#291c0c]/90 to-[#1c1307]/95 backdrop-blur-xl border-2 border-[#c9a84c]/50 rounded-2xl sm:rounded-3xl p-2.5 sm:p-5 lg:p-7 shadow-2xl relative overflow-hidden group">
+        <section class="flex flex-col justify-between bg-gradient-to-b from-[#382713]/90 via-[#291c0c]/90 to-[#1c1307]/95 backdrop-blur-xl border-2 border-[#c9a84c]/50 rounded-2xl sm:rounded-3xl p-2.5 sm:p-4 lg:p-5 shadow-2xl relative overflow-hidden group min-h-0">
             
             <!-- Ambient Gold Glow -->
             <div class="absolute -top-24 -right-24 w-72 h-72 bg-[#c9a84c]/15 rounded-full blur-3xl pointer-events-none group-hover:bg-[#c9a84c]/25 transition-all"></div>
 
             <!-- Player B Header Capsule -->
-            <div class="relative z-10 bg-white/10 backdrop-blur-md rounded-xl sm:rounded-2xl p-2 sm:p-3.5 border border-white/20 flex items-center justify-between shadow-md">
+            <div class="relative z-10 bg-white/10 backdrop-blur-md rounded-xl sm:rounded-2xl p-2 sm:p-3 border border-white/20 flex items-center justify-between shadow-md">
                 <div class="flex items-center gap-2 sm:gap-3 min-w-0 pr-1 sm:pr-2">
                     <!-- Avatar -->
                     <div class="relative flex-shrink-0">
@@ -457,23 +460,23 @@ $gamesToWin = ceil($bestOf / 2);
             </div>
 
             <!-- Giant Luminous Score Digit & Tap Target -->
-            <div class="my-auto flex flex-col items-center justify-center py-2 sm:py-6 lg:py-10 relative z-10">
+            <div class="my-auto flex-1 min-h-0 flex flex-col items-center justify-center py-1 sm:py-2 relative z-10">
                 <button type="button" 
                         @click="addPoint('B')"
-                        class="tap-target group/btn w-full flex flex-col items-center justify-center p-2 sm:p-4 rounded-2xl sm:rounded-3xl hover:bg-amber-500/10 transition-all duration-200 active:scale-95 cursor-pointer relative"
+                        class="tap-target group/btn w-full flex flex-col items-center justify-center p-1 sm:p-3 rounded-2xl sm:rounded-3xl hover:bg-amber-500/10 transition-all duration-200 active:scale-95 cursor-pointer relative"
                         title="Click or press [L] to add point for <?= e($pB_display) ?>">
                     
                     <!-- Glow Aura Behind Score -->
                     <div class="absolute inset-0 bg-[#c9a84c]/15 rounded-full blur-3xl opacity-0 group-hover/btn:opacity-100 transition-opacity pointer-events-none"></div>
 
                     <div id="scoreDigitB" 
-                         class="text-6xl sm:text-8xl md:text-9xl lg:text-[10.5rem] 2xl:text-[15rem] 3xl:text-[19rem] font-black font-display leading-none tracking-tighter text-white drop-shadow-[0_0_35px_rgba(201,168,76,0.6)] transition-transform duration-200 select-none"
+                         class="text-6xl sm:text-7xl md:text-8xl lg:text-[7.5rem] 2xl:text-[10rem] font-black font-display leading-none tracking-tighter text-white drop-shadow-[0_0_35px_rgba(201,168,76,0.6)] transition-transform duration-200 select-none"
                          x-text="score_b">
                         0
                     </div>
 
                     <!-- Massive Glowing Power Trigger -->
-                    <div class="mt-2 sm:mt-4 w-full max-w-xs sm:max-w-sm py-2.5 sm:py-3.5 lg:py-4 px-3 sm:px-6 rounded-xl sm:rounded-2xl bg-gradient-to-r from-amber-400 via-[#c9a84c] to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-[#080e1e] font-black text-xs sm:text-sm uppercase tracking-wider sm:tracking-widest shadow-[0_10px_35px_rgba(201,168,76,0.5)] border border-amber-200/60 group-hover/btn:scale-105 transition-all flex items-center justify-center gap-1.5 sm:gap-2">
+                    <div class="mt-1.5 sm:mt-3 w-full max-w-xs sm:max-w-sm py-2 sm:py-2.5 lg:py-3 px-3 sm:px-5 rounded-xl sm:rounded-2xl bg-gradient-to-r from-amber-400 via-[#c9a84c] to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-[#080e1e] font-black text-xs sm:text-sm uppercase tracking-wider sm:tracking-widest shadow-[0_10px_35px_rgba(201,168,76,0.5)] border border-amber-200/60 group-hover/btn:scale-105 transition-all flex items-center justify-center gap-1.5 sm:gap-2">
                         <i class="ph-bold ph-plus-circle text-base sm:text-xl"></i>
                         <span>+ POINT B</span>
                         <kbd class="hidden lg:inline px-1.5 py-0.5 rounded bg-black/20 text-[9px] font-mono border border-black/20 ml-1">L</kbd>
@@ -484,9 +487,9 @@ $gamesToWin = ceil($bestOf / 2);
             <!-- Player B Footer: Quick Undo & Micro-actions -->
             <div class="relative z-10 flex items-center justify-between pt-2 border-t border-white/15">
                 <button type="button" 
-                        @click="undoPoint('B')" 
-                        :disabled="score_b === 0 || isProcessing"
-                        :class="score_b === 0 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-red-500/30 hover:text-white active:scale-95 cursor-pointer'"
+                        @click="undoLast()" 
+                        :disabled="(score_a === 0 && score_b === 0 && games_a === 0 && games_b === 0) || isProcessing"
+                        :class="(score_a === 0 && score_b === 0 && games_a === 0 && games_b === 0) ? 'opacity-30 cursor-not-allowed' : 'hover:bg-red-500/30 hover:text-white active:scale-95 cursor-pointer'"
                         class="px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-white/10 border border-white/20 text-slate-200 text-[10px] sm:text-xs font-bold transition flex items-center gap-1 sm:gap-1.5 shadow-sm">
                     <i class="ph-bold ph-arrow-counter-clockwise"></i>
                     <span>Undo</span>
@@ -745,7 +748,7 @@ $gamesToWin = ceil($bestOf / 2);
                     this.addPoint('A');
                 } else if (key === 'l' || e.key === 'ArrowRight') {
                     this.addPoint('B');
-                } else if (key === 'z') {
+                } else if (key === 'z' || key === 'm' || key === 'u') {
                     this.undoLast();
                 } else if (key === 's') {
                     this.server = this.server === 'A' ? 'B' : 'A';
@@ -808,15 +811,15 @@ $gamesToWin = ceil($bestOf / 2);
 
             addPoint(player) {
                 if (this.isCompleted) return;
-                this.server = player;
                 this.executeAction('add_point', { side: player });
             },
 
             undoLast() {
-                // If the user wants to undo from a completed state, it must go to the server, wait!
-                // We'll allow undoing even if match is completed to reverse finalizing.
-                // Or maybe the PHP layer blocks it? The user said "Undo rule: Do NOT delete... Your score_events table should be an audit history... mark/reverse it." So undo from completed is actually supported.
                 this.executeAction('undo_last');
+            },
+
+            undoPoint(player) {
+                this.undoLast();
             },
 
             async submitOptions() {
