@@ -241,6 +241,52 @@ $gamesToWin = ceil($bestOf / 2);
                 <span>DEUCE ACTIVE</span>
             </div>
 
+            <!-- Badminton Court Service Radar (Live Right/Left Service Box Indicator) -->
+            <div class="hidden lg:flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-black/40 border border-white/15 text-[10px] font-mono shadow-inner"
+                 title="Badminton Rule: Server serves from Right Court on even points, Left Court on odd points">
+                
+                <!-- Mini 2D Court SVG Visualizer -->
+                <div class="w-16 h-8 rounded border border-white/40 bg-emerald-950/90 relative overflow-hidden flex flex-col justify-between p-0.5 shadow-xs">
+                    <!-- Net line -->
+                    <div class="absolute left-1/2 top-0 bottom-0 w-0.5 bg-white shadow-xs -translate-x-1/2 z-10"></div>
+                    
+                    <!-- Top half (Side A vs Side B Left Courts - Odd) -->
+                    <div class="flex-1 flex">
+                        <!-- Court A Left Box (Odd) -->
+                        <div class="w-1/2 border-r border-b border-white/25 transition-all flex items-center justify-center"
+                             :class="(server === 'A' && !isRightCourt()) ? 'bg-cyan-400 text-slate-950 font-black shadow-inner' : ''">
+                            <span x-show="server === 'A' && !isRightCourt()" class="text-[9px] leading-none">🏸</span>
+                        </div>
+                        <!-- Court B Left Box (Odd) -->
+                        <div class="w-1/2 border-l border-b border-white/25 transition-all flex items-center justify-center"
+                             :class="(server === 'B' && !isRightCourt()) ? 'bg-amber-400 text-slate-950 font-black shadow-inner' : ''">
+                            <span x-show="server === 'B' && !isRightCourt()" class="text-[9px] leading-none">🏸</span>
+                        </div>
+                    </div>
+
+                    <!-- Bottom half (Side A vs Side B Right Courts - Even) -->
+                    <div class="flex-1 flex">
+                        <!-- Court A Right Box (Even) -->
+                        <div class="w-1/2 border-r border-t border-white/25 transition-all flex items-center justify-center"
+                             :class="(server === 'A' && isRightCourt()) ? 'bg-cyan-400 text-slate-950 font-black shadow-inner' : ''">
+                            <span x-show="server === 'A' && isRightCourt()" class="text-[9px] leading-none">🏸</span>
+                        </div>
+                        <!-- Court B Right Box (Even) -->
+                        <div class="w-1/2 border-l border-t border-white/25 transition-all flex items-center justify-center"
+                             :class="(server === 'B' && isRightCourt()) ? 'bg-amber-400 text-slate-950 font-black shadow-inner' : ''">
+                            <span x-show="server === 'B' && isRightCourt()" class="text-[9px] leading-none">🏸</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex flex-col leading-tight">
+                    <span class="font-black text-[11px]" :class="server === 'A' ? 'text-cyan-300' : 'text-amber-300'">
+                        <span x-text="server === 'A' ? '<?= e($pA_display) ?>' : '<?= e($pB_display) ?>'"></span>
+                    </span>
+                    <span class="text-slate-300 text-[9px]" x-text="isRightCourt() ? 'Serving: Right (Even)' : 'Serving: Left (Odd)'"></span>
+                </div>
+            </div>
+
             <!-- Live Cloud Sync Status Pill -->
             <div class="hidden xs:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono border transition-all duration-200"
                  :class="isSyncing ? 'bg-cyan-500/20 border-cyan-400 text-cyan-200 shadow-[0_0_15px_rgba(6,182,212,0.4)]' : 'bg-white/5 border-white/10 text-emerald-400/90'">
@@ -249,8 +295,18 @@ $gamesToWin = ceil($bestOf / 2);
             </div>
         </div>
 
-        <!-- Right: Quick Options -->
+        <!-- Right: Quick Options & Sound Toggle -->
         <div class="flex items-center gap-2">
+            <!-- Sound FX Toggle (Titanium Smash & Chime) -->
+            <button type="button" 
+                    @click="toggleSound()" 
+                    class="p-2 sm:px-3 sm:py-2 rounded-xl border transition cursor-pointer flex items-center gap-1.5 text-xs font-bold"
+                    :class="soundEnabled ? 'bg-[#c9a84c]/20 border-[#c9a84c] text-[#ffd978] shadow-[0_0_15px_rgba(201,168,76,0.35)]' : 'bg-white/10 hover:bg-white/20 text-slate-300 border-white/15'"
+                    :title="soundEnabled ? 'Badminton Smash FX: ON' : 'Badminton Smash FX: MUTED'">
+                <i class="ph-bold" :class="soundEnabled ? 'ph-speaker-high text-[#c9a84c] text-sm sm:text-base' : 'ph-speaker-slash text-slate-400 text-sm sm:text-base'"></i>
+                <span class="hidden sm:inline" x-text="soundEnabled ? 'FX ON' : 'FX OFF'"></span>
+            </button>
+
             <!-- Fullscreen Toggle -->
             <button type="button" 
                     @click="toggleFullScreen()" 
@@ -313,7 +369,7 @@ $gamesToWin = ceil($bestOf / 2);
         <!-- ============================================================ -->
         <!-- PLAYER A ARENA (Luminous Sapphire & Cyan Court)              -->
         <!-- ============================================================ -->
-        <section class="flex flex-col justify-between bg-gradient-to-b from-[#18356c]/90 via-[#122854]/90 to-[#0c1d42]/95 backdrop-blur-xl border-2 border-cyan-400/40 rounded-2xl sm:rounded-3xl p-2.5 sm:p-4 lg:p-5 shadow-2xl relative overflow-hidden group min-h-0">
+        <section class="flex flex-col justify-between bg-gradient-to-b from-[#18356c]/90 via-[#122854]/90 to-[#0c1d42]/95 backdrop-blur-xl border-2 border-cyan-400/40 rounded-2xl sm:rounded-3xl p-2.5 sm:p-4 lg:p-5 shadow-2xl relative overflow-hidden group min-h-0 bg-badminton-court">
             
             <!-- Ambient Blue Glow -->
             <div class="absolute -top-24 -left-24 w-72 h-72 bg-cyan-400/15 rounded-full blur-3xl pointer-events-none group-hover:bg-cyan-400/25 transition-all"></div>
@@ -331,13 +387,21 @@ $gamesToWin = ceil($bestOf / 2);
                             </div>
                         <?php endif; ?>
                         
-                        <!-- Serving Indicator Badge -->
+                        <!-- Feathered Shuttlecock Serving Indicator Badge -->
                         <button type="button" 
                                 @click="server = 'A'"
-                                :class="server === 'A' ? 'opacity-100 scale-100' : 'opacity-0 scale-75'"
-                                class="absolute -bottom-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-cyan-400 text-black flex items-center justify-center text-[9px] sm:text-[10px] font-black shadow-lg transition-all"
-                                title="Serving">
-                            <i class="ph-fill ph-check"></i>
+                                :class="server === 'A' ? 'opacity-100 scale-100 animate-shuttle-pulse' : 'opacity-20 scale-75 hover:opacity-60'"
+                                class="absolute -bottom-2 -right-2 w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-[#08152e] border border-cyan-300/80 flex items-center justify-center shadow-lg transition-all cursor-pointer p-0.5"
+                                title="Serving (Click to set server)">
+                            <svg viewBox="0 0 32 32" fill="none" class="w-full h-full transform rotate-45">
+                                <path d="M12 24C12 26.2 13.8 28 16 28C18.2 28 20 26.2 20 24V22H12V24Z" fill="#F8FAFC" stroke="#C9A84C" stroke-width="1.2"/>
+                                <rect x="12" y="20.5" width="8" height="2" fill="#06B6D4" rx="0.5"/>
+                                <path d="M12 20.5L6 6.5C9 5 23 5 26 6.5L20 20.5H12Z" fill="white" stroke="#E2E8F0" stroke-width="0.8"/>
+                                <line x1="12" y1="20.5" x2="9" y2="6.5" stroke="#C9A84C" stroke-width="0.7" stroke-dasharray="1 1"/>
+                                <line x1="16" y1="20.5" x2="16" y2="5.8" stroke="#C9A84C" stroke-width="0.8"/>
+                                <line x1="20" y1="20.5" x2="23" y2="6.5" stroke="#C9A84C" stroke-width="0.7" stroke-dasharray="1 1"/>
+                                <path d="M8 11C11 10 21 10 24 11" stroke="#CBD5E1" stroke-width="0.7"/>
+                            </svg>
                         </button>
                     </div>
 
@@ -348,8 +412,8 @@ $gamesToWin = ceil($bestOf / 2);
                                     @click="server = 'A'" 
                                     :class="server === 'A' ? 'bg-cyan-400 text-[#0a1630] font-black border-cyan-300' : 'bg-white/10 text-cyan-200 border-white/20 hover:bg-white/20'"
                                     class="hidden sm:flex px-2 py-0.5 rounded-full text-[8px] sm:text-[9px] font-bold uppercase tracking-wider border transition items-center gap-1 cursor-pointer">
-                                <i class="ph-fill ph-lightning text-xs"></i>
-                                <span x-text="server === 'A' ? 'SERVING' : 'GAME SERVE'"></span>
+                                <span>🏸</span>
+                                <span x-text="server === 'A' ? (isRightCourt() ? 'SERVE (RIGHT)' : 'SERVE (LEFT)') : 'SERVE'"></span>
                             </button>
                         </div>
 
@@ -373,11 +437,11 @@ $gamesToWin = ceil($bestOf / 2);
                 </div>
             </div>
 
-            <!-- Giant Luminous Score Digit & Tap Target -->
+            <!-- Giant Luminous Score Digit & Tap Target (Over Racket Stringbed) -->
             <div class="my-auto flex-1 min-h-0 flex flex-col items-center justify-center py-1 sm:py-2 relative z-10">
                 <button type="button" 
                         @click="addPoint('A')"
-                        class="tap-target group/btn w-full flex flex-col items-center justify-center p-1 sm:p-3 rounded-2xl sm:rounded-3xl hover:bg-cyan-500/10 transition-all duration-200 active:scale-95 cursor-pointer relative"
+                        class="tap-target group/btn w-full flex flex-col items-center justify-center p-1 sm:p-3 rounded-2xl sm:rounded-3xl hover:bg-cyan-500/10 transition-all duration-200 active:scale-95 cursor-pointer relative bg-racket-strings"
                         title="Click or press [A] to add point for <?= e($pA_display) ?>">
                     
                     <!-- Glow Aura Behind Score -->
@@ -410,16 +474,26 @@ $gamesToWin = ceil($bestOf / 2);
                     <kbd class="hidden lg:inline px-1 py-0.2 rounded bg-black/40 text-[9px] font-mono text-slate-300">Z</kbd>
                 </button>
 
-                <div class="text-[9px] sm:text-[10px] font-mono text-cyan-300 font-bold">
-                    Court A &bull; Blue Side
+                <div class="text-[9px] sm:text-[10px] font-mono text-cyan-300 font-bold flex items-center gap-1">
+                    <span>Court A</span> &bull; <span x-text="isRightCourt() ? 'Right Box (Even)' : 'Left Box (Odd)'"></span>
                 </div>
             </div>
         </section>
 
+        <!-- Badminton Court Net Center Divider (Taped Top Cord + Diamond Mesh) -->
+        <div class="hidden sm:flex absolute top-6 bottom-6 left-1/2 -translate-x-1/2 w-4 z-20 flex-col items-center pointer-events-none">
+            <!-- White Top Cord / Cable Tape -->
+            <div class="w-6 h-1.5 bg-white rounded-full shadow-[0_0_10px_rgba(255,255,255,0.9)] border border-slate-200"></div>
+            <!-- Vertical Net Mesh Strip -->
+            <div class="flex-1 w-2.5 badminton-net-divider-v my-1 rounded-sm opacity-70"></div>
+            <!-- Bottom Post Mount -->
+            <div class="w-5 h-1.5 bg-slate-400 rounded-full"></div>
+        </div>
+
         <!-- ============================================================ -->
         <!-- PLAYER B ARENA (Luminous Royal Amber & Gold Court)           -->
         <!-- ============================================================ -->
-        <section class="flex flex-col justify-between bg-gradient-to-b from-[#382713]/90 via-[#291c0c]/90 to-[#1c1307]/95 backdrop-blur-xl border-2 border-[#c9a84c]/50 rounded-2xl sm:rounded-3xl p-2.5 sm:p-4 lg:p-5 shadow-2xl relative overflow-hidden group min-h-0">
+        <section class="flex flex-col justify-between bg-gradient-to-b from-[#382713]/90 via-[#291c0c]/90 to-[#1c1307]/95 backdrop-blur-xl border-2 border-[#c9a84c]/50 rounded-2xl sm:rounded-3xl p-2.5 sm:p-4 lg:p-5 shadow-2xl relative overflow-hidden group min-h-0 bg-badminton-court-gold">
             
             <!-- Ambient Gold Glow -->
             <div class="absolute -top-24 -right-24 w-72 h-72 bg-[#c9a84c]/15 rounded-full blur-3xl pointer-events-none group-hover:bg-[#c9a84c]/25 transition-all"></div>
@@ -437,13 +511,21 @@ $gamesToWin = ceil($bestOf / 2);
                             </div>
                         <?php endif; ?>
                         
-                        <!-- Serving Indicator Badge -->
+                        <!-- Feathered Shuttlecock Serving Indicator Badge -->
                         <button type="button" 
                                 @click="server = 'B'"
-                                :class="server === 'B' ? 'opacity-100 scale-100' : 'opacity-0 scale-75'"
-                                class="absolute -bottom-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-[#c9a84c] text-black flex items-center justify-center text-[9px] sm:text-[10px] font-black shadow-lg transition-all"
-                                title="Serving">
-                            <i class="ph-fill ph-check"></i>
+                                :class="server === 'B' ? 'opacity-100 scale-100 animate-shuttle-pulse' : 'opacity-20 scale-75 hover:opacity-60'"
+                                class="absolute -bottom-2 -right-2 w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-[#1c1307] border border-amber-300/80 flex items-center justify-center shadow-lg transition-all cursor-pointer p-0.5"
+                                title="Serving (Click to set server)">
+                            <svg viewBox="0 0 32 32" fill="none" class="w-full h-full transform -rotate-45">
+                                <path d="M12 24C12 26.2 13.8 28 16 28C18.2 28 20 26.2 20 24V22H12V24Z" fill="#F8FAFC" stroke="#C9A84C" stroke-width="1.2"/>
+                                <rect x="12" y="20.5" width="8" height="2" fill="#D97706" rx="0.5"/>
+                                <path d="M12 20.5L6 6.5C9 5 23 5 26 6.5L20 20.5H12Z" fill="white" stroke="#E2E8F0" stroke-width="0.8"/>
+                                <line x1="12" y1="20.5" x2="9" y2="6.5" stroke="#C9A84C" stroke-width="0.7" stroke-dasharray="1 1"/>
+                                <line x1="16" y1="20.5" x2="16" y2="5.8" stroke="#C9A84C" stroke-width="0.8"/>
+                                <line x1="20" y1="20.5" x2="23" y2="6.5" stroke="#C9A84C" stroke-width="0.7" stroke-dasharray="1 1"/>
+                                <path d="M8 11C11 10 21 10 24 11" stroke="#CBD5E1" stroke-width="0.7"/>
+                            </svg>
                         </button>
                     </div>
 
@@ -454,8 +536,8 @@ $gamesToWin = ceil($bestOf / 2);
                                     @click="server = 'B'" 
                                     :class="server === 'B' ? 'bg-[#c9a84c] text-[#080e1e] font-black border-amber-300' : 'bg-white/10 text-amber-200 border-white/20 hover:bg-white/20'"
                                     class="hidden sm:flex px-2 py-0.5 rounded-full text-[8px] sm:text-[9px] font-bold uppercase tracking-wider border transition items-center gap-1 cursor-pointer">
-                                <i class="ph-fill ph-lightning text-xs"></i>
-                                <span x-text="server === 'B' ? 'SERVING' : 'GAME SERVE'"></span>
+                                <span>🏸</span>
+                                <span x-text="server === 'B' ? (isRightCourt() ? 'SERVE (RIGHT)' : 'SERVE (LEFT)') : 'SERVE'"></span>
                             </button>
                         </div>
 
@@ -479,11 +561,11 @@ $gamesToWin = ceil($bestOf / 2);
                 </div>
             </div>
 
-            <!-- Giant Luminous Score Digit & Tap Target -->
+            <!-- Giant Luminous Score Digit & Tap Target (Over Racket Stringbed) -->
             <div class="my-auto flex-1 min-h-0 flex flex-col items-center justify-center py-1 sm:py-2 relative z-10">
                 <button type="button" 
                         @click="addPoint('B')"
-                        class="tap-target group/btn w-full flex flex-col items-center justify-center p-1 sm:p-3 rounded-2xl sm:rounded-3xl hover:bg-amber-500/10 transition-all duration-200 active:scale-95 cursor-pointer relative"
+                        class="tap-target group/btn w-full flex flex-col items-center justify-center p-1 sm:p-3 rounded-2xl sm:rounded-3xl hover:bg-amber-500/10 transition-all duration-200 active:scale-95 cursor-pointer relative bg-racket-strings"
                         title="Click or press [L] to add point for <?= e($pB_display) ?>">
                     
                     <!-- Glow Aura Behind Score -->
@@ -516,8 +598,8 @@ $gamesToWin = ceil($bestOf / 2);
                     <kbd class="hidden lg:inline px-1 py-0.2 rounded bg-black/40 text-[9px] font-mono text-slate-300">M</kbd>
                 </button>
 
-                <div class="text-[9px] sm:text-[10px] font-mono text-[#c9a84c] font-bold">
-                    Court B &bull; Gold Side
+                <div class="text-[9px] sm:text-[10px] font-mono text-[#c9a84c] font-bold flex items-center gap-1">
+                    <span>Court B</span> &bull; <span x-text="isRightCourt() ? 'Right Box (Even)' : 'Left Box (Odd)'"></span>
                 </div>
             </div>
         </section>
@@ -848,7 +930,77 @@ $gamesToWin = ceil($bestOf / 2);
             games_b: <?= (int)$match['games_b'] ?>,
             isCompleted: <?= in_array($match['status'], [MATCH_COMPLETED, MATCH_WALKOVER, MATCH_RETIRED]) ? 'true' : 'false' ?>,
             serverWinnerSide: '<?= $serverWinnerSide ?>',
-            server: 'A', // Informational only
+            server: 'A',
+            soundEnabled: localStorage.getItem('tkmi_sound_fx') === '1',
+            audioCtx: null,
+
+            isRightCourt() {
+                const s = (this.server === 'A') ? this.score_a : this.score_b;
+                return (s % 2 === 0);
+            },
+
+            getAudioContext() {
+                if (!this.audioCtx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) this.audioCtx = new AudioCtx();
+                }
+                if (this.audioCtx && this.audioCtx.state === 'suspended') {
+                    this.audioCtx.resume();
+                }
+                return this.audioCtx;
+            },
+
+            toggleSound() {
+                this.soundEnabled = !this.soundEnabled;
+                localStorage.setItem('tkmi_sound_fx', this.soundEnabled ? '1' : '0');
+                if (this.soundEnabled) {
+                    this.playSmashSound();
+                    this.notify("🏸 Court Sound FX: Active");
+                } else {
+                    this.notify("🔇 Sound FX: Muted");
+                }
+            },
+
+            playSmashSound() {
+                if (!this.soundEnabled) return;
+                try {
+                    const ctx = this.getAudioContext();
+                    if (!ctx) return;
+                    const now = ctx.currentTime;
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(1400, now);
+                    osc.frequency.exponentialRampToValueAtTime(320, now + 0.065);
+                    gain.gain.setValueAtTime(0.42, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.075);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.075);
+                } catch(e) {}
+            },
+
+            playChimeSound() {
+                if (!this.soundEnabled) return;
+                try {
+                    const ctx = this.getAudioContext();
+                    if (!ctx) return;
+                    const now = ctx.currentTime;
+                    [587.33, 880].forEach((freq, i) => {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(freq, now + i * 0.12);
+                        gain.gain.setValueAtTime(0.25, now + i * 0.12);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.12 + 0.35);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(now + i * 0.12);
+                        osc.stop(now + i * 0.12 + 0.35);
+                    });
+                } catch(e) {}
+            },
 
             bestOf: <?= (int)$match['best_of'] ?>,
             pointsPerGame: <?= (int)$match['points_per_game'] ?>,
@@ -890,8 +1042,10 @@ $gamesToWin = ceil($bestOf / 2);
                     this.addPoint('A');
                 } else if (key === 'l' || e.key === 'ArrowRight') {
                     this.addPoint('B');
-                } else if (key === 'z' || key === 'm' || key === 'u') {
+                } else if (key === 'z' || key === 'u') {
                     this.undoLast();
+                } else if (key === 'm') {
+                    this.toggleSound();
                 } else if (key === 's') {
                     this.server = this.server === 'A' ? 'B' : 'A';
                     this.notify("Serving switched to Player " + this.server);
@@ -990,7 +1144,10 @@ $gamesToWin = ceil($bestOf / 2);
                 if (now - this.lastTapTime < 130) return;
                 this.lastTapTime = now;
 
-                // 1. Instant Zero-Latency Optimistic UI Increment
+                // 1. Instant Zero-Latency Optimistic UI Increment & Badminton Server Update
+                this.server = player;
+                this.playSmashSound();
+
                 if (player === 'A') {
                     this.score_a++;
                     const el = document.getElementById('scoreDigitA');
@@ -1014,6 +1171,7 @@ $gamesToWin = ceil($bestOf / 2);
                 // 2. Check Win Condition Optimistically
                 const gameWinner = this.checkWinCondition(this.score_a, this.score_b);
                 if (gameWinner) {
+                    this.playChimeSound();
                     const tempGamesA = this.games_a + (gameWinner === 'A' ? 1 : 0);
                     const tempGamesB = this.games_b + (gameWinner === 'B' ? 1 : 0);
 

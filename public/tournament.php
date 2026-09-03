@@ -431,7 +431,7 @@ include __DIR__ . '/../includes/header.php';
                         $curMomA = 50;
                         $curMomB = 50;
                     ?>
-                        <div class="bg-white rounded-3xl p-6 sm:p-7 border-2 border-red-400 ring-4 ring-red-50 shadow-2xl relative overflow-hidden flex flex-col justify-between group"
+                        <div class="bg-white rounded-3xl p-6 sm:p-7 border-2 border-red-400 ring-4 ring-red-50 shadow-2xl relative overflow-hidden flex flex-col justify-between group bg-badminton-court"
                              id="live-match-card-<?= $matchId ?>">
                             
                             <!-- Top Live Badge & Match Header -->
@@ -444,8 +444,8 @@ include __DIR__ . '/../includes/header.php';
                                     <?php
                                     $isCurDeuce = !empty($m['deuce_enabled']) && (int)$m['score_a'] >= (int)$m['deuce_trigger'] && (int)$m['score_b'] >= (int)$m['deuce_trigger'];
                                     ?>
-                                    <span id="deuce-badge-<?= $matchId ?>" class="<?= $isCurDeuce ? '' : 'hidden' ?> px-2.5 py-0.5 rounded-full bg-gradient-to-r from-red-600 to-amber-500 text-white text-[10px] font-black uppercase tracking-wider animate-pulse flex items-center gap-1 shadow-xs">
-                                        <i class="ph-fill ph-fire text-xs"></i> Deuce
+                                    <span id="deuce-badge-<?= $matchId ?>" class="<?= $isCurDeuce ? '' : 'hidden' ?> px-2.5 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-black uppercase tracking-wider shadow-sm animate-bounce">
+                                        🔥 DEUCE
                                     </span>
                                 </div>
 
@@ -468,20 +468,36 @@ include __DIR__ . '/../includes/header.php';
                                 </div>
                             </div>
 
-                            <!-- Competitors Arena with Live Scores and Standings Position -->
-                            <div class="space-y-4 my-2">
+                            <!-- Competitors Arena with Live Scores and Net Divider -->
+                            <div class="space-y-3 my-2">
                                 
                                 <!-- Competitor A -->
-                                <div class="p-4 rounded-2xl bg-slate-50/80 border border-slate-200 flex items-center justify-between transition-colors">
+                                <div class="p-4 rounded-2xl bg-slate-50/90 border border-slate-200 flex items-center justify-between transition-colors shadow-xs">
                                     <div class="flex items-center gap-3.5 min-w-0 pr-2">
                                         <!-- Avatar -->
-                                        <?php if (!empty($m['pa_photo'])): ?>
-                                            <img src="<?= BASE_URL ?>/uploads/players/<?= e($m['pa_photo']) ?>" alt="Photo" class="w-12 h-12 rounded-2xl object-cover shadow-sm border border-white">
-                                        <?php else: ?>
-                                            <div class="w-12 h-12 rounded-2xl bg-blue-100 text-blue-800 flex items-center justify-center font-black text-base shadow-inner">
-                                                <?= strtoupper(substr($m['display_a'], 0, 1)) ?>
+                                        <div class="relative flex-shrink-0">
+                                            <?php if (!empty($m['pa_photo'])): ?>
+                                                <img src="<?= BASE_URL ?>/uploads/players/<?= e($m['pa_photo']) ?>" alt="Photo" class="w-12 h-12 rounded-2xl object-cover shadow-sm border-2 border-cyan-400">
+                                            <?php else: ?>
+                                                <div class="w-12 h-12 rounded-2xl bg-blue-100 text-blue-800 flex items-center justify-center font-black text-base shadow-inner border border-blue-200">
+                                                    <?= strtoupper(substr($m['display_a'], 0, 1)) ?>
+                                                </div>
+                                            <?php endif; ?>
+                                            
+                                            <!-- Feathered Shuttlecock Server Indicator -->
+                                            <div id="server-indicator-a-<?= $matchId ?>" 
+                                                 class="<?= ($m['current_server'] ?? 'player_a') === 'player_a' ? '' : 'hidden' ?> absolute -bottom-1.5 -right-1.5 w-6 h-6 rounded-full bg-[#08152e] border border-cyan-400 flex items-center justify-center shadow-md p-0.5 animate-shuttle-pulse"
+                                                 title="Serving Now">
+                                                <svg viewBox="0 0 32 32" fill="none" class="w-full h-full transform rotate-45">
+                                                    <path d="M12 24C12 26.2 13.8 28 16 28C18.2 28 20 26.2 20 24V22H12V24Z" fill="#F8FAFC" stroke="#C9A84C" stroke-width="1.2"/>
+                                                    <rect x="12" y="20.5" width="8" height="2" fill="#06B6D4" rx="0.5"/>
+                                                    <path d="M12 20.5L6 6.5C9 5 23 5 26 6.5L20 20.5H12Z" fill="white" stroke="#E2E8F0" stroke-width="0.8"/>
+                                                    <line x1="12" y1="20.5" x2="9" y2="6.5" stroke="#C9A84C" stroke-width="0.7"/>
+                                                    <line x1="16" y1="20.5" x2="16" y2="5.8" stroke="#C9A84C" stroke-width="0.8"/>
+                                                    <line x1="20" y1="20.5" x2="23" y2="6.5" stroke="#C9A84C" stroke-width="0.7"/>
+                                                </svg>
                                             </div>
-                                        <?php endif; ?>
+                                        </div>
                                         
                                         <div class="min-w-0">
                                             <div class="flex items-center gap-2">
@@ -492,35 +508,46 @@ include __DIR__ . '/../includes/header.php';
                                                     </span>
                                                 <?php endif; ?>
                                             </div>
-                                            <div class="text-xs text-slate-400 font-medium flex items-center gap-1.5 mt-0.5">
-                                                <i class="ph-fill ph-map-pin text-[#c9a84c]"></i>
-                                                <span><?= e($m['pa_mohallah'] ?: 'TKMI') ?></span>
-                                                <?php if (!empty($m['pa_its'])): ?>
-                                                    <span>&bull;</span>
-                                                    <span class="font-mono"><?= e($m['pa_its']) ?></span>
-                                                <?php endif; ?>
-                                            </div>
                                         </div>
                                     </div>
 
-                                    <!-- Score Box with Live Point Flash -->
+                                    <!-- Score Box with Stringbed Pattern -->
                                     <div id="live-score-a-<?= $matchId ?>" 
-                                         class="text-3xl font-black font-display text-slate-900 bg-white border border-slate-200 px-4 py-2 rounded-xl shadow-xs min-w-[52px] text-center transition-all duration-300">
+                                         class="text-3xl font-black font-display text-slate-900 bg-white border border-slate-200 px-4 py-2 rounded-xl shadow-xs min-w-[52px] text-center transition-all duration-300 bg-racket-strings">
                                         <?= (int)$m['score_a'] ?>
                                     </div>
                                 </div>
 
+                                <!-- Across the Net Divider -->
+                                <div class="badminton-net-divider-h rounded-full my-1 opacity-75"></div>
+
                                 <!-- Competitor B -->
-                                <div class="p-4 rounded-2xl bg-slate-50/80 border border-slate-200 flex items-center justify-between transition-colors">
+                                <div class="p-4 rounded-2xl bg-slate-50/90 border border-slate-200 flex items-center justify-between transition-colors shadow-xs">
                                     <div class="flex items-center gap-3.5 min-w-0 pr-2">
                                         <!-- Avatar -->
-                                        <?php if (!empty($m['pb_photo'])): ?>
-                                            <img src="<?= BASE_URL ?>/uploads/players/<?= e($m['pb_photo']) ?>" alt="Photo" class="w-12 h-12 rounded-2xl object-cover shadow-sm border border-white">
-                                        <?php else: ?>
-                                            <div class="w-12 h-12 rounded-2xl bg-blue-100 text-blue-800 flex items-center justify-center font-black text-base shadow-inner">
-                                                <?= strtoupper(substr($m['display_b'], 0, 1)) ?>
+                                        <div class="relative flex-shrink-0">
+                                            <?php if (!empty($m['pb_photo'])): ?>
+                                                <img src="<?= BASE_URL ?>/uploads/players/<?= e($m['pb_photo']) ?>" alt="Photo" class="w-12 h-12 rounded-2xl object-cover shadow-sm border-2 border-amber-400">
+                                            <?php else: ?>
+                                                <div class="w-12 h-12 rounded-2xl bg-blue-100 text-blue-800 flex items-center justify-center font-black text-base shadow-inner border border-blue-200">
+                                                    <?= strtoupper(substr($m['display_b'], 0, 1)) ?>
+                                                </div>
+                                            <?php endif; ?>
+
+                                            <!-- Feathered Shuttlecock Server Indicator -->
+                                            <div id="server-indicator-b-<?= $matchId ?>" 
+                                                 class="<?= ($m['current_server'] ?? '') === 'player_b' ? '' : 'hidden' ?> absolute -bottom-1.5 -right-1.5 w-6 h-6 rounded-full bg-[#1c1307] border border-amber-400 flex items-center justify-center shadow-md p-0.5 animate-shuttle-pulse"
+                                                 title="Serving Now">
+                                                <svg viewBox="0 0 32 32" fill="none" class="w-full h-full transform -rotate-45">
+                                                    <path d="M12 24C12 26.2 13.8 28 16 28C18.2 28 20 26.2 20 24V22H12V24Z" fill="#F8FAFC" stroke="#C9A84C" stroke-width="1.2"/>
+                                                    <rect x="12" y="20.5" width="8" height="2" fill="#D97706" rx="0.5"/>
+                                                    <path d="M12 20.5L6 6.5C9 5 23 5 26 6.5L20 20.5H12Z" fill="white" stroke="#E2E8F0" stroke-width="0.8"/>
+                                                    <line x1="12" y1="20.5" x2="9" y2="6.5" stroke="#C9A84C" stroke-width="0.7"/>
+                                                    <line x1="16" y1="20.5" x2="16" y2="5.8" stroke="#C9A84C" stroke-width="0.8"/>
+                                                    <line x1="20" y1="20.5" x2="23" y2="6.5" stroke="#C9A84C" stroke-width="0.7"/>
+                                                </svg>
                                             </div>
-                                        <?php endif; ?>
+                                        </div>
 
                                         <div class="min-w-0">
                                             <div class="flex items-center gap-2">
@@ -531,20 +558,12 @@ include __DIR__ . '/../includes/header.php';
                                                     </span>
                                                 <?php endif; ?>
                                             </div>
-                                            <div class="text-xs text-slate-400 font-medium flex items-center gap-1.5 mt-0.5">
-                                                <i class="ph-fill ph-map-pin text-[#c9a84c]"></i>
-                                                <span><?= e($m['pb_mohallah'] ?: 'TKMI') ?></span>
-                                                <?php if (!empty($m['pb_its'])): ?>
-                                                    <span>&bull;</span>
-                                                    <span class="font-mono"><?= e($m['pb_its']) ?></span>
-                                                <?php endif; ?>
-                                            </div>
                                         </div>
                                     </div>
 
-                                    <!-- Score Box with Live Point Flash -->
+                                    <!-- Score Box with Stringbed Pattern -->
                                     <div id="live-score-b-<?= $matchId ?>" 
-                                         class="text-3xl font-black font-display text-slate-900 bg-white border border-slate-200 px-4 py-2 rounded-xl shadow-xs min-w-[52px] text-center transition-all duration-300">
+                                         class="text-3xl font-black font-display text-slate-900 bg-white border border-slate-200 px-4 py-2 rounded-xl shadow-xs min-w-[52px] text-center transition-all duration-300 bg-racket-strings">
                                         <?= (int)$m['score_b'] ?>
                                     </div>
                                 </div>

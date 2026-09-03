@@ -46,7 +46,7 @@ include __DIR__ . '/includes/header.php';
 <!-- ======================================================= -->
 <!-- 1. STADIUM HERO SECTION (Clean, Bold, Authentic)        -->
 <!-- ======================================================= -->
-<div class="relative w-full bg-[#080e1e] text-white pt-28 pb-20 border-b border-slate-800 -mt-24 overflow-hidden">
+<div class="relative w-full bg-[#080e1e] text-white pt-28 pb-20 border-b border-slate-800 -mt-24 overflow-hidden bg-badminton-court">
     
     <!-- Subtle Background Texture -->
     <div class="absolute inset-0 opacity-10 pointer-events-none" style="background-image: radial-gradient(#3b82f6 1px, transparent 1px); background-size: 28px 28px;"></div>
@@ -105,7 +105,7 @@ include __DIR__ . '/includes/header.php';
             <!-- Right: Live Court / Featured Match Tile -->
             <div class="w-full max-w-md lg:max-w-lg">
                 
-                <div class="bg-slate-900/80 backdrop-blur-md rounded-2xl border border-slate-800 p-6 shadow-2xl">
+                <div class="bg-slate-900/80 backdrop-blur-md rounded-2xl border border-slate-800 p-6 shadow-2xl relative overflow-hidden bg-badminton-court">
                     
                     <div class="flex items-center justify-between mb-5 border-b border-slate-800 pb-4">
                         <div class="flex items-center gap-2.5">
@@ -125,26 +125,29 @@ include __DIR__ . '/includes/header.php';
                         $nameA = $isDoubles ? $cur['ta_name'] : $cur['pa_name'];
                         $nameB = $isDoubles ? $cur['tb_name'] : $cur['pb_name'];
                     ?>
-                        <div class="space-y-4 mb-5">
+                        <div class="space-y-3 mb-5">
                             <div class="text-center text-xs text-slate-400 font-bold uppercase tracking-wider">
                                 <?= e($cur['tournament_name']) ?> &bull; <?= getRoundLabel($cur['round_key']) ?>
                             </div>
                             
-                            <div class="bg-slate-950 rounded-xl p-5 border border-slate-800 flex items-center justify-between gap-4">
-                                <div class="flex-1 text-right">
+                            <div class="bg-slate-950/90 rounded-xl p-5 border border-slate-800 flex items-center justify-between gap-4 shadow-sm relative overflow-hidden">
+                                <div class="flex-1 text-right min-w-0">
                                     <div class="font-black text-white text-base truncate"><?= e($nameA ?: 'Player A') ?></div>
-                                    <div class="text-xs text-slate-400 font-bold mt-0.5">Games: <?= $cur['games_a'] ?></div>
+                                    <div class="text-xs text-cyan-300 font-bold mt-0.5">Games: <?= $cur['games_a'] ?></div>
                                 </div>
 
-                                <div class="bg-[#080e1e] text-[#c9a84c] px-4 py-2 rounded-lg font-black font-display text-2xl tracking-widest border border-slate-800 shadow-inner">
+                                <div class="bg-[#080e1e] text-[#c9a84c] px-4 py-2 rounded-lg font-black font-display text-2xl tracking-widest border border-slate-800 shadow-inner bg-racket-strings">
                                     <?= $cur['score_a'] ?> - <?= $cur['score_b'] ?>
                                 </div>
 
-                                <div class="flex-1 text-left">
+                                <div class="flex-1 text-left min-w-0">
                                     <div class="font-black text-white text-base truncate"><?= e($nameB ?: 'Player B') ?></div>
-                                    <div class="text-xs text-slate-400 font-bold mt-0.5">Games: <?= $cur['games_b'] ?></div>
+                                    <div class="text-xs text-amber-300 font-bold mt-0.5">Games: <?= $cur['games_b'] ?></div>
                                 </div>
                             </div>
+
+                            <!-- Mini Across the Net Divider -->
+                            <div class="badminton-net-divider-h rounded-full opacity-60"></div>
                         </div>
 
                         <a href="<?= BASE_URL ?>/public/tournament.php?id=<?= $cur['tournament_id'] ?>&tab=bracket" class="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs uppercase tracking-wider py-3 rounded-xl transition">
