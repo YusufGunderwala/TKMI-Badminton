@@ -4,6 +4,20 @@
 @tailwind components;
 @tailwind utilities;
 
+html, body {
+  overflow-x: hidden !important;
+  max-width: 100vw !important;
+  width: 100% !important;
+  margin: 0;
+  padding: 0;
+  position: relative;
+  box-sizing: border-box;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
 @layer base {
   body {
     @apply bg-[#f0f4f8] text-slate-800 antialiased flex flex-col min-h-screen selection:bg-blue-600 selection:text-white;

@@ -67,7 +67,7 @@
   </style>
 </head>
 
-<body class="min-h-screen flex flex-col bg-[#f8fafc] text-slate-800 antialiased selection:bg-blue-600 selection:text-white">
+<body class="min-h-screen flex flex-col bg-[#f8fafc] text-slate-800 antialiased selection:bg-blue-600 selection:text-white overflow-x-hidden w-full max-w-full">
 
 <!-- ======================================================= -->
 <!-- ULTRA-PREMIUM FLOATING CAPSULE NAVIGATION (Ref Design)   -->
@@ -125,4 +125,4 @@
 </header>
 
 <!-- Main content container -->
-<main class="flex-1 flex flex-col relative z-0 pt-24">
+<main class="flex-1 flex flex-col relative z-0 pt-24 overflow-x-hidden w-full max-w-full">

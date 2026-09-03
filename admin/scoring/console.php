@@ -594,7 +594,7 @@ $gamesToWin = ceil($bestOf / 2);
     <!-- ============================================================ -->
     <!-- EPIC CHAMPIONSHIP MATCH COMPLETED / VICTORY OVERLAY          -->
     <!-- ============================================================ -->
-    <div class="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 bg-gradient-to-br from-[#060e22] via-[#0b1a3d] to-[#040a18] text-center z-40 relative overflow-y-auto" 
+    <div class="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 bg-gradient-to-br from-[#060e22] via-[#0b1a3d] to-[#040a18] text-center z-40 relative overflow-y-auto overflow-x-hidden max-w-full w-full" 
          x-show="isCompleted" 
          x-cloak>
         

@@ -185,7 +185,7 @@ $ogDesc = count($liveMatches) > 0
 
 include __DIR__ . '/../includes/header.php';
 ?><!-- Main Manager Wrapper for Tabs, Live SSE, and Sponsor Spotlight -->
-<div x-data="tournamentPublicManager('<?= e($initialTab) ?>', <?= $id ?>)">
+<div x-data="tournamentPublicManager('<?= e($initialTab) ?>', <?= $id ?>)" class="w-full max-w-full overflow-x-hidden min-w-0">
 
 <!-- ============================================================ -->
 <!-- 1. CLEAN SPONSOR LOGOS MARQUEE RIBBON                       -->
@@ -338,16 +338,16 @@ include __DIR__ . '/../includes/header.php';
                         <p class="text-xs text-orange-200/80 font-bold mt-1"><?= e($podium['third']['mohallah'] ?? '') ?></p>
                     </div>
 
-                    <!-- 🎖️ 4th Place -->
-                    <div class="bg-white/5 border border-white/15 rounded-2xl p-5 text-center flex flex-col items-center relative shadow-lg">
-                        <div class="absolute -top-3.5 px-3 py-0.5 rounded-full bg-white/20 text-slate-200 font-black text-[11px] uppercase tracking-widest shadow-md flex items-center gap-1">
-                            4th Place
+                    <!-- 🏅 4th Place -->
+                    <div class="bg-gradient-to-b from-cyan-900/25 to-cyan-950/40 border-2 border-cyan-400/60 rounded-2xl p-5 text-center flex flex-col items-center relative shadow-lg">
+                        <div class="absolute -top-3.5 px-3 py-0.5 rounded-full bg-cyan-400 text-slate-950 font-black text-[11px] uppercase tracking-widest shadow-md flex items-center gap-1">
+                            🏅 4th Place
                         </div>
-                        <div class="w-16 h-16 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-3xl text-slate-300 mt-2 mb-3 shadow-inner">
-                            <i class="ph-bold ph-award"></i>
+                        <div class="w-16 h-16 rounded-full bg-cyan-400/20 border-2 border-cyan-400 flex items-center justify-center text-3xl text-cyan-300 mt-2 mb-3 shadow-inner">
+                            <i class="ph-fill ph-medal"></i>
                         </div>
                         <h4 class="text-lg font-black text-white"><?= e($podium['fourth']['display_name'] ?? 'TBD') ?></h4>
-                        <p class="text-xs text-slate-400 font-bold mt-1"><?= e($podium['fourth']['mohallah'] ?? '') ?></p>
+                        <p class="text-xs text-cyan-200/80 font-bold mt-1"><?= e($podium['fourth']['mohallah'] ?? '') ?></p>
                     </div>
                 </div>
             </div>

@@ -47,7 +47,7 @@ $currentPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
     <script src="<?= BASE_URL ?>/assets/vendor/smooth-ui/smooth-ui.js" defer></script>
     <script src="<?= BASE_URL ?>/assets/vendor/unlumen-ui/unlumen-ui.js" defer></script>
 </head>
-<body x-data="{ mobileNavOpen: false }" class="bg-[#f0f4f8] font-sans text-slate-800 h-screen overflow-hidden flex selection:bg-blue-600 selection:text-white relative">
+<body x-data="{ mobileNavOpen: false }" class="bg-[#f0f4f8] font-sans text-slate-800 h-screen overflow-hidden flex selection:bg-blue-600 selection:text-white relative w-full max-w-full">
 
     <!-- Mobile Drawer Backdrop -->
     <div x-show="mobileNavOpen" 
@@ -140,7 +140,7 @@ $currentPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
     </aside>
 
     <!-- Main Content Wrapper -->
-    <div class="flex-1 flex flex-col relative min-w-0">
+    <div class="flex-1 flex flex-col relative min-w-0 max-w-full overflow-hidden">
         
         <!-- Topbar -->
         <header class="h-16 sm:h-20 bg-white/90 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 lg:px-10 flex-shrink-0 z-30 shadow-xs">
@@ -168,4 +168,4 @@ $currentPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
         </header>
         
         <!-- Scrollable Content Area -->
-        <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 relative z-0">
+        <main class="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-6 lg:p-8 relative z-0 min-w-0 max-w-full">

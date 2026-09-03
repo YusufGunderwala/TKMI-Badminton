@@ -46,7 +46,7 @@ include __DIR__ . '/includes/header.php';
 <!-- ======================================================= -->
 <!-- 1. STADIUM HERO SECTION (Clean, Bold, Authentic)        -->
 <!-- ======================================================= -->
-<div class="relative w-full bg-[#080e1e] text-white pt-28 pb-20 border-b border-slate-800 -mt-24">
+<div class="relative w-full bg-[#080e1e] text-white pt-28 pb-20 border-b border-slate-800 -mt-24 overflow-hidden">
     
     <!-- Subtle Background Texture -->
     <div class="absolute inset-0 opacity-10 pointer-events-none" style="background-image: radial-gradient(#3b82f6 1px, transparent 1px); background-size: 28px 28px;"></div>
