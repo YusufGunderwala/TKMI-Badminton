@@ -52,17 +52,14 @@
   <!-- Local Canvas Confetti Engine (Magic UI) -->
   <script defer src="<?= BASE_URL ?>/assets/vendor/magic-ui/confetti.min.js"></script>
 
-  <!-- Next-Gen UI Master Stylesheet Bundle (Magic UI, Retro UI, Smooth UI, Unlumen) -->
+  <!-- Next-Gen UI Master Stylesheet Bundle (Magic UI, Retro UI) -->
   <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/app.css">
   <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/magic-ui.css">
-  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/vendor/ui-bundle.css">
+  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/vendor/retro-ui/retro-ui.css">
 
   <!-- Next-Gen UI Master Scripts -->
-  <script src="<?= BASE_URL ?>/assets/vendor/ui-bundle.js" defer></script>
   <script src="<?= BASE_URL ?>/assets/vendor/magic-ui/magic-ui.js" defer></script>
   <script src="<?= BASE_URL ?>/assets/vendor/retro-ui/retro-ui.js" defer></script>
-  <script src="<?= BASE_URL ?>/assets/vendor/smooth-ui/smooth-ui.js" defer></script>
-  <script src="<?= BASE_URL ?>/assets/vendor/unlumen-ui/unlumen-ui.js" defer></script>
 
   <style>
     [x-cloak] { display: none !important; }

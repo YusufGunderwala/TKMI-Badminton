@@ -10,8 +10,23 @@ Thumbs.db
 *.sublime-project
 *.sublime-workspace
 
-# Temporary scripts
+# Temporary / dev-only scripts
 dump_codebase.php
+migrate.php
+MASTER_CODEBASE.txt
+check_*.php
+test_*.php
+debug_*.php
+scratch_*.php
 
-# Local Cache & Uploads
+# Internal planning & documentation (never expose to web)
+*.docx
+*.pdf
+*.xlsx
+*.pptx
+
+# Local Cache & Uploads (populated at runtime)
 cache/
+
+# Env secrets
+.env

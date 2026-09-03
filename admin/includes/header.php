@@ -42,12 +42,9 @@ $currentPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
     <script defer src="<?= BASE_URL ?>/assets/vendor/magic-ui/confetti.min.js"></script>
     <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/app.css">
     <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/magic-ui.css">
-    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/vendor/ui-bundle.css">
-    <script src="<?= BASE_URL ?>/assets/vendor/ui-bundle.js" defer></script>
+    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/vendor/retro-ui/retro-ui.css">
     <script src="<?= BASE_URL ?>/assets/vendor/magic-ui/magic-ui.js" defer></script>
     <script src="<?= BASE_URL ?>/assets/vendor/retro-ui/retro-ui.js" defer></script>
-    <script src="<?= BASE_URL ?>/assets/vendor/smooth-ui/smooth-ui.js" defer></script>
-    <script src="<?= BASE_URL ?>/assets/vendor/unlumen-ui/unlumen-ui.js" defer></script>
 </head>
 <body x-data="{ mobileNavOpen: false }" class="bg-[#f0f4f8] font-sans text-slate-800 h-screen overflow-hidden flex selection:bg-blue-600 selection:text-white relative w-full max-w-full">
 
