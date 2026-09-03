@@ -182,15 +182,24 @@ include __DIR__ . '/../includes/header.php';
             </template>
         </div>
 
-        <div class="p-4 sm:p-6 border-t border-slate-200 bg-slate-50 flex items-center justify-end gap-3">
-            <button type="button" @click="checkConflicts()" class="inline-flex items-center gap-1.5 bg-white hover:bg-slate-100 text-slate-700 font-bold text-sm px-4 py-2.5 rounded-xl border border-slate-200 shadow-sm transition cursor-pointer" x-show="!isValid">
-                <i class="ph-bold ph-check-circle text-base text-slate-500"></i>
-                <span>Validate Pairs</span>
-            </button>
-            <button type="submit" class="inline-flex items-center gap-2 bg-[#0f2044] hover:bg-[#16306e] text-white font-bold text-sm px-6 py-2.5 rounded-xl shadow-lg transition cursor-pointer" :disabled="!isValid" :class="!isValid ? 'opacity-50 cursor-not-allowed' : ''">
-                <i class="ph-bold ph-floppy-disk text-base text-[#c9a84c]"></i>
-                <span>Save Survival Bracket</span>
-            </button>
+        <div class="p-4 sm:p-6 border-t border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <a href="<?= BASE_URL ?>/admin/tournaments/view.php?id=<?= $id ?>" class="w-full sm:w-auto bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold py-3 px-6 rounded-xl transition text-center text-sm shadow-xs">
+                Cancel
+            </a>
+
+            <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
+                <button type="button" @click="checkConflicts()" class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 bg-white hover:bg-slate-100 text-slate-700 font-bold text-sm px-5 py-3 rounded-xl border border-slate-200 shadow-xs transition cursor-pointer" x-show="!isValid">
+                    <i class="ph-bold ph-check-circle text-base text-slate-500"></i>
+                    <span>Validate Pairs</span>
+                </button>
+                <button type="submit" 
+                        :disabled="!isValid" 
+                        :class="!isValid ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#16306e] shadow-xl hover:shadow-blue-900/30'"
+                        class="w-full sm:w-auto bg-[#0f2044] text-white font-black py-3.5 px-8 rounded-xl transition flex items-center justify-center gap-2.5 text-sm cursor-pointer border border-[#c9a84c]/30">
+                    <i class="ph-bold ph-floppy-disk text-lg text-[#c9a84c]"></i>
+                    <span>Save Survival Bracket</span>
+                </button>
+            </div>
         </div>
     </form>
 </div>
