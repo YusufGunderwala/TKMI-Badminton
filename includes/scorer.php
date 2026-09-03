@@ -10,17 +10,22 @@ class Scorer {
     public static function getMatchData(int $matchId) {
         $pdo = db();
         
-        // High-speed lean fetch for point calculations
+        // High-speed lean fetch for point calculations with fail-safe GEMINI.md defaults
         $stmt = $pdo->prepare('
-            SELECT m.*, rc.best_of, rc.points_per_game, rc.deuce_enabled, rc.deuce_trigger, rc.deuce_cap
+            SELECT m.*, 
+                   COALESCE(rc.best_of, 3) as best_of, 
+                   COALESCE(rc.points_per_game, CASE WHEN m.round_key = \'final\' THEN 21 WHEN m.stage = \'stage2\' THEN 15 ELSE 11 END) as points_per_game, 
+                   COALESCE(rc.deuce_enabled, TRUE) as deuce_enabled, 
+                   COALESCE(rc.deuce_trigger, CASE WHEN m.round_key = \'final\' THEN 20 WHEN m.stage = \'stage2\' THEN 14 ELSE 10 END) as deuce_trigger, 
+                   COALESCE(rc.deuce_cap, CASE WHEN m.round_key = \'final\' THEN 26 WHEN m.stage = \'stage2\' THEN 21 ELSE 16 END) as deuce_cap
             FROM matches m
-            JOIN round_configs rc ON m.tournament_id = rc.tournament_id AND m.round_key = rc.round_key
+            LEFT JOIN round_configs rc ON m.tournament_id = rc.tournament_id AND m.round_key = rc.round_key
             WHERE m.id = ?
         ');
         $stmt->execute([$matchId]);
         $match = $stmt->fetch();
         
-        if (!$match) throw new Exception("Match not found or configuration missing.");
+        if (!$match) throw new Exception("Match not found (ID: $matchId).");
         return $match;
     }
 
@@ -434,6 +439,27 @@ class Scorer {
         if ($match['next_match_id_loser']) {
             self::fillBracketSlot($pdo, $match['next_match_id_loser'], $loserId, $isDoubles);
         }
+
+        // 4. Tournament Completion Check
+        $checkIncomplete = $pdo->prepare("
+            SELECT COUNT(*) FROM matches 
+            WHERE tournament_id = ? AND status NOT IN (?, ?, ?, ?, ?)
+        ");
+        $checkIncomplete->execute([
+            $match['tournament_id'], 
+            MATCH_COMPLETED, MATCH_WALKOVER, MATCH_RETIRED, MATCH_CANCELLED, MATCH_BYE
+        ]);
+        $incompleteCount = (int)$checkIncomplete->fetchColumn();
+
+        if ($incompleteCount === 0) {
+            $hasFinal = (int)$pdo->query("SELECT COUNT(*) FROM matches WHERE tournament_id = " . (int)$match['tournament_id'] . " AND round_key = '" . ROUND_FINAL . "'")->fetchColumn() > 0;
+            $tourney = getTournament((int)$match['tournament_id']);
+            if ($hasFinal || ($tourney && $tourney['format'] === 'round_robin')) {
+                $pdo->prepare("UPDATE tournaments SET status = 'completed' WHERE id = ?")->execute([$match['tournament_id']]);
+            }
+        }
+
+        AppCache::flush();
     }
 
     private static function fillBracketSlot(PDO $pdo, int $nextMatchId, int $entityId, bool $isDoubles): void {

@@ -56,7 +56,7 @@ function db(bool $forceReconnect = false): PDO {
         $options = [
             PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_EMULATE_PREPARES   => false,
+            PDO::ATTR_EMULATE_PREPARES   => true, // Essential for Supabase PgBouncer transaction pooler (port 6543)
             PDO::ATTR_PERSISTENT         => false, // Fresh clean connection per request avoids stale cloud socket drops
             PDO::ATTR_TIMEOUT            => 10,
         ];

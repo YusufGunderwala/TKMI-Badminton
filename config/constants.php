@@ -93,6 +93,8 @@ define('WALKOVER_REASONS', [
 define('TIER_ACTIVE',      0); // Still competing in Stage 1
 define('TIER_ONE',         1); // 2-0 → Qualified to R16 as Tier 1
 define('TIER_TWO',         2); // 2-1 → Qualified to R16 as Tier 2
+define('TIER_1',           1); // Alias
+define('TIER_2',           2); // Alias
 define('TIER_ELIMINATED',  9); // 0-2 or 1-2 → Out
 
 // --- Session ---

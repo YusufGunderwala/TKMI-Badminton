@@ -194,6 +194,22 @@ function getPlayer(int $id): ?array {
     });
 }
 
+function getTeam(int $id): ?array {
+    return AppCache::remember('team_' . $id, 60, function() use ($id) {
+        $stmt = db()->prepare('
+            SELECT t.*, 
+                   p1.display_name as p1_name, p1.full_name as p1_full_name, p1.its_id as p1_its, p1.photo_path as p1_photo, p1.mohallah as p1_mohallah,
+                   p2.display_name as p2_name, p2.full_name as p2_full_name, p2.its_id as p2_its, p2.photo_path as p2_photo, p2.mohallah as p2_mohallah
+            FROM teams t
+            LEFT JOIN players p1 ON t.player1_id = p1.id
+            LEFT JOIN players p2 ON t.player2_id = p2.id
+            WHERE t.id = ?
+        ');
+        $stmt->execute([$id]);
+        return $stmt->fetch() ?: null;
+    });
+}
+
 function getParticipantName(array $match): array {
     // Fast path: check if names were pre-joined in SQL
     if (!empty($match['pa_name']) || !empty($match['pb_name'])) {

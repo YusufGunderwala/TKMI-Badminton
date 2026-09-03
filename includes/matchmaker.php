@@ -108,6 +108,8 @@ class Matchmaker {
         $pdo = db();
         $stmt = $pdo->prepare('UPDATE tournaments SET structure_manifest = ?, status = ? WHERE id = ?');
         $stmt->execute([json_encode($manifest), 'structure_ready', $tournamentId]);
+        AppCache::forget('tournament_' . $tournamentId);
+        AppCache::flush();
         
         return $manifest;
     }
@@ -134,6 +136,21 @@ class Matchmaker {
             $pdo->prepare('UPDATE player_tournament_records SET wins = wins + 1 WHERE tournament_id = ? AND player_id = ?')->execute([$tournamentId, $participantId]);
         } else {
             $pdo->prepare('UPDATE player_tournament_records SET losses = losses + 1 WHERE tournament_id = ? AND player_id = ?')->execute([$tournamentId, $participantId]);
+        }
+    }
+
+    private static function updateParticipantRecord(PDO $pdo, int $tournamentId, int $entityId, bool $isWin, bool $isDoubles): void {
+        if ($isDoubles) {
+            $stmt = $pdo->prepare('SELECT player1_id, player2_id FROM teams WHERE id = ?');
+            $stmt->execute([$entityId]);
+            $team = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($team) {
+                $col = $isWin ? 'wins = wins + 1' : 'losses = losses + 1';
+                $pdo->prepare("UPDATE player_tournament_records SET {$col} WHERE tournament_id = ? AND player_id IN (?, ?)")
+                    ->execute([$tournamentId, $team['player1_id'], $team['player2_id']]);
+            }
+        } else {
+            self::updateRecord($pdo, $tournamentId, $entityId, $isWin);
         }
     }
 
@@ -196,6 +213,7 @@ class Matchmaker {
             $pdo->commit();
         } catch (Exception $e) {
             $pdo->rollBack();
+            echo "Matchmaker Error (Round 1): " . $e->getMessage() . "\n";
             error_log('Matchmaker Error (Round 1): ' . $e->getMessage());
             throw new Exception("Failed to generate Round 1: " . $e->getMessage());
         }
@@ -220,13 +238,23 @@ class Matchmaker {
         try {
             $pdo->beginTransaction();
 
-            $stmtWinners = $pdo->prepare('SELECT player_id FROM player_tournament_records WHERE tournament_id = ? AND wins = 1 AND losses = 0');
-            $stmtWinners->execute([$tournamentId]);
-            $winners = $stmtWinners->fetchAll(PDO::FETCH_COLUMN);
+            if ($isDoubles) {
+                $stmtWinners = $pdo->prepare("SELECT winner_team_id FROM matches WHERE tournament_id = ? AND round_key = ? AND winner_team_id IS NOT NULL");
+                $stmtWinners->execute([$tournamentId, ROUND_STAGE1_R1]);
+                $winners = $stmtWinners->fetchAll(PDO::FETCH_COLUMN);
 
-            $stmtLosers = $pdo->prepare('SELECT player_id FROM player_tournament_records WHERE tournament_id = ? AND wins = 0 AND losses = 1');
-            $stmtLosers->execute([$tournamentId]);
-            $losers = $stmtLosers->fetchAll(PDO::FETCH_COLUMN);
+                $stmtLosers = $pdo->prepare("SELECT loser_team_id FROM matches WHERE tournament_id = ? AND round_key = ? AND loser_team_id IS NOT NULL");
+                $stmtLosers->execute([$tournamentId, ROUND_STAGE1_R1]);
+                $losers = $stmtLosers->fetchAll(PDO::FETCH_COLUMN);
+            } else {
+                $stmtWinners = $pdo->prepare('SELECT player_id FROM player_tournament_records WHERE tournament_id = ? AND wins = 1 AND losses = 0');
+                $stmtWinners->execute([$tournamentId]);
+                $winners = $stmtWinners->fetchAll(PDO::FETCH_COLUMN);
+
+                $stmtLosers = $pdo->prepare('SELECT player_id FROM player_tournament_records WHERE tournament_id = ? AND wins = 0 AND losses = 1');
+                $stmtLosers->execute([$tournamentId]);
+                $losers = $stmtLosers->fetchAll(PDO::FETCH_COLUMN);
+            }
 
             shuffle($winners);
             shuffle($losers);
@@ -246,20 +274,20 @@ class Matchmaker {
 
             $matchNumber = 1;
 
-            // Pair Winners
+            // Pair Winners (1-0 vs 1-0)
             if (count($winners) % 2 !== 0) {
                 $byeWinner = array_pop($winners);
-                self::updateRecord($pdo, $tournamentId, $byeWinner, true);
+                self::updateParticipantRecord($pdo, $tournamentId, $byeWinner, true, $isDoubles);
                 $insertByeMatch->execute([$tournamentId, ROUND_STAGE1_R2, $matchNumber++, $byeWinner, $byeWinner, MATCH_BYE]);
             }
             for ($i = 0; $i < count($winners); $i += 2) {
                 $insertMatch->execute([$tournamentId, ROUND_STAGE1_R2, $matchNumber++, $winners[$i], $winners[$i + 1], MATCH_SCHEDULED]);
             }
 
-            // Pair Losers
+            // Pair Losers (0-1 vs 0-1)
             if (count($losers) % 2 !== 0) {
                 $byeLoser = array_pop($losers);
-                self::updateRecord($pdo, $tournamentId, $byeLoser, true);
+                self::updateParticipantRecord($pdo, $tournamentId, $byeLoser, true, $isDoubles);
                 $insertByeMatch->execute([$tournamentId, ROUND_STAGE1_R2, $matchNumber++, $byeLoser, $byeLoser, MATCH_BYE]);
             }
             for ($i = 0; $i < count($losers); $i += 2) {
@@ -275,11 +303,20 @@ class Matchmaker {
     }
     
     /**
-     * Survival Round
+     * Survival Round (handles 3 or 4 arguments seamlessly)
      */
-    public static function saveSurvivalRound(int $tournamentId, array $pairs, ?int $byePlayerId, int $adminId): void {
+    public static function saveSurvivalRound(int $tournamentId, array $pairs, mixed $arg3 = null, mixed $arg4 = null): void {
         if (!self::isRoundComplete($tournamentId, ROUND_STAGE1_R2)) {
             throw new Exception("Round 2 is not fully completed yet.");
+        }
+
+        $byePlayerId = null;
+        $adminId = 0;
+        if ($arg4 === null) {
+            $adminId = (int)$arg3;
+        } else {
+            $byePlayerId = $arg3 ? (int)$arg3 : null;
+            $adminId = (int)$arg4;
         }
 
         $pdo = db();
@@ -288,7 +325,7 @@ class Matchmaker {
 
         $stmt = $pdo->prepare('SELECT COUNT(*) FROM matches WHERE tournament_id = ? AND round_key = ?');
         $stmt->execute([$tournamentId, ROUND_STAGE1_SURVIVAL]);
-        if ($stmt->fetchColumn() > 0) throw new Exception("Survival already exists.");
+        if ($stmt->fetchColumn() > 0) throw new Exception("Survival Round already exists.");
 
         try {
             $pdo->beginTransaction();
@@ -296,9 +333,21 @@ class Matchmaker {
             $pdo->prepare('UPDATE player_tournament_records SET tier = ? WHERE tournament_id = ? AND wins >= 2')->execute([TIER_1, $tournamentId]);
             $pdo->prepare('UPDATE player_tournament_records SET tier = ?, is_eliminated = TRUE WHERE tournament_id = ? AND losses >= 2')->execute([TIER_ELIMINATED, $tournamentId]);
 
-            $stmtSurvival = $pdo->prepare('SELECT player_id FROM player_tournament_records WHERE tournament_id = ? AND wins = 1 AND losses = 1');
-            $stmtSurvival->execute([$tournamentId]);
-            $survivors = $stmtSurvival->fetchAll(PDO::FETCH_COLUMN);
+            if ($isDoubles) {
+                $stmtSurvival = $pdo->prepare("
+                    SELECT w.winner_team_id FROM matches w 
+                    JOIN matches l ON w.winner_team_id = l.loser_team_id 
+                    WHERE w.tournament_id = ? AND w.round_key IN ('r1', 'r2') 
+                      AND l.tournament_id = ? AND l.round_key IN ('r1', 'r2')
+                    GROUP BY w.winner_team_id
+                ");
+                $stmtSurvival->execute([$tournamentId, $tournamentId]);
+                $survivors = $stmtSurvival->fetchAll(PDO::FETCH_COLUMN);
+            } else {
+                $stmtSurvival = $pdo->prepare('SELECT player_id FROM player_tournament_records WHERE tournament_id = ? AND wins = 1 AND losses = 1');
+                $stmtSurvival->execute([$tournamentId]);
+                $survivors = $stmtSurvival->fetchAll(PDO::FETCH_COLUMN);
+            }
 
             shuffle($survivors);
 
@@ -310,26 +359,30 @@ class Matchmaker {
 
             $matchNumber = 1;
             if (count($survivors) % 2 !== 0) {
-                // If a manual bye is specified, extract it. Otherwise auto array_pop
                 if ($byePlayerId && in_array($byePlayerId, $survivors)) {
-                    $survivors = array_diff($survivors, [$byePlayerId]);
-                    $survivors = array_values($survivors);
+                    $survivors = array_values(array_diff($survivors, [$byePlayerId]));
                     $byeSurvivor = $byePlayerId;
                 } else {
                     $byeSurvivor = array_pop($survivors);
                 }
                 
-                self::updateRecord($pdo, $tournamentId, $byeSurvivor, true);
+                self::updateParticipantRecord($pdo, $tournamentId, $byeSurvivor, true, $isDoubles);
                 $insertByeMatch->execute([$tournamentId, ROUND_STAGE1_SURVIVAL, $matchNumber++, $byeSurvivor, $byeSurvivor, MATCH_BYE]);
             }
             
             if (!empty($pairs)) {
                 foreach ($pairs as $pair) {
-                    $insertMatch->execute([$tournamentId, ROUND_STAGE1_SURVIVAL, $matchNumber++, $pair[0], $pair[1], MATCH_SCHEDULED]);
+                    $pA = (int)($pair[0] ?? 0);
+                    $pB = (int)($pair[1] ?? 0);
+                    if ($pA && $pB && $pA !== $pB) {
+                        $insertMatch->execute([$tournamentId, ROUND_STAGE1_SURVIVAL, $matchNumber++, $pA, $pB, MATCH_SCHEDULED]);
+                    }
                 }
             } else {
                 for ($i = 0; $i < count($survivors); $i += 2) {
-                    $insertMatch->execute([$tournamentId, ROUND_STAGE1_SURVIVAL, $matchNumber++, $survivors[$i], $survivors[$i + 1], MATCH_SCHEDULED]);
+                    if (isset($survivors[$i + 1])) {
+                        $insertMatch->execute([$tournamentId, ROUND_STAGE1_SURVIVAL, $matchNumber++, $survivors[$i], $survivors[$i + 1], MATCH_SCHEDULED]);
+                    }
                 }
             }
 
@@ -337,7 +390,7 @@ class Matchmaker {
         } catch (Exception $e) {
             $pdo->rollBack();
             error_log('Matchmaker Error (Survival): ' . $e->getMessage());
-            throw new Exception("Failed to generate Survival: " . $e->getMessage());
+            throw new Exception("Failed to generate Survival Round: " . $e->getMessage());
         }
     }
 
@@ -370,22 +423,46 @@ class Matchmaker {
                 ->execute([TIER_ELIMINATED, $tournamentId]);
 
             // 2. Fetch T1 and T2
-            $stmtT1 = $pdo->prepare('SELECT player_id FROM player_tournament_records WHERE tournament_id = ? AND tier = ?');
-            $stmtT1->execute([$tournamentId, TIER_1]);
-            $tier1 = $stmtT1->fetchAll(PDO::FETCH_COLUMN);
+            if ($isDoubles) {
+                $stmtT1 = $pdo->prepare("
+                    SELECT winner_team_id FROM matches 
+                    WHERE tournament_id = ? AND round_key IN ('r1', 'r2') AND winner_team_id IS NOT NULL 
+                    GROUP BY winner_team_id HAVING COUNT(*) = 2
+                ");
+                $stmtT1->execute([$tournamentId]);
+                $tier1 = $stmtT1->fetchAll(PDO::FETCH_COLUMN);
 
-            $stmtT2 = $pdo->prepare('SELECT player_id FROM player_tournament_records WHERE tournament_id = ? AND tier = ?');
-            $stmtT2->execute([$tournamentId, TIER_2]);
-            $tier2 = $stmtT2->fetchAll(PDO::FETCH_COLUMN);
+                $stmtT2 = $pdo->prepare("
+                    SELECT winner_team_id FROM matches 
+                    WHERE tournament_id = ? AND round_key = ? AND winner_team_id IS NOT NULL
+                ");
+                $stmtT2->execute([$tournamentId, ROUND_STAGE1_SURVIVAL]);
+                $tier2 = $stmtT2->fetchAll(PDO::FETCH_COLUMN);
+            } else {
+                $stmtT1 = $pdo->prepare('SELECT player_id FROM player_tournament_records WHERE tournament_id = ? AND tier = ?');
+                $stmtT1->execute([$tournamentId, TIER_1]);
+                $tier1 = $stmtT1->fetchAll(PDO::FETCH_COLUMN);
+
+                $stmtT2 = $pdo->prepare('SELECT player_id FROM player_tournament_records WHERE tournament_id = ? AND tier = ?');
+                $stmtT2->execute([$tournamentId, TIER_2]);
+                $tier2 = $stmtT2->fetchAll(PDO::FETCH_COLUMN);
+            }
 
             shuffle($tier1);
             shuffle($tier2);
             $allPlayers = array_merge($tier1, $tier2); // Seed 1 to K
             
-            // FREEZE SEEDS
-            $updateSeed = $pdo->prepare('UPDATE player_tournament_records SET seed = ? WHERE tournament_id = ? AND player_id = ?');
-            foreach ($allPlayers as $idx => $pid) {
-                $updateSeed->execute([$idx + 1, $tournamentId, $pid]);
+            // FREEZE SEEDS in tournament_players (where seed column exists)
+            if ($isDoubles) {
+                $updateSeed = $pdo->prepare('UPDATE tournament_players SET seed = ? WHERE tournament_id = ? AND player_id IN (SELECT player1_id FROM teams WHERE id = ? UNION SELECT player2_id FROM teams WHERE id = ?)');
+                foreach ($allPlayers as $idx => $tid) {
+                    $updateSeed->execute([$idx + 1, $tournamentId, $tid, $tid]);
+                }
+            } else {
+                $updateSeed = $pdo->prepare('UPDATE tournament_players SET seed = ? WHERE tournament_id = ? AND player_id = ?');
+                foreach ($allPlayers as $idx => $pid) {
+                    $updateSeed->execute([$idx + 1, $tournamentId, $pid]);
+                }
             }
 
             $bracketSize = (int)$manifest['stage_2']['bracket_size'];
@@ -508,12 +585,271 @@ class Matchmaker {
         return $matches;
     }
     
-    // Kept to prevent crashing other parts of the admin if they explicitly call saveCustomRound1
-    public static function saveCustomRound1(int $tournamentId, array $pairs, ?int $byePlayerId, int $adminId): void {
-        throw new Exception("Custom pairing not updated for new Universal engine yet.");
+    /**
+     * Gets previous opponents for a player in a tournament
+     */
+    public static function getPreviousOpponents(int $tournamentId, int $playerId): array {
+        $pdo = db();
+        $stmt = $pdo->prepare('
+            SELECT participant_a_id, participant_b_id, team_a_id, team_b_id 
+            FROM matches 
+            WHERE tournament_id = ? AND (participant_a_id = ? OR participant_b_id = ? OR team_a_id = ? OR team_b_id = ?)
+        ');
+        $stmt->execute([$tournamentId, $playerId, $playerId, $playerId, $playerId]);
+        $opponents = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            if (!empty($row['participant_a_id']) && (int)$row['participant_a_id'] !== $playerId) {
+                $opponents[] = (int)$row['participant_a_id'];
+            }
+            if (!empty($row['participant_b_id']) && (int)$row['participant_b_id'] !== $playerId) {
+                $opponents[] = (int)$row['participant_b_id'];
+            }
+            if (!empty($row['team_a_id']) && (int)$row['team_a_id'] !== $playerId) {
+                $opponents[] = (int)$row['team_a_id'];
+            }
+            if (!empty($row['team_b_id']) && (int)$row['team_b_id'] !== $playerId) {
+                $opponents[] = (int)$row['team_b_id'];
+            }
+        }
+        return array_values(array_unique($opponents));
     }
+
+    /**
+     * Returns Path 1 (Won R1, Lost R2) and Path 2 (Lost R1, Won R2) for 1-1 players
+     */
+    public static function getSurvivalPaths(int $tournamentId): array {
+        $pdo = db();
+        $tourney = getTournament($tournamentId);
+        $isDoubles = ($tourney['match_type'] === 'doubles');
+
+        $colWin = $isDoubles ? 'winner_team_id' : 'winner_player_id';
+        $colA = $isDoubles ? 'team_a_id' : 'participant_a_id';
+        $colB = $isDoubles ? 'team_b_id' : 'participant_b_id';
+
+        if ($isDoubles) {
+            $stmtSurvival = $pdo->prepare("
+                SELECT w.winner_team_id FROM matches w 
+                JOIN matches l ON w.winner_team_id = l.loser_team_id 
+                WHERE w.tournament_id = ? AND w.round_key IN ('r1', 'r2') 
+                  AND l.tournament_id = ? AND l.round_key IN ('r1', 'r2')
+                GROUP BY w.winner_team_id
+            ");
+            $stmtSurvival->execute([$tournamentId, $tournamentId]);
+            $tied = $stmtSurvival->fetchAll(PDO::FETCH_COLUMN);
+        } else {
+            $stmt = $pdo->prepare('SELECT player_id FROM player_tournament_records WHERE tournament_id = ? AND wins = 1 AND losses = 1');
+            $stmt->execute([$tournamentId]);
+            $tied = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        }
+
+        $path1 = []; // Won R1
+        $path2 = []; // Lost R1
+
+        foreach ($tied as $pid) {
+            $checkR1 = $pdo->prepare("SELECT {$colWin} FROM matches WHERE tournament_id = ? AND round_key = ? AND ({$colA} = ? OR {$colB} = ?)");
+            $checkR1->execute([$tournamentId, ROUND_STAGE1_R1, $pid, $pid]);
+            $r1Winner = $checkR1->fetchColumn();
+
+            if ($r1Winner == $pid) {
+                $path1[] = (int)$pid; // Won R1
+            } else {
+                $path2[] = (int)$pid; // Lost R1
+            }
+        }
+
+        return ['path1' => $path1, 'path2' => $path2];
+    }
+
+    /**
+     * Saves custom manual pairings for Round 1
+     */
+    public static function saveCustomRound1(int $tournamentId, array $pairs, ?int $byePlayerId, int $adminId): void {
+        $pdo = db();
+        $tourney = getTournament($tournamentId);
+        $isDoubles = ($tourney['match_type'] === 'doubles');
+
+        $stmt = $pdo->prepare('SELECT COUNT(*) FROM matches WHERE tournament_id = ? AND round_key = ?');
+        $stmt->execute([$tournamentId, ROUND_STAGE1_R1]);
+        if ($stmt->fetchColumn() > 0) throw new Exception("Round 1 matches have already been created.");
+
+        $participants = self::getParticipants($tournamentId);
+        if (count($participants) < 2) throw new Exception("Need at least 2 participants.");
+
+        try {
+            $pdo->beginTransaction();
+
+            self::initRecords($pdo, $tournamentId, $participants);
+
+            $colA = $isDoubles ? 'team_a_id' : 'participant_a_id';
+            $colB = $isDoubles ? 'team_b_id' : 'participant_b_id';
+            $colWin = $isDoubles ? 'winner_team_id' : 'winner_player_id';
+
+            $insertMatch = $pdo->prepare("
+                INSERT INTO matches (tournament_id, round_key, stage, match_number, {$colA}, {$colB}, status)
+                VALUES (?, ?, 'stage1', ?, ?, ?, ?)
+            ");
+
+            $matchNumber = 1;
+            foreach ($pairs as $pair) {
+                $pA = (int)($pair[0] ?? 0);
+                $pB = (int)($pair[1] ?? 0);
+                if (!$pA || !$pB || $pA === $pB) {
+                    throw new Exception("Invalid match pairing detected ($pA vs $pB).");
+                }
+                $insertMatch->execute([
+                    $tournamentId, ROUND_STAGE1_R1, $matchNumber++, $pA, $pB, MATCH_SCHEDULED
+                ]);
+            }
+
+            if ($byePlayerId) {
+                self::updateParticipantRecord($pdo, $tournamentId, $byePlayerId, true, $isDoubles);
+                $pdo->prepare("
+                    INSERT INTO matches (tournament_id, round_key, stage, match_number, {$colA}, {$colB}, {$colWin}, status)
+                    VALUES (?, ?, 'stage1', ?, ?, NULL, ?, ?)
+                ")->execute([$tournamentId, ROUND_STAGE1_R1, $matchNumber++, $byePlayerId, $byePlayerId, MATCH_BYE]);
+            }
+
+            $pdo->prepare('UPDATE tournaments SET status = ? WHERE id = ?')->execute(['live', $tournamentId]);
+
+            $pdo->commit();
+        } catch (Exception $e) {
+            $pdo->rollBack();
+            error_log('Matchmaker Error (Custom R1): ' . $e->getMessage());
+            throw new Exception("Failed to save custom Round 1: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Saves custom manual pairings for Round 2
+     */
     public static function saveCustomRound2(int $tournamentId, array $pairs, ?int $byePlayerId, int $adminId): void {
-        throw new Exception("Custom pairing not updated for new Universal engine yet.");
+        if (!self::isRoundComplete($tournamentId, ROUND_STAGE1_R1)) {
+            throw new Exception("Round 1 is not fully completed yet.");
+        }
+
+        $pdo = db();
+        $tourney = getTournament($tournamentId);
+        $isDoubles = ($tourney['match_type'] === 'doubles');
+
+        $stmt = $pdo->prepare('SELECT COUNT(*) FROM matches WHERE tournament_id = ? AND round_key = ?');
+        $stmt->execute([$tournamentId, ROUND_STAGE1_R2]);
+        if ($stmt->fetchColumn() > 0) throw new Exception("Round 2 matches already exist.");
+
+        try {
+            $pdo->beginTransaction();
+
+            $colA = $isDoubles ? 'team_a_id' : 'participant_a_id';
+            $colB = $isDoubles ? 'team_b_id' : 'participant_b_id';
+            $colWin = $isDoubles ? 'winner_team_id' : 'winner_player_id';
+
+            $insertMatch = $pdo->prepare("
+                INSERT INTO matches (tournament_id, round_key, stage, match_number, {$colA}, {$colB}, status)
+                VALUES (?, ?, 'stage1', ?, ?, ?, ?)
+            ");
+
+            $matchNumber = 1;
+            foreach ($pairs as $pair) {
+                $pA = (int)($pair[0] ?? 0);
+                $pB = (int)($pair[1] ?? 0);
+                if (!$pA || !$pB || $pA === $pB) {
+                    throw new Exception("Invalid match pairing detected ($pA vs $pB).");
+                }
+                $insertMatch->execute([
+                    $tournamentId, ROUND_STAGE1_R2, $matchNumber++, $pA, $pB, MATCH_SCHEDULED
+                ]);
+            }
+
+            if ($byePlayerId) {
+                self::updateParticipantRecord($pdo, $tournamentId, $byePlayerId, true, $isDoubles);
+                $pdo->prepare("
+                    INSERT INTO matches (tournament_id, round_key, stage, match_number, {$colA}, {$colB}, {$colWin}, status)
+                    VALUES (?, ?, 'stage1', ?, ?, NULL, ?, ?)
+                ")->execute([$tournamentId, ROUND_STAGE1_R2, $matchNumber++, $byePlayerId, $byePlayerId, MATCH_BYE]);
+            }
+
+            $pdo->commit();
+        } catch (Exception $e) {
+            $pdo->rollBack();
+            error_log('Matchmaker Error (Custom R2): ' . $e->getMessage());
+            throw new Exception("Failed to save custom Round 2: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Determines Podium Winners (1st, 2nd, 3rd, 4th)
+     */
+    public static function getPodiumWinners(int $tournamentId): array {
+        $pdo = db();
+        $tourney = getTournament($tournamentId);
+        if (!$tourney) return ['is_finished' => false, 'champion' => null, 'runner_up' => null, 'third' => null, 'fourth' => null];
+        $isDoubles = ($tourney['match_type'] === 'doubles');
+
+        $result = [
+            'is_doubles'  => $isDoubles,
+            'is_finished' => false,
+            'champion'    => null,
+            'runner_up'   => null,
+            'third'       => null,
+            'fourth'      => null,
+        ];
+
+        // 1. Check Final match
+        $stmtFinal = $pdo->prepare("SELECT * FROM matches WHERE tournament_id = ? AND round_key = ? ORDER BY id DESC LIMIT 1");
+        $stmtFinal->execute([$tournamentId, ROUND_FINAL]);
+        $finalMatch = $stmtFinal->fetch(PDO::FETCH_ASSOC);
+
+        if ($finalMatch && in_array($finalMatch['status'], [MATCH_COMPLETED, MATCH_WALKOVER, MATCH_RETIRED])) {
+            $winnerId = $isDoubles ? $finalMatch['winner_team_id'] : $finalMatch['winner_player_id'];
+            $loserId  = $isDoubles ? $finalMatch['loser_team_id'] : $finalMatch['loser_player_id'];
+
+            $result['champion']  = $winnerId ? ($isDoubles ? getTeam((int)$winnerId) : getPlayer((int)$winnerId)) : null;
+            $result['runner_up'] = $loserId ? ($isDoubles ? getTeam((int)$loserId) : getPlayer((int)$loserId)) : null;
+            $result['is_finished'] = true;
+        }
+
+        // 2. Check 3rd Place match
+        $stmt3rd = $pdo->prepare("SELECT * FROM matches WHERE tournament_id = ? AND round_key = ? ORDER BY id DESC LIMIT 1");
+        $stmt3rd->execute([$tournamentId, ROUND_3RD_PLACE]);
+        $thirdMatch = $stmt3rd->fetch(PDO::FETCH_ASSOC);
+
+        if ($thirdMatch && in_array($thirdMatch['status'], [MATCH_COMPLETED, MATCH_WALKOVER, MATCH_RETIRED])) {
+            $w3 = $isDoubles ? $thirdMatch['winner_team_id'] : $thirdMatch['winner_player_id'];
+            $l3 = $isDoubles ? $thirdMatch['loser_team_id'] : $thirdMatch['loser_player_id'];
+
+            $result['third']  = $w3 ? ($isDoubles ? getTeam((int)$w3) : getPlayer((int)$w3)) : null;
+            $result['fourth'] = $l3 ? ($isDoubles ? getTeam((int)$l3) : getPlayer((int)$l3)) : null;
+        }
+
+        // 3. Fallback for Round Robin
+        if ($tourney['format'] === 'round_robin') {
+            $incomplete = (int)$pdo->prepare("SELECT COUNT(*) FROM matches WHERE tournament_id = ? AND status NOT IN ('completed', 'walkover', 'retired', 'cancelled', 'bye')")
+                ->execute([$tournamentId]);
+            $count = (int)$pdo->query("SELECT COUNT(*) FROM matches WHERE tournament_id = $tournamentId AND status NOT IN ('completed', 'walkover', 'retired', 'cancelled', 'bye')")->fetchColumn();
+            $totalMatches = (int)$pdo->query("SELECT COUNT(*) FROM matches WHERE tournament_id = $tournamentId")->fetchColumn();
+
+            if ($totalMatches > 0 && $count === 0) {
+                $result['is_finished'] = true;
+                // Query standings directly
+                $standingsStmt = $pdo->prepare("
+                    SELECT p.id, COUNT(m.id) as wins 
+                    FROM tournament_players tp
+                    JOIN players p ON tp.player_id = p.id
+                    LEFT JOIN matches m ON m.tournament_id = tp.tournament_id AND m.winner_player_id = p.id
+                    WHERE tp.tournament_id = ?
+                    GROUP BY p.id
+                    ORDER BY wins DESC
+                    LIMIT 4
+                ");
+                $standingsStmt->execute([$tournamentId]);
+                $top = $standingsStmt->fetchAll(PDO::FETCH_ASSOC);
+                if (isset($top[0])) $result['champion'] = getPlayer((int)$top[0]['id']);
+                if (isset($top[1])) $result['runner_up'] = getPlayer((int)$top[1]['id']);
+                if (isset($top[2])) $result['third'] = getPlayer((int)$top[2]['id']);
+                if (isset($top[3])) $result['fourth'] = getPlayer((int)$top[3]['id']);
+            }
+        }
+
+        return $result;
     }
 
     public static function generateRoundRobin(int $tournamentId, int $adminId): void {

@@ -364,6 +364,75 @@ if ($tournament['format'] === FORMAT_SWISS_KNOCKOUT && $tournament['status'] ===
     <?php endif; ?>
 <?php endif; ?>
 
+<?php
+$podium = Matchmaker::getPodiumWinners($id);
+if ($podium['is_finished']):
+?>
+    <div class="bg-gradient-to-br from-[#0f2044] via-[#16306e] to-[#0a152e] border-2 border-[#c9a84c] rounded-3xl p-6 sm:p-8 mb-8 shadow-2xl relative overflow-hidden text-white">
+        <div class="absolute -right-10 -bottom-10 opacity-10 pointer-events-none">
+            <i class="ph-fill ph-trophy text-[220px] text-[#c9a84c]"></i>
+        </div>
+        
+        <div class="text-center max-w-xl mx-auto mb-8 relative z-10">
+            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#c9a84c]/20 text-[#ffd978] text-xs font-black uppercase tracking-widest border border-[#c9a84c]/40 mb-3">
+                <i class="ph-fill ph-crown text-base text-[#c9a84c]"></i> TOURNAMENT COMPLETED &bull; PODIUM OF HONOR
+            </div>
+            <h2 class="text-3xl sm:text-4xl font-black font-display text-white tracking-tight">Official Tournament Results</h2>
+            <p class="text-xs sm:text-sm text-blue-200/90 mt-1">Honoring the champions of TKMI Badminton</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 relative z-10">
+            <!-- 🥇 1st Place (Champion) -->
+            <div class="bg-gradient-to-b from-amber-500/20 to-amber-950/40 border-2 border-amber-400/70 rounded-2xl p-5 text-center flex flex-col items-center relative shadow-lg">
+                <div class="absolute -top-3.5 px-3 py-0.5 rounded-full bg-amber-400 text-slate-900 font-black text-[11px] uppercase tracking-widest shadow-md flex items-center gap-1">
+                    🥇 Champion
+                </div>
+                <div class="w-16 h-16 rounded-full bg-amber-400/20 border-2 border-amber-400 flex items-center justify-center text-3xl text-amber-300 mt-2 mb-3 shadow-inner">
+                    <i class="ph-fill ph-trophy"></i>
+                </div>
+                <h4 class="text-lg font-black text-white"><?= e($podium['champion']['display_name'] ?? 'TBD') ?></h4>
+                <p class="text-xs text-amber-200/80 font-bold mt-1"><?= e($podium['champion']['mohallah'] ?? '') ?></p>
+            </div>
+
+            <!-- 🥈 2nd Place (Runner-Up) -->
+            <div class="bg-gradient-to-b from-slate-400/20 to-slate-900/40 border-2 border-slate-300/70 rounded-2xl p-5 text-center flex flex-col items-center relative shadow-lg">
+                <div class="absolute -top-3.5 px-3 py-0.5 rounded-full bg-slate-300 text-slate-900 font-black text-[11px] uppercase tracking-widest shadow-md flex items-center gap-1">
+                    🥈 2nd Place
+                </div>
+                <div class="w-16 h-16 rounded-full bg-slate-300/20 border-2 border-slate-300 flex items-center justify-center text-3xl text-slate-200 mt-2 mb-3 shadow-inner">
+                    <i class="ph-fill ph-medal"></i>
+                </div>
+                <h4 class="text-lg font-black text-white"><?= e($podium['runner_up']['display_name'] ?? 'TBD') ?></h4>
+                <p class="text-xs text-slate-300/80 font-bold mt-1"><?= e($podium['runner_up']['mohallah'] ?? '') ?></p>
+            </div>
+
+            <!-- 🥉 3rd Place (Bronze) -->
+            <div class="bg-gradient-to-b from-orange-700/20 to-orange-950/40 border-2 border-orange-500/70 rounded-2xl p-5 text-center flex flex-col items-center relative shadow-lg">
+                <div class="absolute -top-3.5 px-3 py-0.5 rounded-full bg-orange-400 text-slate-900 font-black text-[11px] uppercase tracking-widest shadow-md flex items-center gap-1">
+                    🥉 3rd Place
+                </div>
+                <div class="w-16 h-16 rounded-full bg-orange-500/20 border-2 border-orange-400 flex items-center justify-center text-3xl text-orange-300 mt-2 mb-3 shadow-inner">
+                    <i class="ph-fill ph-medal"></i>
+                </div>
+                <h4 class="text-lg font-black text-white"><?= e($podium['third']['display_name'] ?? 'TBD') ?></h4>
+                <p class="text-xs text-orange-200/80 font-bold mt-1"><?= e($podium['third']['mohallah'] ?? '') ?></p>
+            </div>
+
+            <!-- 🎖️ 4th Place -->
+            <div class="bg-white/5 border border-white/15 rounded-2xl p-5 text-center flex flex-col items-center relative shadow-lg">
+                <div class="absolute -top-3.5 px-3 py-0.5 rounded-full bg-white/20 text-slate-200 font-black text-[11px] uppercase tracking-widest shadow-md flex items-center gap-1">
+                    4th Place
+                </div>
+                <div class="w-16 h-16 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-3xl text-slate-300 mt-2 mb-3 shadow-inner">
+                    <i class="ph-bold ph-award"></i>
+                </div>
+                <h4 class="text-lg font-black text-white"><?= e($podium['fourth']['display_name'] ?? 'TBD') ?></h4>
+                <p class="text-xs text-slate-400 font-bold mt-1"><?= e($podium['fourth']['mohallah'] ?? '') ?></p>
+            </div>
+        </div>
+    </div>
+<?php endif; ?>
+
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
     <!-- Left Column: Settings -->
     <div class="lg:col-span-2 space-y-6">

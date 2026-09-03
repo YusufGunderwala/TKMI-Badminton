@@ -12,3 +12,6 @@ Thumbs.db
 
 # Temporary scripts
 dump_codebase.php
+
+# Local Cache & Uploads
+cache/
