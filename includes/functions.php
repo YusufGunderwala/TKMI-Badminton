@@ -317,3 +317,7 @@ function getDashboardStats(): array {
         }
     });
 }
+
+// Ensure Matchmaker engine is available throughout the entire platform
+require_once __DIR__ . '/matchmaker.php';
+
