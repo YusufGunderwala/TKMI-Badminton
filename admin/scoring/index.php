@@ -482,10 +482,11 @@ include __DIR__ . '/../includes/header.php';
                             $cardBorder = 'border-slate-200 bg-slate-50/60 shadow-2xs';
                         }
                     ?>
-                        <div class="bg-white border <?= $cardBorder ?> rounded-2xl p-5 flex flex-col justify-between hover:border-[#0f2044] transition-all">
+                        <div id="hub-match-card-<?= $m['id'] ?>" class="bg-white border <?= $cardBorder ?> rounded-2xl p-5 flex flex-col justify-between hover:border-[#0f2044] transition-all">
                             <div>
                                 <div class="flex justify-between items-center mb-3">
                                     <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Match #<?= $m['match_number'] ?></span>
+                                    <div id="hub-badge-<?= $m['id'] ?>">
                                     <?php if ($isLive): ?>
                                         <span class="px-2 py-0.5 bg-red-500 text-white text-[10px] font-black rounded uppercase tracking-wider flex items-center gap-1 animate-pulse">
                                             <span>●</span> ON COURT
@@ -509,36 +510,37 @@ include __DIR__ . '/../includes/header.php';
                                             <i class="ph-bold ph-lock"></i> LOCKED
                                         </span>
                                     <?php endif; ?>
+                                    </div>
                                 </div>
 
                                 <!-- Participants -->
                                 <div class="space-y-2 mb-4">
-                                    <div class="flex items-center justify-between p-2.5 rounded-lg <?= ($isDone && $m['winner_player_id'] == $m['participant_a_id']) ? 'bg-emerald-50 text-emerald-900 font-black' : ($m['is_pending_a'] ? 'bg-slate-100/70 text-slate-400 font-medium italic border border-dashed border-slate-200' : 'bg-slate-50 text-slate-800 font-bold') ?>">
-                                        <span class="truncate pr-2 text-sm flex items-center gap-1.5">
+                                    <div id="hub-row-a-<?= $m['id'] ?>" class="flex items-center justify-between p-2.5 rounded-lg <?= ($isDone && $m['winner_player_id'] == $m['participant_a_id']) ? 'bg-emerald-50 text-emerald-900 font-black' : ($m['is_pending_a'] ? 'bg-slate-100/70 text-slate-400 font-medium italic border border-dashed border-slate-200' : 'bg-slate-50 text-slate-800 font-bold') ?>">
+                                        <span id="hub-name-a-<?= $m['id'] ?>" class="truncate pr-2 text-sm flex items-center gap-1.5">
                                             <?php if ($m['is_pending_a']): ?>
                                                 <i class="ph-bold ph-arrow-elbow-down-right text-xs text-slate-400 flex-shrink-0"></i>
                                             <?php endif; ?>
                                             <?= e($m['display_a']) ?>
                                         </span>
-                                        <span class="font-black text-base <?= $m['is_pending_a'] ? 'text-slate-300' : '' ?>">
+                                        <span id="hub-score-a-<?= $m['id'] ?>" class="font-black text-base <?= $m['is_pending_a'] ? 'text-slate-300' : '' ?>">
                                             <?= $isLive ? $m['score_a'] : ($isDone ? $m['games_a'] : '-') ?>
                                         </span>
                                     </div>
-                                    <div class="flex items-center justify-between p-2.5 rounded-lg <?= ($isDone && $m['winner_player_id'] == $m['participant_b_id']) ? 'bg-emerald-50 text-emerald-900 font-black' : ($m['is_pending_b'] ? 'bg-slate-100/70 text-slate-400 font-medium italic border border-dashed border-slate-200' : 'bg-slate-50 text-slate-800 font-bold') ?>">
-                                        <span class="truncate pr-2 text-sm flex items-center gap-1.5">
+                                    <div id="hub-row-b-<?= $m['id'] ?>" class="flex items-center justify-between p-2.5 rounded-lg <?= ($isDone && $m['winner_player_id'] == $m['participant_b_id']) ? 'bg-emerald-50 text-emerald-900 font-black' : ($m['is_pending_b'] ? 'bg-slate-100/70 text-slate-400 font-medium italic border border-dashed border-slate-200' : 'bg-slate-50 text-slate-800 font-bold') ?>">
+                                        <span id="hub-name-b-<?= $m['id'] ?>" class="truncate pr-2 text-sm flex items-center gap-1.5">
                                             <?php if ($m['is_pending_b']): ?>
                                                 <i class="ph-bold ph-arrow-elbow-down-right text-xs text-slate-400 flex-shrink-0"></i>
                                             <?php endif; ?>
                                             <?= e($m['display_b']) ?>
                                         </span>
-                                        <span class="font-black text-base <?= $m['is_pending_b'] ? 'text-slate-300' : '' ?>">
+                                        <span id="hub-score-b-<?= $m['id'] ?>" class="font-black text-base <?= $m['is_pending_b'] ? 'text-slate-300' : '' ?>">
                                             <?= $isLive ? $m['score_b'] : ($isDone ? $m['games_b'] : '-') ?>
                                         </span>
                                     </div>
                                 </div>
 
                                 <!-- Score / Details Subtext -->
-                                <div class="mb-4 text-[11px] text-center font-bold text-slate-500">
+                                <div id="hub-subtext-<?= $m['id'] ?>" class="mb-4 text-[11px] text-center font-bold text-slate-500">
                                     <?php 
                                     if ($isDone) {
                                         if ($m['status'] === 'walkover') {
@@ -574,6 +576,7 @@ include __DIR__ . '/../includes/header.php';
                             </div>
 
                             <!-- Action Button -->
+                            <div id="hub-action-<?= $m['id'] ?>">
                             <?php if ($isLive): ?>
                                 <a href="<?= BASE_URL ?>/admin/scoring/console.php?id=<?= $m['id'] ?>" class="w-full bg-red-600 hover:bg-red-700 text-white font-black py-2.5 px-4 rounded-xl text-center text-sm shadow-md transition flex items-center justify-center gap-2">
                                     <span class="w-2 h-2 rounded-full bg-white animate-ping"></span> Resume Live Scoring
@@ -592,6 +595,7 @@ include __DIR__ . '/../includes/header.php';
                                     <i class="ph-bold ph-eye"></i> View Result / Edit
                                 </a>
                             <?php endif; ?>
+                            </div>
                         </div>
                     <?php endforeach; ?>
                 </div>
@@ -700,5 +704,82 @@ include __DIR__ . '/../includes/header.php';
     <?php endif; ?>
 
 <?php endif; ?>
+
+<!-- ============================================================ -->
+<!-- REAL-TIME SSE MATCH UPDATER (Zero-latency hub refresh)       -->
+<!-- ============================================================ -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const tournamentId = <?= (int)$tournamentId ?>;
+    if (!tournamentId) return;
+
+    try {
+        const es = new EventSource('<?= BASE_URL ?>/sse/live.php?tournament_id=' + tournamentId);
+        es.onmessage = (e) => {
+            try {
+                const data = JSON.parse(e.data);
+                const matches = data.matches || data.live_matches || [];
+                matches.forEach(m => {
+                    const card = document.getElementById('hub-match-card-' + m.id);
+                    if (!card) return;
+
+                    const badge = document.getElementById('hub-badge-' + m.id);
+                    const scoreA = document.getElementById('hub-score-a-' + m.id);
+                    const scoreB = document.getElementById('hub-score-b-' + m.id);
+                    const rowA = document.getElementById('hub-row-a-' + m.id);
+                    const rowB = document.getElementById('hub-row-b-' + m.id);
+                    const subtext = document.getElementById('hub-subtext-' + m.id);
+                    const action = document.getElementById('hub-action-' + m.id);
+
+                    if (m.is_completed) {
+                        // Card is completed
+                        card.className = 'bg-white border border-slate-200 shadow-sm rounded-2xl p-5 flex flex-col justify-between hover:border-[#0f2044] transition-all';
+                        if (badge) {
+                            badge.innerHTML = `<span class="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded uppercase tracking-wider border border-emerald-200">Completed</span>`;
+                        }
+                        if (scoreA) scoreA.innerText = m.games_a;
+                        if (scoreB) scoreB.innerText = m.games_b;
+                        
+                        if (rowA && rowB) {
+                            if (m.winner_side === 'A') {
+                                rowA.className = 'flex items-center justify-between p-2.5 rounded-lg bg-emerald-50 text-emerald-900 font-black';
+                                rowB.className = 'flex items-center justify-between p-2.5 rounded-lg bg-slate-50 text-slate-800 font-bold';
+                            } else if (m.winner_side === 'B') {
+                                rowA.className = 'flex items-center justify-between p-2.5 rounded-lg bg-slate-50 text-slate-800 font-bold';
+                                rowB.className = 'flex items-center justify-between p-2.5 rounded-lg bg-emerald-50 text-emerald-900 font-black';
+                            }
+                        }
+
+                        if (subtext) {
+                            const breakdown = m.score_breakdown ? ` <span class="text-slate-400 font-normal">(${m.score_breakdown})</span>` : '';
+                            subtext.innerHTML = `Games: <span class="text-slate-800 font-black">${m.games_a} - ${m.games_b}</span>${breakdown}`;
+                        }
+
+                        if (action) {
+                            action.innerHTML = `<a href="<?= BASE_URL ?>/admin/scoring/console.php?id=${m.id}" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 px-4 rounded-xl text-center text-sm transition flex items-center justify-center gap-2"><i class="ph-bold ph-eye"></i> View Result / Edit</a>`;
+                        }
+                    } else if (m.status === 'in_progress') {
+                        // Card is in progress / on court
+                        card.className = 'bg-white border border-red-400 ring-2 ring-red-100 shadow-md rounded-2xl p-5 flex flex-col justify-between hover:border-[#0f2044] transition-all';
+                        if (badge) {
+                            badge.innerHTML = `<span class="px-2 py-0.5 bg-red-500 text-white text-[10px] font-black rounded uppercase tracking-wider flex items-center gap-1 animate-pulse"><span>●</span> ON COURT</span>`;
+                        }
+                        if (scoreA) scoreA.innerText = m.score_a;
+                        if (scoreB) scoreB.innerText = m.score_b;
+
+                        if (subtext) {
+                            subtext.innerHTML = `<span class="text-red-600 font-black animate-pulse">Live Sets: ${m.games_a} - ${m.games_b} (Score: ${m.score_a} - ${m.score_b})</span>`;
+                        }
+
+                        if (action) {
+                            action.innerHTML = `<a href="<?= BASE_URL ?>/admin/scoring/console.php?id=${m.id}" class="w-full bg-red-600 hover:bg-red-700 text-white font-black py-2.5 px-4 rounded-xl text-center text-sm shadow-md transition flex items-center justify-center gap-2"><span class="w-2 h-2 rounded-full bg-white animate-ping"></span> Resume Live Scoring</a>`;
+                        }
+                    }
+                });
+            } catch(err) {}
+        };
+    } catch (e) {}
+});
+</script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

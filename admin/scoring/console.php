@@ -1049,6 +1049,9 @@ $gamesToWin = ceil($bestOf / 2);
                             if (typeof fireConfetti === 'function') {
                                 try { fireConfetti('fireworks'); } catch(e) {}
                             }
+                            this.notify("🏆 Match Finished! Returning to Tournament Hub...");
+                            const targetUrl = data.redirect_url || '<?= BASE_URL ?>/admin/scoring/index.php?tournament_id=<?= $match['tournament_id'] ?>';
+                            setTimeout(() => { window.location.href = targetUrl; }, 2200);
                             return;
                         }
 

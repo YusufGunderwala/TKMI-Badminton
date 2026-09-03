@@ -1294,6 +1294,18 @@ function tournamentPublicManager(defaultTab, tournamentId) {
                     if (momBarAEl) momBarAEl.style.width = m.momentum_a + '%';
                     if (momBarBEl) momBarBEl.style.width = m.momentum_b + '%';
                 }
+
+                if (m.is_completed) {
+                    if (gameNumEl) gameNumEl.innerText = 'Final';
+                    if (deuceEl) deuceEl.classList.add('hidden');
+                    if (serverAEl) serverAEl.classList.add('hidden');
+                    if (serverBEl) serverBEl.classList.add('hidden');
+                    const badgeEl = document.getElementById('live-status-badge-' + matchId);
+                    if (badgeEl) {
+                        badgeEl.innerText = 'FINAL';
+                        badgeEl.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200 uppercase tracking-wider';
+                    }
+                }
             });
         }
     };
