@@ -102,13 +102,19 @@ include __DIR__ . '/../includes/header.php';
 <?php endif; ?>
 
 <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden" x-data="survivalPairing()">
-    <div class="p-6 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
-        <p class="text-sm text-gray-600 font-medium">
-            Review and adjust the pairs. 
-            <span class="text-red-500 font-bold ml-2" x-show="hasRematches">⚠️ Rematch Warning Detected!</span>
-        </p>
-        <button type="button" @click="shufflePath2()" class="btn-outline text-sm py-1.5 px-3">
-            Auto-Suggest / Reshuffle
+    <div class="p-4 sm:p-6 border-b border-slate-200 bg-slate-50/75 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <h3 class="font-bold text-slate-800 text-sm">Survival Round Matchmaker</h3>
+            <p class="text-xs text-slate-500 mt-0.5">
+                Review and adjust pairs.
+                <span class="text-red-600 font-bold ml-1 inline-flex items-center gap-1" x-show="hasRematches">
+                    <i class="ph-fill ph-warning"></i> Rematch Warning Detected!
+                </span>
+            </p>
+        </div>
+        <button type="button" @click="shufflePath2()" class="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-md hover:shadow-blue-500/25 transition-all cursor-pointer">
+            <i class="ph-bold ph-arrows-clockwise text-sm"></i>
+            <span>Auto-Suggest / Reshuffle</span>
         </button>
     </div>
 
@@ -176,12 +182,14 @@ include __DIR__ . '/../includes/header.php';
             </template>
         </div>
 
-        <div class="p-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
-            <button type="button" @click="checkConflicts()" class="btn-outline text-sm" x-show="!isValid">
-                Validate Pairs
+        <div class="p-4 sm:p-6 border-t border-slate-200 bg-slate-50 flex items-center justify-end gap-3">
+            <button type="button" @click="checkConflicts()" class="inline-flex items-center gap-1.5 bg-white hover:bg-slate-100 text-slate-700 font-bold text-sm px-4 py-2.5 rounded-xl border border-slate-200 shadow-sm transition cursor-pointer" x-show="!isValid">
+                <i class="ph-bold ph-check-circle text-base text-slate-500"></i>
+                <span>Validate Pairs</span>
             </button>
-            <button type="submit" class="btn-navy text-sm" :disabled="!isValid" :class="!isValid ? 'opacity-50 cursor-not-allowed' : ''">
-                Save Survival Bracket
+            <button type="submit" class="inline-flex items-center gap-2 bg-[#0f2044] hover:bg-[#16306e] text-white font-bold text-sm px-6 py-2.5 rounded-xl shadow-lg transition cursor-pointer" :disabled="!isValid" :class="!isValid ? 'opacity-50 cursor-not-allowed' : ''">
+                <i class="ph-bold ph-floppy-disk text-base text-[#c9a84c]"></i>
+                <span>Save Survival Bracket</span>
             </button>
         </div>
     </form>
