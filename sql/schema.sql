@@ -192,6 +192,13 @@ CREATE TABLE matches (
   stage           stage_type    NOT NULL DEFAULT 'stage1',
   match_number    SMALLINT      NOT NULL DEFAULT 1,
   
+  -- Rules Snapshot (Locked at generation)
+  best_of         SMALLINT      NOT NULL DEFAULT 3,
+  points_per_game SMALLINT      NOT NULL DEFAULT 11,
+  deuce_enabled   BOOLEAN       NOT NULL DEFAULT TRUE,
+  deuce_trigger   SMALLINT      NOT NULL DEFAULT 10,
+  deuce_cap       SMALLINT      NOT NULL DEFAULT 16,
+  
   -- Participants
   participant_a_id INTEGER REFERENCES players(id) ON DELETE RESTRICT,
   participant_b_id INTEGER REFERENCES players(id) ON DELETE RESTRICT,
@@ -252,14 +259,37 @@ CREATE TABLE games (
 -- Table: score_events (Audit Trail)
 -- ------------------------------------------------------------
 CREATE TABLE score_events (
-  id             SERIAL PRIMARY KEY,
-  match_id       INTEGER      NOT NULL REFERENCES matches(id)  ON DELETE CASCADE,
-  action_type    VARCHAR(50)  NOT NULL, -- 'point_a', 'point_b', 'undo_a', 'game_a', 'walkover', 'retired'
-  player_a_score SMALLINT     DEFAULT 0 CHECK (player_a_score >= 0),
-  player_b_score SMALLINT     DEFAULT 0 CHECK (player_b_score >= 0),
-  notes          TEXT,
-  created_by     INTEGER      REFERENCES admins(id) ON DELETE SET NULL,
-  created_at     TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+  id               SERIAL PRIMARY KEY,
+  match_id         INTEGER      NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
+  request_id       VARCHAR(64)  UNIQUE,
+  sequence_no      INTEGER,
+  
+  action_type      VARCHAR(50)  NOT NULL, -- 'point_a', 'point_b', 'walkover', 'retired', 'undo'
+  side             CHAR(1)      CHECK (side IN ('A', 'B')),
+  
+  previous_score_a SMALLINT     DEFAULT 0 CHECK (previous_score_a >= 0),
+  previous_score_b SMALLINT     DEFAULT 0 CHECK (previous_score_b >= 0),
+  previous_games_a SMALLINT     DEFAULT 0 CHECK (previous_games_a >= 0),
+  previous_games_b SMALLINT     DEFAULT 0 CHECK (previous_games_b >= 0),
+  
+  new_score_a      SMALLINT     DEFAULT 0 CHECK (new_score_a >= 0),
+  new_score_b      SMALLINT     DEFAULT 0 CHECK (new_score_b >= 0),
+  new_games_a      SMALLINT     DEFAULT 0 CHECK (new_games_a >= 0),
+  new_games_b      SMALLINT     DEFAULT 0 CHECK (new_games_b >= 0),
+  
+  game_completed   BOOLEAN      DEFAULT FALSE,
+  match_completed  BOOLEAN      DEFAULT FALSE,
+  game_id          INTEGER      REFERENCES games(id) ON DELETE SET NULL,
+  
+  notes            TEXT,
+  created_by       INTEGER      REFERENCES admins(id) ON DELETE SET NULL,
+  created_at       TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+  
+  is_undone        BOOLEAN      DEFAULT FALSE,
+  undone_at        TIMESTAMPTZ,
+  undone_by        INTEGER      REFERENCES admins(id) ON DELETE SET NULL,
+  
+  UNIQUE (match_id, request_id)
 );
 
 -- ------------------------------------------------------------

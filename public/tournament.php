@@ -47,12 +47,23 @@ $standings = AppCache::remember('standings_' . $id, 2, function() use ($pdo, $id
                 END
             ) as losses,
             SUM(
-                CASE 
-                    WHEN m.status IN (?, ?) THEN 0
-                    WHEN m.participant_a_id = p.id OR (t.id IS NOT NULL AND m.team_a_id = t.id) THEN (m.score_a - m.score_b)
-                    WHEN m.participant_b_id = p.id OR (t.id IS NOT NULL AND m.team_b_id = t.id) THEN (m.score_b - m.score_a)
-                    ELSE 0 
-                END
+                COALESCE((
+                    SELECT SUM(
+                        CASE 
+                            WHEN m.participant_a_id = p.id OR (t.id IS NOT NULL AND m.team_a_id = t.id) THEN (g.score_a - g.score_b)
+                            WHEN m.participant_b_id = p.id OR (t.id IS NOT NULL AND m.team_b_id = t.id) THEN (g.score_b - g.score_a)
+                            ELSE 0 
+                        END
+                    ) FROM games g WHERE g.match_id = m.id
+                ), 0)
+                +
+                CASE WHEN m.status IN (?, ?) THEN 
+                    CASE 
+                        WHEN m.participant_a_id = p.id OR (t.id IS NOT NULL AND m.team_a_id = t.id) THEN (m.score_a - m.score_b)
+                        WHEN m.participant_b_id = p.id OR (t.id IS NOT NULL AND m.team_b_id = t.id) THEN (m.score_b - m.score_a)
+                        ELSE 0 
+                    END
+                ELSE 0 END
             ) as net_points
         FROM tournament_players tp
         JOIN players p ON tp.player_id = p.id

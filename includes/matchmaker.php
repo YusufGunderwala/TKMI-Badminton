@@ -6,6 +6,26 @@
 class Matchmaker {
 
     /**
+     * Gets the round configuration for creating a match snapshot
+     */
+    private static function getRoundConfigSnapshot(PDO $pdo, int $tournamentId, string $roundKey): array {
+        $stmt = $pdo->prepare('SELECT best_of, points_per_game, deuce_enabled, deuce_trigger, deuce_cap FROM round_configs WHERE tournament_id = ? AND round_key = ?');
+        $stmt->execute([$tournamentId, $roundKey]);
+        $config = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$config) {
+            // Fallback for missing configurations
+            return [
+                'best_of' => 3,
+                'points_per_game' => 11,
+                'deuce_enabled' => true,
+                'deuce_trigger' => 10,
+                'deuce_cap' => 16
+            ];
+        }
+        return $config;
+    }
+
+    /**
      * Checks if a round is 100% completed.
      */
     public static function isRoundComplete(int $tournamentId, string $roundKey): bool {
@@ -187,25 +207,31 @@ class Matchmaker {
 
             $colA = $isDoubles ? 'team_a_id' : 'participant_a_id';
             $colB = $isDoubles ? 'team_b_id' : 'participant_b_id';
+            
+            $config = self::getRoundConfigSnapshot($pdo, $tournamentId, ROUND_STAGE1_R1);
 
             $insertMatch = $pdo->prepare("
-                INSERT INTO matches (tournament_id, round_key, stage, match_number, {$colA}, {$colB}, status)
-                VALUES (?, ?, 'stage1', ?, ?, ?, ?)
+                INSERT INTO matches (tournament_id, round_key, stage, match_number, {$colA}, {$colB}, status, best_of, points_per_game, deuce_enabled, deuce_trigger, deuce_cap)
+                VALUES (?, ?, 'stage1', ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
 
             $matchNumber = 1;
             for ($i = 0; $i < count($participants); $i += 2) {
                 $insertMatch->execute([
-                    $tournamentId, ROUND_STAGE1_R1, $matchNumber++, $participants[$i], $participants[$i+1], MATCH_SCHEDULED
+                    $tournamentId, ROUND_STAGE1_R1, $matchNumber++, $participants[$i], $participants[$i+1], MATCH_SCHEDULED,
+                    $config['best_of'], $config['points_per_game'], $config['deuce_enabled'] ? 1 : 0, $config['deuce_trigger'], $config['deuce_cap']
                 ]);
             }
             
             $colWin = $isDoubles ? 'winner_team_id' : 'winner_player_id';
             if ($byeParticipant) {
                 $pdo->prepare("
-                    INSERT INTO matches (tournament_id, round_key, stage, match_number, {$colA}, {$colB}, {$colWin}, status)
-                    VALUES (?, ?, 'stage1', ?, ?, NULL, ?, ?)
-                ")->execute([$tournamentId, ROUND_STAGE1_R1, $matchNumber++, $byeParticipant, $byeParticipant, MATCH_BYE]);
+                    INSERT INTO matches (tournament_id, round_key, stage, match_number, {$colA}, {$colB}, {$colWin}, status, best_of, points_per_game, deuce_enabled, deuce_trigger, deuce_cap)
+                    VALUES (?, ?, 'stage1', ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?)
+                ")->execute([
+                    $tournamentId, ROUND_STAGE1_R1, $matchNumber++, $byeParticipant, $byeParticipant, MATCH_BYE,
+                    $config['best_of'], $config['points_per_game'], $config['deuce_enabled'] ? 1 : 0, $config['deuce_trigger'], $config['deuce_cap']
+                ]);
             }
 
             // Status moves to live
@@ -262,14 +288,16 @@ class Matchmaker {
             $colA = $isDoubles ? 'team_a_id' : 'participant_a_id';
             $colB = $isDoubles ? 'team_b_id' : 'participant_b_id';
             
+            $config = self::getRoundConfigSnapshot($pdo, $tournamentId, ROUND_STAGE1_R2);
+            
             $insertMatch = $pdo->prepare("
-                INSERT INTO matches (tournament_id, round_key, stage, match_number, {$colA}, {$colB}, status)
-                VALUES (?, ?, 'stage1', ?, ?, ?, ?)
+                INSERT INTO matches (tournament_id, round_key, stage, match_number, {$colA}, {$colB}, status, best_of, points_per_game, deuce_enabled, deuce_trigger, deuce_cap)
+                VALUES (?, ?, 'stage1', ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
             $colWin = $isDoubles ? 'winner_team_id' : 'winner_player_id';
             $insertByeMatch = $pdo->prepare("
-                INSERT INTO matches (tournament_id, round_key, stage, match_number, {$colA}, {$colB}, {$colWin}, status)
-                VALUES (?, ?, 'stage1', ?, ?, NULL, ?, ?)
+                INSERT INTO matches (tournament_id, round_key, stage, match_number, {$colA}, {$colB}, {$colWin}, status, best_of, points_per_game, deuce_enabled, deuce_trigger, deuce_cap)
+                VALUES (?, ?, 'stage1', ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?)
             ");
 
             $matchNumber = 1;
@@ -278,20 +306,32 @@ class Matchmaker {
             if (count($winners) % 2 !== 0) {
                 $byeWinner = array_pop($winners);
                 self::updateParticipantRecord($pdo, $tournamentId, $byeWinner, true, $isDoubles);
-                $insertByeMatch->execute([$tournamentId, ROUND_STAGE1_R2, $matchNumber++, $byeWinner, $byeWinner, MATCH_BYE]);
+                $insertByeMatch->execute([
+                    $tournamentId, ROUND_STAGE1_R2, $matchNumber++, $byeWinner, $byeWinner, MATCH_BYE,
+                    $config['best_of'], $config['points_per_game'], $config['deuce_enabled'] ? 1 : 0, $config['deuce_trigger'], $config['deuce_cap']
+                ]);
             }
             for ($i = 0; $i < count($winners); $i += 2) {
-                $insertMatch->execute([$tournamentId, ROUND_STAGE1_R2, $matchNumber++, $winners[$i], $winners[$i + 1], MATCH_SCHEDULED]);
+                $insertMatch->execute([
+                    $tournamentId, ROUND_STAGE1_R2, $matchNumber++, $winners[$i], $winners[$i + 1], MATCH_SCHEDULED,
+                    $config['best_of'], $config['points_per_game'], $config['deuce_enabled'] ? 1 : 0, $config['deuce_trigger'], $config['deuce_cap']
+                ]);
             }
 
             // Pair Losers (0-1 vs 0-1)
             if (count($losers) % 2 !== 0) {
                 $byeLoser = array_pop($losers);
                 self::updateParticipantRecord($pdo, $tournamentId, $byeLoser, true, $isDoubles);
-                $insertByeMatch->execute([$tournamentId, ROUND_STAGE1_R2, $matchNumber++, $byeLoser, $byeLoser, MATCH_BYE]);
+                $insertByeMatch->execute([
+                    $tournamentId, ROUND_STAGE1_R2, $matchNumber++, $byeLoser, $byeLoser, MATCH_BYE,
+                    $config['best_of'], $config['points_per_game'], $config['deuce_enabled'] ? 1 : 0, $config['deuce_trigger'], $config['deuce_cap']
+                ]);
             }
             for ($i = 0; $i < count($losers); $i += 2) {
-                $insertMatch->execute([$tournamentId, ROUND_STAGE1_R2, $matchNumber++, $losers[$i], $losers[$i + 1], MATCH_SCHEDULED]);
+                $insertMatch->execute([
+                    $tournamentId, ROUND_STAGE1_R2, $matchNumber++, $losers[$i], $losers[$i + 1], MATCH_SCHEDULED,
+                    $config['best_of'], $config['points_per_game'], $config['deuce_enabled'] ? 1 : 0, $config['deuce_trigger'], $config['deuce_cap']
+                ]);
             }
 
             $pdo->commit();
@@ -354,8 +394,11 @@ class Matchmaker {
             $colA = $isDoubles ? 'team_a_id' : 'participant_a_id';
             $colB = $isDoubles ? 'team_b_id' : 'participant_b_id';
             $colWin = $isDoubles ? 'winner_team_id' : 'winner_player_id';
-            $insertMatch = $pdo->prepare("INSERT INTO matches (tournament_id, round_key, stage, match_number, {$colA}, {$colB}, status) VALUES (?, ?, 'stage1', ?, ?, ?, ?)");
-            $insertByeMatch = $pdo->prepare("INSERT INTO matches (tournament_id, round_key, stage, match_number, {$colA}, {$colB}, {$colWin}, status) VALUES (?, ?, 'stage1', ?, ?, NULL, ?, ?)");
+            
+            $config = self::getRoundConfigSnapshot($pdo, $tournamentId, ROUND_STAGE1_SURVIVAL);
+
+            $insertMatch = $pdo->prepare("INSERT INTO matches (tournament_id, round_key, stage, match_number, {$colA}, {$colB}, status, best_of, points_per_game, deuce_enabled, deuce_trigger, deuce_cap) VALUES (?, ?, 'stage1', ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $insertByeMatch = $pdo->prepare("INSERT INTO matches (tournament_id, round_key, stage, match_number, {$colA}, {$colB}, {$colWin}, status, best_of, points_per_game, deuce_enabled, deuce_trigger, deuce_cap) VALUES (?, ?, 'stage1', ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?)");
 
             $matchNumber = 1;
             if (count($survivors) % 2 !== 0) {
@@ -367,7 +410,10 @@ class Matchmaker {
                 }
                 
                 self::updateParticipantRecord($pdo, $tournamentId, $byeSurvivor, true, $isDoubles);
-                $insertByeMatch->execute([$tournamentId, ROUND_STAGE1_SURVIVAL, $matchNumber++, $byeSurvivor, $byeSurvivor, MATCH_BYE]);
+                $insertByeMatch->execute([
+                    $tournamentId, ROUND_STAGE1_SURVIVAL, $matchNumber++, $byeSurvivor, $byeSurvivor, MATCH_BYE,
+                    $config['best_of'], $config['points_per_game'], $config['deuce_enabled'] ? 1 : 0, $config['deuce_trigger'], $config['deuce_cap']
+                ]);
             }
             
             if (!empty($pairs)) {
@@ -375,13 +421,19 @@ class Matchmaker {
                     $pA = (int)($pair[0] ?? 0);
                     $pB = (int)($pair[1] ?? 0);
                     if ($pA && $pB && $pA !== $pB) {
-                        $insertMatch->execute([$tournamentId, ROUND_STAGE1_SURVIVAL, $matchNumber++, $pA, $pB, MATCH_SCHEDULED]);
+                        $insertMatch->execute([
+                            $tournamentId, ROUND_STAGE1_SURVIVAL, $matchNumber++, $pA, $pB, MATCH_SCHEDULED,
+                            $config['best_of'], $config['points_per_game'], $config['deuce_enabled'] ? 1 : 0, $config['deuce_trigger'], $config['deuce_cap']
+                        ]);
                     }
                 }
             } else {
                 for ($i = 0; $i < count($survivors); $i += 2) {
                     if (isset($survivors[$i + 1])) {
-                        $insertMatch->execute([$tournamentId, ROUND_STAGE1_SURVIVAL, $matchNumber++, $survivors[$i], $survivors[$i + 1], MATCH_SCHEDULED]);
+                        $insertMatch->execute([
+                            $tournamentId, ROUND_STAGE1_SURVIVAL, $matchNumber++, $survivors[$i], $survivors[$i + 1], MATCH_SCHEDULED,
+                            $config['best_of'], $config['points_per_game'], $config['deuce_enabled'] ? 1 : 0, $config['deuce_trigger'], $config['deuce_cap']
+                        ]);
                     }
                 }
             }
@@ -482,19 +534,32 @@ class Matchmaker {
 
             $colWin = $isDoubles ? 'winner_team_id' : 'winner_player_id';
 
+            // Cache all configs
+            $stmtConf = $pdo->prepare('SELECT round_key, best_of, points_per_game, deuce_enabled, deuce_trigger, deuce_cap FROM round_configs WHERE tournament_id = ?');
+            $stmtConf->execute([$tournamentId]);
+            $configs = [];
+            foreach ($stmtConf->fetchAll(PDO::FETCH_ASSOC) as $c) {
+                $configs[$c['round_key']] = $c;
+            }
+            $getConfig = function($rk) use ($configs) {
+                return $configs[$rk] ?? ['best_of' => 3, 'points_per_game' => 11, 'deuce_enabled' => 1, 'deuce_trigger' => 10, 'deuce_cap' => 16];
+            };
+
             $insertMatch = $pdo->prepare("
-                INSERT INTO matches (tournament_id, round_key, stage, match_number, {$colA}, {$colB}, status)
-                VALUES (?, ?, 'stage2', ?, ?, ?, ?) RETURNING id
+                INSERT INTO matches (tournament_id, round_key, stage, match_number, {$colA}, {$colB}, status, best_of, points_per_game, deuce_enabled, deuce_trigger, deuce_cap)
+                VALUES (?, ?, 'stage2', ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id
             ");
 
             // Build Rounds bottom-up
             // Create Final
-            $insertMatch->execute([$tournamentId, ROUND_FINAL, 1, null, null, MATCH_SCHEDULED]);
+            $cf = $getConfig(ROUND_FINAL);
+            $insertMatch->execute([$tournamentId, ROUND_FINAL, 1, null, null, MATCH_SCHEDULED, $cf['best_of'], $cf['points_per_game'], $cf['deuce_enabled']?1:0, $cf['deuce_trigger'], $cf['deuce_cap']]);
             $finalId = $insertMatch->fetchColumn();
             
             $thirdPlaceId = null;
             if (!empty($manifest['stage_2']['has_third_place'])) {
-                $insertMatch->execute([$tournamentId, ROUND_3RD_PLACE, 1, null, null, MATCH_SCHEDULED]);
+                $c3 = $getConfig(ROUND_3RD_PLACE);
+                $insertMatch->execute([$tournamentId, ROUND_3RD_PLACE, 1, null, null, MATCH_SCHEDULED, $c3['best_of'], $c3['points_per_game'], $c3['deuce_enabled']?1:0, $c3['deuce_trigger'], $c3['deuce_cap']]);
                 $thirdPlaceId = $insertMatch->fetchColumn();
             }
 
@@ -510,11 +575,13 @@ class Matchmaker {
                 elseif ($matchesAtLevel == 8) $nextRoundName = ROUND_R16;
                 elseif ($matchesAtLevel == 16) $nextRoundName = ROUND_R32;
                 
+                $cNext = $getConfig($nextRoundName);
+
                 $nextLevelIds = [];
                 $matchNum = 1;
                 foreach ($currentLevelIds as $parentMatchId) {
                     for ($c=0; $c<2; $c++) {
-                        $insertMatch->execute([$tournamentId, $nextRoundName, $matchNum++, null, null, MATCH_SCHEDULED]);
+                        $insertMatch->execute([$tournamentId, $nextRoundName, $matchNum++, null, null, MATCH_SCHEDULED, $cNext['best_of'], $cNext['points_per_game'], $cNext['deuce_enabled']?1:0, $cNext['deuce_trigger'], $cNext['deuce_cap']]);
                         $childId = $insertMatch->fetchColumn();
                         $nextLevelIds[] = $childId;
                         

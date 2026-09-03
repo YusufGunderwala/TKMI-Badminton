@@ -16,6 +16,8 @@ header('X-Accel-Buffering: no'); // Disable buffering in Nginx
 
 $pdo = db();
 
+$tournamentId = isset($_GET['tournament_id']) ? (int)$_GET['tournament_id'] : null;
+
 // To prevent infinite zombie processes on the server, we run the loop for a maximum of 60 seconds.
 // The JS client's EventSource will automatically reconnect instantly when this script finishes.
 $startTime = time();
@@ -31,9 +33,15 @@ while (true) {
     }
 
     try {
-        // 2. Ultra-lightweight check: Has the latest score event changed?
-        $currentMax = (int)db_retry(function($db) {
-            return $db->query('SELECT MAX(id) FROM score_events')->fetchColumn();
+        // 2. Ultra-lightweight check: Has the latest score event changed for this tournament?
+        $currentMax = (int)db_retry(function($db) use ($tournamentId) {
+            if ($tournamentId) {
+                $stmt = $db->prepare('SELECT MAX(se.id) FROM score_events se JOIN matches m ON se.match_id = m.id WHERE m.tournament_id = ?');
+                $stmt->execute([$tournamentId]);
+                return $stmt->fetchColumn() ?: 0;
+            } else {
+                return $db->query('SELECT MAX(id) FROM score_events')->fetchColumn() ?: 0;
+            }
         });
 
         // 3. If there is new data (or it's the very first loop), fetch the full live match state
@@ -41,44 +49,27 @@ while (true) {
             $lastEventId = $currentMax;
 
             // Fetch all IN PROGRESS matches
-            $liveMatches = db_retry(function($db) {
-                return $db->query("
+            $liveMatches = db_retry(function($db) use ($tournamentId) {
+                $sql = "
                     SELECT m.id, m.tournament_id, m.score_a, m.score_b, m.games_a, m.games_b,
                            pa.display_name as player_a, pb.display_name as player_b,
                            ta.display_name as team_a, tb.display_name as team_b,
-                           COALESCE(rc.best_of, 
-                               CASE WHEN m.round_key IN ('final', 'bronze') THEN 3 ELSE 3 END
-                           ) as best_of,
-                           COALESCE(rc.points_per_game, 
-                               CASE 
-                                   WHEN m.round_key = 'final' THEN 21 
-                                   WHEN m.round_key IN ('r16', 'qf', 'sf', 'bronze') THEN 15 
-                                   ELSE 11 
-                               END
-                           ) as points_per_game,
-                           COALESCE(rc.deuce_enabled, true) as deuce_enabled,
-                           COALESCE(rc.deuce_trigger, 
-                               CASE 
-                                   WHEN m.round_key = 'final' THEN 20 
-                                   WHEN m.round_key IN ('r16', 'qf', 'sf', 'bronze') THEN 14 
-                                   ELSE 10 
-                               END
-                           ) as deuce_trigger,
-                           COALESCE(rc.deuce_cap, 
-                               CASE 
-                                   WHEN m.round_key = 'final' THEN 26 
-                                   WHEN m.round_key IN ('r16', 'qf', 'sf', 'bronze') THEN 21 
-                                   ELSE 16 
-                               END
-                           ) as deuce_cap
+                           m.best_of, m.points_per_game, m.deuce_enabled, m.deuce_trigger, m.deuce_cap
                     FROM matches m
-                    LEFT JOIN round_configs rc ON m.tournament_id = rc.tournament_id AND m.round_key = rc.round_key
                     LEFT JOIN players pa ON m.participant_a_id = pa.id
                     LEFT JOIN players pb ON m.participant_b_id = pb.id
                     LEFT JOIN teams ta ON m.team_a_id = ta.id
                     LEFT JOIN teams tb ON m.team_b_id = tb.id
                     WHERE m.status = 'in_progress'
-                ")->fetchAll(PDO::FETCH_ASSOC);
+                ";
+                if ($tournamentId) {
+                    $sql .= " AND m.tournament_id = ?";
+                    $stmt = $db->prepare($sql);
+                    $stmt->execute([$tournamentId]);
+                    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+                } else {
+                    return $db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+                }
             });
 
             foreach ($liveMatches as &$lm) {
@@ -92,26 +83,33 @@ while (true) {
                 $lm['current_game'] = $lm['current_game_number'];
                 $lm['momentum_a'] = 50;
                 $lm['momentum_b'] = 50;
+                // Add bool for deuce enabled
+                $lm['deuce_enabled'] = (bool)$lm['deuce_enabled'];
             }
             unset($lm);
 
             // Broadcast payload
             $payload = [
                 'timestamp' => date('H:i:s'),
-                'live_matches' => $liveMatches
+                'matches' => $liveMatches
             ];
 
             echo "data: " . json_encode($payload) . "\n\n";
-            if (ob_get_level() > 0) {
-                ob_flush();
-            }
+            ob_flush();
             flush();
         }
+
     } catch (Exception $e) {
-        // Log silently and continue without dying
-        error_log('SSE broadcast error: ' . $e->getMessage());
+        // Silently swallow DB transient errors; will retry next tick
     }
 
-    // 4. Sleep 1.5 seconds for instant sports responsiveness
-    usleep(1500000);
+    // Ping every 15s to keep connection alive if no score changes
+    if (time() % 15 === 0) {
+        echo ": keep-alive\n\n";
+        ob_flush();
+        flush();
+    }
+
+    // Wait 1.5 seconds before checking again (low CPU usage)
+    usleep(1500000); 
 }

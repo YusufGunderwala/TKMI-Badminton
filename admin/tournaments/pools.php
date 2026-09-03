@@ -86,9 +86,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $round_id = db()->lastInsertId();
                         }
 
+                        $stmt = db()->prepare('SELECT best_of, points_per_game, deuce_enabled, deuce_trigger, deuce_cap FROM round_configs WHERE tournament_id = ? AND round_key = ?');
+                        $stmt->execute([$id, 'group_stage']);
+                        $config = $stmt->fetch(PDO::FETCH_ASSOC);
+
                         // Generate Round Robin matches for each pool
                         $matchCount = 0;
-                        $insertMatch = db()->prepare("INSERT INTO matches (tournament_id, stage, round_key, match_number, participant_a_id, participant_b_id, status) VALUES (?, 'stage1', 'group_stage', ?, ?, ?, 'scheduled')");
+                        $insertMatch = db()->prepare("INSERT INTO matches (tournament_id, stage, round_key, match_number, participant_a_id, participant_b_id, status, best_of, points_per_game, deuce_enabled, deuce_trigger, deuce_cap) VALUES (?, 'stage1', 'group_stage', ?, ?, ?, 'scheduled', ?, ?, ?, ?, ?)");
                         
                         $matchNumber = 1;
                         foreach ($groups as $poolName => $poolPlayers) {
@@ -99,7 +103,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         $id, 
                                         $matchNumber++,
                                         $poolPlayers[$i]['id'],
-                                        $poolPlayers[$j]['id']
+                                        $poolPlayers[$j]['id'],
+                                        $config['best_of'],
+                                        $config['points_per_game'],
+                                        $config['deuce_enabled'] ? 1 : 0,
+                                        $config['deuce_trigger'],
+                                        $config['deuce_cap']
                                     ]);
                                     $matchCount++;
                                 }

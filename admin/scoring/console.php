@@ -26,35 +26,9 @@ $stmt = $pdo->prepare('
            pa.display_name as pa_name, pa.full_name as pa_full, pa.mohallah as pa_mohallah, pa.photo_path as pa_photo, pa.its_id as pa_its,
            pb.display_name as pb_name, pb.full_name as pb_full, pb.mohallah as pb_mohallah, pb.photo_path as pb_photo, pb.its_id as pb_its,
            ta.display_name as ta_name, tb.display_name as tb_name,
-           t.name as tourney_name, t.match_type, t.gender,
-           COALESCE(rc.best_of, 
-               CASE WHEN m.round_key IN (\'final\', \'bronze\') THEN 3 ELSE 3 END
-           ) as best_of,
-           COALESCE(rc.points_per_game, 
-               CASE 
-                   WHEN m.round_key = \'final\' THEN 21 
-                   WHEN m.round_key IN (\'r16\', \'qf\', \'sf\', \'bronze\') THEN 15 
-                   ELSE 11 
-               END
-           ) as points_per_game,
-           COALESCE(rc.deuce_enabled, true) as deuce_enabled,
-           COALESCE(rc.deuce_trigger, 
-               CASE 
-                   WHEN m.round_key = \'final\' THEN 20 
-                   WHEN m.round_key IN (\'r16\', \'qf\', \'sf\', \'bronze\') THEN 14 
-                   ELSE 10 
-               END
-           ) as deuce_trigger,
-           COALESCE(rc.deuce_cap, 
-               CASE 
-                   WHEN m.round_key = \'final\' THEN 26 
-                   WHEN m.round_key IN (\'r16\', \'qf\', \'sf\', \'bronze\') THEN 21 
-                   ELSE 16 
-               END
-           ) as deuce_cap
+           t.name as tourney_name, t.match_type, t.gender
     FROM matches m
     JOIN tournaments t ON m.tournament_id = t.id
-    LEFT JOIN round_configs rc ON m.tournament_id = rc.tournament_id AND m.round_key = rc.round_key
     LEFT JOIN players pa ON m.participant_a_id = pa.id
     LEFT JOIN players pb ON m.participant_b_id = pb.id
     LEFT JOIN teams ta ON m.team_a_id = ta.id
@@ -229,23 +203,22 @@ $gamesToWin = ceil($bestOf / 2);
             </div>
         </div>
 
-        <!-- Center: Dynamic Game Status / Deuce Capsule & Quick Format Switcher -->
+        <!-- Center: Dynamic Game Status / Deuce Capsule -->
         <div class="flex items-center gap-2">
-            <!-- Normal Play Capsule (Clickable for Format Modal) -->
-            <button type="button" 
-                    @click="showFormatModal = true" 
+            <!-- Normal Play Capsule -->
+            <div 
                     x-show="!isDeuce" 
-                    class="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 hover:border-[#c9a84c]/50 text-[11px] sm:text-xs font-bold shadow-inner transition cursor-pointer group"
-                    title="Click to change Match Format (1, 3, 5 sets or point target)">
+                    class="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 rounded-full bg-white/10 border border-white/15 text-[11px] sm:text-xs font-bold shadow-inner"
+                    title="Match Rules">
+                <i class="ph-fill ph-lock-key text-xs text-slate-400"></i>
                 <span class="text-slate-200 hidden xs:inline" x-text="bestOf === 1 ? '1 Single Game' : ('Game ' + (games_a + games_b + 1) + '/' + bestOf)"></span>
-                <span class="text-slate-200 xs:hidden" x-text="bestOf === 1 ? '1 Set' : ('G' + (games_a + games_b + 1))"></span>
+                <span class="text-slate-200 xs:hidden" x-text="bestOf === 1 ? '1 Game' : ('G' + (games_a + games_b + 1))"></span>
                 <span class="text-white/40">&bull;</span>
                 <span class="text-[#c9a84c] font-black" x-text="pointsPerGame + 'P'"></span>
                 <template x-if="deuceEnabled">
                     <span class="hidden md:inline text-slate-300 font-normal" x-text="'• Deuce @ ' + deuceTrigger"></span>
                 </template>
-                <i class="ph-bold ph-gear-fine text-xs text-[#c9a84c] opacity-60 group-hover:opacity-100 transition-opacity ml-0.5 sm:ml-1"></i>
-            </button>
+            </div>
 
             <!-- Flaming Deuce Capsule -->
             <div x-show="isDeuce" 
@@ -256,17 +229,8 @@ $gamesToWin = ceil($bestOf / 2);
             </div>
         </div>
 
-        <!-- Right: Quick Options & Format -->
+        <!-- Right: Quick Options -->
         <div class="flex items-center gap-2">
-            <!-- Match Format Settings Modal Trigger -->
-            <button type="button" 
-                    @click="showFormatModal = true" 
-                    class="p-2 sm:px-3 sm:py-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white border border-white/15 transition flex items-center gap-1 font-bold text-xs cursor-pointer shadow-sm"
-                    title="Configure Sets (1, 3, 5) & Points">
-                <i class="ph-bold ph-sliders text-sm text-[#ffd978]"></i>
-                <span class="hidden sm:inline">Rules</span>
-            </button>
-
             <!-- Fullscreen Toggle -->
             <button type="button" 
                     @click="toggleFullScreen()" 
@@ -291,98 +255,6 @@ $gamesToWin = ceil($bestOf / 2);
     <!-- MAIN LUMINOUS STADIUM SPLIT SCORING ARENA                    -->
     <!-- ============================================================ -->
     <main class="flex-1 grid grid-cols-2 gap-2 sm:gap-4 lg:gap-6 p-2 sm:p-4 lg:p-6 2xl:p-10 relative z-10 overflow-hidden h-[calc(100dvh-60px)] sm:h-[calc(100vh-64px)]" x-show="!isCompleted">
-        
-        <!-- Pre-Match Quick Match Format Selector Bar (Active Before Serving) -->
-        <div x-show="score_a === 0 && score_b === 0 && games_a === 0 && games_b === 0 && !isCompleted" 
-             x-cloak
-             class="col-span-2 -mb-1 sm:-mb-2 z-20">
-            <div class="bg-gradient-to-r from-[#0f2452]/95 via-[#16306e]/95 to-[#0f2452]/95 border border-[#c9a84c]/50 rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 shadow-xl flex flex-col md:flex-row items-center justify-between gap-2 sm:gap-3">
-                <div class="flex items-center gap-2 sm:gap-3">
-                    <div class="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-gradient-to-br from-amber-300 to-[#c9a84c] text-[#080e1e] flex items-center justify-center font-black shadow-md flex-shrink-0">
-                        <i class="ph-bold ph-sliders-horizontal text-sm sm:text-lg"></i>
-                    </div>
-                    <div>
-                        <div class="text-[11px] sm:text-xs font-black text-white uppercase tracking-wider flex items-center gap-2 flex-wrap">
-                            <span>Pre-Match Format</span>
-                            <span class="px-1.5 py-0.2 rounded-full bg-[#c9a84c]/20 text-[#ffd978] text-[9px] sm:text-[10px] font-mono">Choose Sets</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-center">
-                    <!-- Sets Selector (1, 3, 5) -->
-                    <div class="flex items-center bg-black/40 p-0.5 sm:p-1 rounded-lg sm:rounded-xl border border-white/15">
-                        <button type="button" 
-                                @click="setFormat(1, pointsPerGame)" 
-                                :class="bestOf === 1 ? 'bg-[#c9a84c] text-[#080e1e] font-black shadow-md' : 'text-slate-300 hover:text-white'"
-                                class="px-2 sm:px-3 py-1 sm:py-1.5 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-bold transition cursor-pointer flex items-center gap-1">
-                            <i class="ph-bold ph-lightning"></i> 1 Set
-                        </button>
-                        <button type="button" 
-                                @click="setFormat(3, pointsPerGame)" 
-                                :class="bestOf === 3 ? 'bg-[#c9a84c] text-[#080e1e] font-black shadow-md' : 'text-slate-300 hover:text-white'"
-                                class="px-2 sm:px-3 py-1 sm:py-1.5 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-bold transition cursor-pointer flex items-center gap-1">
-                            <i class="ph-bold ph-trophy"></i> Best of 3
-                        </button>
-                        <button type="button" 
-                                @click="setFormat(5, pointsPerGame)" 
-                                :class="bestOf === 5 ? 'bg-[#c9a84c] text-[#080e1e] font-black shadow-md' : 'text-slate-300 hover:text-white'"
-                                class="px-2 sm:px-3 py-1 sm:py-1.5 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-bold transition cursor-pointer flex items-center gap-1">
-                            <i class="ph-bold ph-crown"></i> Best of 5
-                        </button>
-                    </div>
-
-                    <!-- Points Selector (11, 15, 21) -->
-                    <div class="flex items-center bg-black/40 p-0.5 sm:p-1 rounded-lg sm:rounded-xl border border-white/15">
-                        <button type="button" 
-                                @click="setFormat(bestOf, 11)" 
-                                :class="pointsPerGame === 11 ? 'bg-cyan-500 text-[#080e1e] font-black shadow-md' : 'text-slate-300 hover:text-white'"
-                                class="px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-bold transition cursor-pointer">
-                            11 Pts
-                        </button>
-                        <button type="button" 
-                                @click="setFormat(bestOf, 15)" 
-                                :class="pointsPerGame === 15 ? 'bg-cyan-500 text-[#080e1e] font-black shadow-md' : 'text-slate-300 hover:text-white'"
-                                class="px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-bold transition cursor-pointer">
-                            15 Pts
-                        </button>
-                        <button type="button" 
-                                @click="setFormat(bestOf, 21)" 
-                                :class="pointsPerGame === 21 ? 'bg-cyan-500 text-[#080e1e] font-black shadow-md' : 'text-slate-300 hover:text-white'"
-                                class="px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-bold transition cursor-pointer">
-                            21 Pts
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Live Match Point / Deciding Point Reached Alert Banner -->
-        <div x-show="isMatchPointReached && !isCompleted" x-cloak class="col-span-2 -mb-1 sm:-mb-2 z-20">
-            <div class="w-full bg-gradient-to-r from-emerald-950/95 via-[#0f3d26]/95 to-emerald-950/95 border-2 border-emerald-400 rounded-xl sm:rounded-2xl py-2 sm:py-3 px-3 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3 shadow-[0_0_35px_rgba(16,185,129,0.35)] backdrop-blur-xl animate-pulse">
-                <div class="flex items-center gap-2 sm:gap-3">
-                    <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 text-slate-950 flex items-center justify-center font-black shadow-lg flex-shrink-0">
-                        <i class="ph-fill ph-trophy text-lg sm:text-2xl text-yellow-100"></i>
-                    </div>
-                    <div>
-                        <div class="text-xs sm:text-sm font-black text-emerald-300 tracking-wider flex items-center gap-2 flex-wrap">
-                            <span>🏆 MATCH POINT</span>
-                            <span class="text-white text-xs font-bold">(Winner: <span x-text="getMatchWinnerName()"></span>)</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="flex items-center gap-2 flex-shrink-0">
-                    <button type="button" 
-                            @click="showConfirmCompleteModal = true" 
-                            class="px-3.5 sm:px-5 py-1.5 sm:py-2.5 rounded-xl bg-gradient-to-r from-emerald-400 to-teal-400 hover:from-emerald-300 hover:to-teal-300 text-slate-950 text-[11px] sm:text-xs font-black uppercase tracking-wider shadow-lg transition flex items-center gap-1.5 cursor-pointer">
-                        <i class="ph-bold ph-check-circle text-sm sm:text-base"></i> Finalize Match
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Live Deuce Banner Alert -->
-        <div x-show="!isMatchPointReached && isDeuce" x-cloak class="col-span-2 -mb-1 sm:-mb-2 z-20">
             <div class="w-full bg-gradient-to-r from-red-950/90 via-amber-950/90 to-red-950/90 border-2 border-amber-400 rounded-xl sm:rounded-2xl py-2 sm:py-3 px-3 sm:px-6 flex items-center justify-between shadow-[0_0_35px_rgba(245,158,11,0.35)] backdrop-blur-xl animate-pulse">
                 <div class="flex items-center gap-2 sm:gap-3">
                     <div class="w-7 h-7 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-amber-400 to-red-500 text-slate-950 flex items-center justify-center font-black shadow-lg">
@@ -454,7 +326,7 @@ $gamesToWin = ceil($bestOf / 2);
                                     :class="server === 'A' ? 'bg-cyan-400 text-[#0a1630] font-black border-cyan-300' : 'bg-white/10 text-cyan-200 border-white/20 hover:bg-white/20'"
                                     class="hidden sm:flex px-2 py-0.5 rounded-full text-[8px] sm:text-[9px] font-bold uppercase tracking-wider border transition items-center gap-1 cursor-pointer">
                                 <i class="ph-fill ph-lightning text-xs"></i>
-                                <span x-text="server === 'A' ? 'SERVING' : 'SET SERVE'"></span>
+                                <span x-text="server === 'A' ? 'SERVING' : 'GAME SERVE'"></span>
                             </button>
                         </div>
 
@@ -464,9 +336,9 @@ $gamesToWin = ceil($bestOf / 2);
                     </div>
                 </div>
 
-                <!-- Sets Won LED Lamps -->
+                <!-- Games Won LED Lamps -->
                 <div class="flex flex-col items-end flex-shrink-0">
-                    <span class="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-cyan-300 mb-0.5 sm:mb-1">SETS</span>
+                    <span class="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-cyan-300 mb-0.5 sm:mb-1">GAMES</span>
                     <div class="flex items-center gap-1 sm:gap-1.5 bg-black/40 px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-lg sm:rounded-xl border border-white/20 shadow-inner">
                         <?php for($i=0; $i<$gamesToWin; $i++): ?>
                             <div class="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 rounded-full border transition-all duration-300 flex items-center justify-center" 
@@ -560,7 +432,7 @@ $gamesToWin = ceil($bestOf / 2);
                                     :class="server === 'B' ? 'bg-[#c9a84c] text-[#080e1e] font-black border-amber-300' : 'bg-white/10 text-amber-200 border-white/20 hover:bg-white/20'"
                                     class="hidden sm:flex px-2 py-0.5 rounded-full text-[8px] sm:text-[9px] font-bold uppercase tracking-wider border transition items-center gap-1 cursor-pointer">
                                 <i class="ph-fill ph-lightning text-xs"></i>
-                                <span x-text="server === 'B' ? 'SERVING' : 'SET SERVE'"></span>
+                                <span x-text="server === 'B' ? 'SERVING' : 'GAME SERVE'"></span>
                             </button>
                         </div>
 
@@ -570,9 +442,9 @@ $gamesToWin = ceil($bestOf / 2);
                     </div>
                 </div>
 
-                <!-- Sets Won LED Lamps -->
+                <!-- Games Won LED Lamps -->
                 <div class="flex flex-col items-end flex-shrink-0">
-                    <span class="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-[#c9a84c] mb-0.5 sm:mb-1">SETS</span>
+                    <span class="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-[#c9a84c] mb-0.5 sm:mb-1">GAMES</span>
                     <div class="flex items-center gap-1 sm:gap-1.5 bg-black/40 px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-lg sm:rounded-xl border border-white/20 shadow-inner">
                         <?php for($i=0; $i<$gamesToWin; $i++): ?>
                             <div class="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 rounded-full border transition-all duration-300 flex items-center justify-center" 
@@ -685,8 +557,8 @@ $gamesToWin = ceil($bestOf / 2);
                 <!-- Center Score Pill -->
                 <div class="flex flex-col items-center justify-center">
                     <div class="px-4 sm:px-6 py-2.5 sm:py-3.5 rounded-2xl bg-white/10 border border-white/20 shadow-lg backdrop-blur-md">
-                        <div class="text-2xl sm:text-4xl font-black font-display text-white tracking-widest" x-text="getDisplaySets()"></div>
-                        <div class="text-[8px] sm:text-[9px] font-mono font-bold uppercase tracking-widest text-[#ffd978] mt-0.5">SETS WON</div>
+                        <div class="text-2xl sm:text-4xl font-black font-display text-white tracking-widest" x-text="getDisplayGames()"></div>
+                        <div class="text-[8px] sm:text-[9px] font-mono font-bold uppercase tracking-widest text-[#ffd978] mt-0.5">GAMES WON</div>
                     </div>
                     <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-2">
                         Match #<?= $match['match_number'] ?> &bull; <?= getRoundLabel($match['round_key']) ?>
@@ -791,7 +663,7 @@ $gamesToWin = ceil($bestOf / 2);
 
                 <div>
                     <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">Notes (Optional)</label>
-                    <input type="text" x-model="modalNotes" class="w-full bg-[#0b1b3d] border border-white/20 rounded-xl p-3 text-sm text-white placeholder-slate-400 focus:outline-none focus:border-blue-400" placeholder="e.g. twisted ankle in set 2">
+                    <input type="text" x-model="modalNotes" class="w-full bg-[#0b1b3d] border border-white/20 rounded-xl p-3 text-sm text-white placeholder-slate-400 focus:outline-none focus:border-blue-400" placeholder="e.g. twisted ankle in game 2">
                 </div>
             </div>
 
@@ -803,170 +675,7 @@ $gamesToWin = ceil($bestOf / 2);
             </div>
         </div>
     </div>
-
-    <!-- ============================================================ -->
-    <!-- DYNAMIC MATCH FORMAT & RULES MODAL                           -->
-    <!-- ============================================================ -->
-    <div x-show="showFormatModal" 
-         x-transition:enter="transition ease-out duration-200"
-         x-transition:enter-start="opacity-0 scale-95"
-         x-transition:enter-end="opacity-100 scale-100"
-         x-transition:leave="transition ease-in duration-150"
-         x-transition:leave-start="opacity-100 scale-100"
-         x-transition:leave-end="opacity-0 scale-95"
-         class="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center z-50 p-4" 
-         style="display: none;">
-        
-        <div class="bg-[#10234a] border-2 border-[#c9a84c]/50 rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl relative" @click.away="showFormatModal = false">
-            <div class="flex items-center justify-between mb-6 pb-3 border-b border-white/15">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-2xl bg-[#c9a84c] text-[#080e1e] flex items-center justify-center font-black shadow-md">
-                        <i class="ph-bold ph-sliders text-xl"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-xl font-black font-display text-white">Dynamic Match Rules</h3>
-                        <div class="text-xs text-blue-200">Configure sets and target points for this game</div>
-                    </div>
-                </div>
-                <button type="button" @click="showFormatModal = false" class="text-slate-400 hover:text-white p-2 rounded-xl bg-white/5 hover:bg-white/10 transition cursor-pointer">
-                    <i class="ph-bold ph-x text-lg"></i>
-                </button>
-            </div>
-            
-            <div class="space-y-6">
-                <!-- 1. Number of Sets (1, 3, 5) -->
-                <div>
-                    <label class="block text-xs font-black text-slate-300 uppercase tracking-wider mb-2">Match Length (Games)</label>
-                    <div class="grid grid-cols-3 gap-2">
-                        <button type="button" 
-                                @click="modalBestOf = 1" 
-                                :class="modalBestOf === 1 ? 'bg-[#c9a84c] text-[#080e1e] font-black border-[#ffd978] shadow-lg' : 'bg-[#0b1b3d] text-slate-300 border-white/15 hover:bg-white/10'"
-                                class="p-3.5 rounded-2xl border transition text-center flex flex-col items-center gap-1 cursor-pointer">
-                            <i class="ph-bold ph-lightning text-lg"></i>
-                            <span class="text-xs font-black">1 Single Game</span>
-                            <span class="text-[9px] opacity-75">Quick Match</span>
-                        </button>
-                        <button type="button" 
-                                @click="modalBestOf = 3" 
-                                :class="modalBestOf === 3 ? 'bg-[#c9a84c] text-[#080e1e] font-black border-[#ffd978] shadow-lg' : 'bg-[#0b1b3d] text-slate-300 border-white/15 hover:bg-white/10'"
-                                class="p-3.5 rounded-2xl border transition text-center flex flex-col items-center gap-1 cursor-pointer">
-                            <i class="ph-bold ph-trophy text-lg"></i>
-                            <span class="text-xs font-black">Best of 3</span>
-                            <span class="text-[9px] opacity-75">First to 2 Games</span>
-                        </button>
-                        <button type="button" 
-                                @click="modalBestOf = 5" 
-                                :class="modalBestOf === 5 ? 'bg-[#c9a84c] text-[#080e1e] font-black border-[#ffd978] shadow-lg' : 'bg-[#0b1b3d] text-slate-300 border-white/15 hover:bg-white/10'"
-                                class="p-3.5 rounded-2xl border transition text-center flex flex-col items-center gap-1 cursor-pointer">
-                            <i class="ph-bold ph-crown text-lg"></i>
-                            <span class="text-xs font-black">Best of 5</span>
-                            <span class="text-[9px] opacity-75">First to 3 Games</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- 2. Target Points per Set (11, 15, 21) -->
-                <div>
-                    <label class="block text-xs font-black text-slate-300 uppercase tracking-wider mb-2">Points Per Game (Target)</label>
-                    <div class="grid grid-cols-3 gap-2">
-                        <button type="button" 
-                                @click="modalPoints = 11" 
-                                :class="modalPoints === 11 ? 'bg-cyan-500 text-[#080e1e] font-black border-cyan-300 shadow-md' : 'bg-[#0b1b3d] text-slate-300 border-white/15 hover:bg-white/10'"
-                                class="py-2.5 rounded-xl border transition text-xs font-bold cursor-pointer">
-                            11 Points
-                        </button>
-                        <button type="button" 
-                                @click="modalPoints = 15" 
-                                :class="modalPoints === 15 ? 'bg-cyan-500 text-[#080e1e] font-black border-cyan-300 shadow-md' : 'bg-[#0b1b3d] text-slate-300 border-white/15 hover:bg-white/10'"
-                                class="py-2.5 rounded-xl border transition text-xs font-bold cursor-pointer">
-                            15 Points
-                        </button>
-                        <button type="button" 
-                                @click="modalPoints = 21" 
-                                :class="modalPoints === 21 ? 'bg-cyan-500 text-[#080e1e] font-black border-cyan-300 shadow-md' : 'bg-[#0b1b3d] text-slate-300 border-white/15 hover:bg-white/10'"
-                                class="py-2.5 rounded-xl border transition text-xs font-bold cursor-pointer">
-                            21 Points
-                        </button>
-                    </div>
-                </div>
-
-                <!-- 3. Deuce Rule -->
-                <div class="bg-black/30 p-4 rounded-2xl border border-white/15 flex items-center justify-between">
-                    <div>
-                        <div class="text-xs font-black text-white">Deuce Advantage</div>
-                        <div class="text-[10px] text-slate-300 mt-0.5">Win by 2 consecutive points</div>
-                    </div>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" x-model="modalDeuce" class="sr-only peer">
-                        <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#c9a84c]"></div>
-                    </label>
-                </div>
-            </div>
-
-            <div class="mt-8 flex justify-end gap-3 pt-4 border-t border-white/15">
-                <button type="button" @click="showFormatModal = false" class="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 text-xs font-bold transition cursor-pointer">Cancel</button>
-                <button type="button" @click="applyFormatModal()" class="px-6 py-2.5 bg-gradient-to-r from-amber-400 to-[#c9a84c] text-[#080e1e] rounded-xl font-black text-xs uppercase tracking-wider transition shadow-lg cursor-pointer">
-                    Apply & Save Rules
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ============================================================ -->
-    <!-- MATCH POINT COMPLETION CONFIRMATION PROMPT MODAL            -->
-    <!-- ============================================================ -->
-    <div x-show="showConfirmCompleteModal" 
-         x-transition:enter="transition ease-out duration-200"
-         x-transition:enter-start="opacity-0 scale-95"
-         x-transition:enter-end="opacity-100 scale-100"
-         x-transition:leave="transition ease-in duration-150"
-         x-transition:leave-start="opacity-100 scale-100"
-         x-transition:leave-end="opacity-0 scale-95"
-         class="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center z-50 p-4" 
-         style="display: none;">
-        
-        <div class="bg-[#10234a] border-2 border-emerald-400/80 rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-[0_0_50px_rgba(16,185,129,0.35)] relative text-center" @click.away="showConfirmCompleteModal = false">
-            <!-- Icon -->
-            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-400 via-teal-500 to-emerald-700 text-slate-950 flex items-center justify-center font-black text-3xl shadow-xl mx-auto mb-4 border border-white/30">
-                <i class="ph-fill ph-trophy text-yellow-100"></i>
-            </div>
-
-            <h3 class="text-2xl font-black font-display text-white mb-1">
-                Match Point Reached!
-            </h3>
-            <p class="text-xs sm:text-sm text-emerald-200/90 font-medium mb-5">
-                Did <strong class="text-white text-base" x-text="getMatchWinnerName()"></strong> win this match?
-            </p>
-
-            <!-- Score Summary Card -->
-            <div class="bg-black/40 border border-white/15 rounded-2xl p-3.5 mb-6 flex items-center justify-around">
-                <div class="text-center">
-                    <div class="text-xs text-slate-300 font-bold"><?= e($pA_display) ?></div>
-                    <div class="text-2xl font-black text-cyan-300 font-display" x-text="score_a"></div>
-                </div>
-                <div class="text-xs font-black text-slate-500 uppercase tracking-wider">VS</div>
-                <div class="text-center">
-                    <div class="text-xs text-slate-300 font-bold"><?= e($pB_display) ?></div>
-                    <div class="text-2xl font-black text-yellow-300 font-display" x-text="score_b"></div>
-                </div>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <button type="button" 
-                        @click="showConfirmCompleteModal = false" 
-                        class="w-full py-3 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer border border-white/15">
-                    <i class="ph-bold ph-arrow-u-up-left"></i> No, Keep / Undo
-                </button>
-                <button type="button" 
-                        @click="confirmFinalizeMatch()" 
-                        class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 text-xs font-black uppercase tracking-wider shadow-lg transition flex items-center justify-center gap-1.5 cursor-pointer">
-                    <i class="ph-bold ph-check"></i> Yes, Finalize Match
-                </button>
-            </div>
-        </div>
-    </div>
-
+    
     <!-- Floating Toast Notification -->
     <div x-show="showToast" 
          x-transition:enter="transition ease-out duration-200"
@@ -994,9 +703,8 @@ $gamesToWin = ceil($bestOf / 2);
             isCompleted: <?= in_array($match['status'], [MATCH_COMPLETED, MATCH_WALKOVER, MATCH_RETIRED]) ? 'true' : 'false' ?>,
             serverWinnerSide: '<?= $serverWinnerSide ?>',
             isProcessing: false,
-            server: 'A',
+            server: 'A', // Informational only
 
-            // Dynamic Match Format State
             bestOf: <?= (int)$match['best_of'] ?>,
             pointsPerGame: <?= (int)$match['points_per_game'] ?>,
             deuceEnabled: <?= $match['deuce_enabled'] ? 'true' : 'false' ?>,
@@ -1004,47 +712,131 @@ $gamesToWin = ceil($bestOf / 2);
             deuceCap: <?= (int)$match['deuce_cap'] ?>,
             gamesNeeded: <?= $gamesToWin ?>,
 
-            // Format Modal Form State
-            showFormatModal: false,
-            modalBestOf: <?= (int)$match['best_of'] ?>,
-            modalPoints: <?= (int)$match['points_per_game'] ?>,
-            modalDeuce: <?= $match['deuce_enabled'] ? 'true' : 'false' ?>,
+            // Toast notification
+            toastMsg: '',
+            showToast: false,
+            notify(msg) {
+                this.toastMsg = msg;
+                this.showToast = true;
+                setTimeout(() => { this.showToast = false; }, 3500);
+            },
+            
+            // Modal state
+            showOptions: false,
+            modalAction: 'declare_walkover',
+            modalWinner: '',
+            modalReason: '',
+            modalNotes: '',
 
-            // Match Point Confirmation Modal State
-            showConfirmCompleteModal: false,
-
-            async setFormat(newBestOf, newPoints, newDeuce = null) {
-                this.bestOf = newBestOf;
-                this.pointsPerGame = newPoints;
-                this.gamesNeeded = Math.ceil(newBestOf / 2);
-                this.deuceTrigger = newPoints - 1;
-                this.deuceCap = newPoints + 5;
-                if (newDeuce !== null) this.deuceEnabled = newDeuce;
-
-                try {
-                    let fd = new FormData();
-                    fd.append('match_id', <?= $matchId ?>);
-                    fd.append('action', 'update_rules');
-                    fd.append('best_of', this.bestOf);
-                    fd.append('points_per_game', this.pointsPerGame);
-                    fd.append('deuce_enabled', this.deuceEnabled ? 1 : 0);
-                    fd.append('deuce_trigger', this.deuceTrigger);
-                    fd.append('deuce_cap', this.deuceCap);
-                    fd.append('csrf_token', '<?= $csrf ?>');
-
-                    const response = await fetch('<?= BASE_URL ?>/api/score.php', { method: 'POST', body: fd });
-                    const data = await response.json();
-                    if (data.success) {
-                        this.notify("Format updated: " + (this.bestOf === 1 ? "1 Single Game" : ("Best of " + this.bestOf)) + " (" + this.pointsPerGame + " Pts)");
-                    }
-                } catch (e) {
-                    this.notify("Rules updated for this game.");
+            toggleFullScreen() {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch(() => {});
+                } else {
+                    document.exitFullscreen().catch(() => {});
                 }
             },
 
-            async applyFormatModal() {
-                await this.setFormat(this.modalBestOf, this.modalPoints, this.modalDeuce);
-                this.showFormatModal = false;
+            handleKeyboardShortcuts(e) {
+                if (this.isCompleted || this.showOptions || this.isProcessing) return;
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
+
+                const key = e.key.toLowerCase();
+                if (key === 'a' || e.key === 'ArrowLeft') {
+                    this.addPoint('A');
+                } else if (key === 'l' || e.key === 'ArrowRight') {
+                    this.addPoint('B');
+                } else if (key === 'z') {
+                    this.undoLast();
+                } else if (key === 's') {
+                    this.server = this.server === 'A' ? 'B' : 'A';
+                    this.notify("Serving switched to Player " + this.server);
+                } else if (key === 'f') {
+                    this.toggleFullScreen();
+                }
+            },
+
+            generateUUID() {
+                return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                    var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                    return v.toString(16);
+                });
+            },
+
+            async executeAction(actionName, extraData = {}) {
+                if (this.isProcessing) return;
+                this.isProcessing = true;
+                
+                try {
+                    let fd = new FormData();
+                    fd.append('match_id', <?= $matchId ?>);
+                    fd.append('action', actionName);
+                    fd.append('request_id', this.generateUUID());
+                    fd.append('csrf_token', '<?= $csrf ?>');
+                    
+                    for (const [key, value] of Object.entries(extraData)) {
+                        fd.append(key, value);
+                    }
+
+                    const response = await fetch('<?= BASE_URL ?>/api/score.php', { method: 'POST', body: fd });
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.score_a = data.score_a;
+                        this.score_b = data.score_b;
+                        this.games_a = data.games_a;
+                        this.games_b = data.games_b;
+                        
+                        if (data.is_completed && !this.isCompleted) {
+                            this.isCompleted = true;
+                            if (typeof fireConfetti === 'function') fireConfetti('fireworks');
+                            this.notify("Match Finalized! Returning to Tournament...");
+                            const targetUrl = data.redirect_url || '<?= BASE_URL ?>/admin/scoring/index.php?tournament_id=<?= $match['tournament_id'] ?>';
+                            setTimeout(() => { window.location.href = targetUrl; }, 2000);
+                        } else if (!data.is_completed && this.isCompleted) {
+                            // Handled Undo from completed state
+                            this.isCompleted = false;
+                        }
+                    } else {
+                        this.notify("Error: " + (data.error || "Failed to execute action."));
+                    }
+                } catch (e) {
+                    this.notify("Network error.");
+                } finally {
+                    this.isProcessing = false;
+                }
+            },
+
+            addPoint(player) {
+                if (this.isCompleted) return;
+                this.server = player;
+                this.executeAction('add_point', { side: player });
+            },
+
+            undoLast() {
+                // If the user wants to undo from a completed state, it must go to the server, wait!
+                // We'll allow undoing even if match is completed to reverse finalizing.
+                // Or maybe the PHP layer blocks it? The user said "Undo rule: Do NOT delete... Your score_events table should be an audit history... mark/reverse it." So undo from completed is actually supported.
+                this.executeAction('undo_last');
+            },
+
+            async submitOptions() {
+                if (!this.modalWinner || !this.modalReason) return;
+                
+                let extra = {
+                    reason: this.modalReason,
+                    notes: this.modalNotes
+                };
+                
+                if (this.modalAction === 'declare_walkover') {
+                    extra.winner_side = this.modalWinner;
+                } else if (this.modalAction === 'declare_retirement') {
+                    extra.retired_side = (this.modalWinner === 'A') ? 'B' : 'A';
+                }
+
+                await this.executeAction(this.modalAction, extra);
+                if (this.isCompleted) {
+                    this.showOptions = false;
+                }
             },
 
             getWinnerSide() {
@@ -1059,7 +851,7 @@ $gamesToWin = ceil($bestOf / 2);
                 return side === 'A' ? '<?= e($pA_display) ?>' : '<?= e($pB_display) ?>';
             },
 
-            getDisplaySets() {
+            getDisplayGames() {
                 if (this.games_a > 0 || this.games_b > 0) {
                     return this.games_a + ' - ' + this.games_b;
                 }
@@ -1069,44 +861,14 @@ $gamesToWin = ceil($bestOf / 2);
                 return '0 - 0';
             },
 
-            get isMatchPointReached() {
-                if (this.isCompleted) return false;
-                const target = this.pointsPerGame;
-                const cap = this.deuceCap;
-                const trigger = this.deuceTrigger;
-                const sA = this.score_a;
-                const sB = this.score_b;
-
-                let won = null;
-                if (!this.deuceEnabled) {
-                    if (sA >= target) won = 'A';
-                    else if (sB >= target) won = 'B';
-                } else {
-                    const maxS = Math.max(sA, sB);
-                    const diff = Math.abs(sA - sB);
-                    if (maxS >= cap) won = (sA > sB) ? 'A' : 'B';
-                    else if (sA >= trigger && sB >= trigger) {
-                        if (diff >= 2) won = (sA > sB) ? 'A' : 'B';
-                    } else if (maxS >= target) {
-                        won = (sA > sB) ? 'A' : 'B';
-                    }
-                }
-
-                if (!won) return false;
-                const tempA = this.games_a + (won === 'A' ? 1 : 0);
-                const tempB = this.games_b + (won === 'B' ? 1 : 0);
-                return (tempA >= this.gamesNeeded || tempB >= this.gamesNeeded);
-            },
-
             get isDeuce() {
                 return this.deuceEnabled && this.score_a >= this.deuceTrigger && this.score_b >= this.deuceTrigger && !this.isCompleted;
             },
 
             get isGamePoint() {
-                if (this.isCompleted || this.isMatchPointReached) return false;
+                if (this.isCompleted) return false;
                 const target = this.pointsPerGame;
                 const cap = this.deuceCap;
-                const trigger = this.deuceTrigger;
 
                 if (this.isDeuce) {
                     const diff = Math.abs(this.score_a - this.score_b);
@@ -1119,282 +881,6 @@ $gamesToWin = ceil($bestOf / 2);
 
             gamePointLeader() {
                 return (this.score_a > this.score_b) ? 'A' : 'B';
-            },
-
-            async confirmFinalizeMatch() {
-                this.showConfirmCompleteModal = false;
-                this.isProcessing = true;
-                
-                // 1. Wait for any pending point updates in flight to complete
-                let waitCount = 0;
-                while ((this.isQueueRunning || this.actionQueue.length > 0) && waitCount < 30) {
-                    await new Promise(r => setTimeout(r, 60));
-                    waitCount++;
-                }
-
-                const winnerSide = (this.score_a >= this.score_b) ? 'A' : 'B';
-                
-                try {
-                    let fd = new FormData();
-                    fd.append('match_id', <?= $matchId ?>);
-                    fd.append('action', 'finalize_match');
-                    fd.append('winner_side', winnerSide);
-                    fd.append('score_a', this.score_a);
-                    fd.append('score_b', this.score_b);
-                    fd.append('csrf_token', '<?= $csrf ?>');
-
-                    const response = await fetch('<?= BASE_URL ?>/api/score.php', { method: 'POST', body: fd });
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                        this.isCompleted = true;
-                        this.games_a = data.games_a ?? this.games_a;
-                        this.games_b = data.games_b ?? this.games_b;
-                        this.actionQueue = [];
-                        if (typeof fireConfetti === 'function') {
-                            fireConfetti('fireworks');
-                        }
-                        this.notify("🏆 Match Finalized! Returning to Tournament Schedules in 2s...");
-                        const targetUrl = data.redirect_url || '<?= BASE_URL ?>/admin/scoring/index.php?tournament_id=<?= $match['tournament_id'] ?>';
-                        setTimeout(() => {
-                            window.location.href = targetUrl;
-                        }, 2000);
-                    } else {
-                        this.notify("Error: " + (data.error || "Failed to finalize match."));
-                    }
-                } catch (e) {
-                    this.notify("Network error while finalizing match.");
-                } finally {
-                    this.isProcessing = false;
-                }
-            },
-            
-            // Toast notification
-            toastMsg: '',
-            showToast: false,
-            notify(msg) {
-                this.toastMsg = msg;
-                this.showToast = true;
-                setTimeout(() => { this.showToast = false; }, 3500);
-            },
-            
-            // Modal state
-            showOptions: false,
-            modalAction: 'walkover',
-            modalWinner: '',
-            modalReason: '',
-            modalNotes: '',
-
-            toggleFullScreen() {
-                if (!document.fullscreenElement) {
-                    document.documentElement.requestFullscreen().catch(() => {});
-                } else {
-                    document.exitFullscreen().catch(() => {});
-                }
-            },
-
-            handleKeyboardShortcuts(e) {
-                if (this.isCompleted || this.showOptions) return;
-                if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
-
-                const key = e.key.toLowerCase();
-                if (key === 'a' || e.key === 'ArrowLeft') {
-                    this.addPoint('A');
-                } else if (key === 'l' || e.key === 'ArrowRight') {
-                    this.addPoint('B');
-                } else if (key === 'z') {
-                    this.undoPoint('A');
-                } else if (key === 'm') {
-                    this.undoPoint('B');
-                } else if (key === 's') {
-                    this.server = this.server === 'A' ? 'B' : 'A';
-                    this.notify("Serving switched to Player " + this.server);
-                } else if (key === 'f') {
-                    this.toggleFullScreen();
-                }
-            },
-
-            // Non-blocking asynchronous queue for instant responsive scoring
-            actionQueue: [],
-            isQueueRunning: false,
-
-            queueAction(action) {
-                this.actionQueue.push(action);
-                this.processNextAction();
-            },
-
-            async processNextAction() {
-                if (this.isQueueRunning || this.actionQueue.length === 0) return;
-                this.isQueueRunning = true;
-                const nextAction = this.actionQueue.shift();
-
-                try {
-                    let fd = new FormData();
-                    fd.append('match_id', <?= $matchId ?>);
-                    fd.append('action', nextAction);
-                    fd.append('csrf_token', '<?= $csrf ?>');
-
-                    const response = await fetch('<?= BASE_URL ?>/api/score.php', {
-                        method: 'POST',
-                        body: fd
-                    });
-                    
-                    const data = await response.json();
-                    if (data.success) {
-                        // Always sync state from server
-                        this.games_a = data.games_a;
-                        this.games_b = data.games_b;
-
-                        if (data.is_completed) {
-                            this.isCompleted = true;
-                            this.actionQueue = [];
-                            if (typeof fireConfetti === 'function') {
-                                fireConfetti('fireworks');
-                            }
-                        } else if (data.match_point_reached) {
-                            this.showConfirmCompleteModal = true;
-                        }
-
-                        if (this.isCompleted || data.event_type === 'game_win' || this.actionQueue.length === 0) {
-                            this.score_a = data.score_a;
-                            this.score_b = data.score_b;
-                            if (this.isCompleted || data.event_type === 'game_win') {
-                                this.actionQueue = []; // Clear queue on game win/match complete
-                            }
-                        }
-                    } else {
-                        // If error occurred (e.g. match already completed), sync canonical state
-                        if (data.is_completed || (data.error && data.error.includes('completed'))) {
-                            this.isCompleted = true;
-                            this.actionQueue = [];
-                        }
-                    }
-                } catch (e) {
-                    // Fail gracefully in background
-                } finally {
-                    this.isQueueRunning = false;
-                    if (this.actionQueue.length > 0) {
-                        this.processNextAction();
-                    }
-                }
-            },
-
-            addPoint(player) {
-                if (this.isCompleted) return;
-                
-                const target = this.pointsPerGame;
-                const deuce = this.deuceEnabled;
-                const cap = this.deuceCap;
-                const trigger = this.deuceTrigger;
-                const gamesNeeded = this.gamesNeeded;
-
-                // Zero-Latency Instant UI Increment
-                if (player === 'A') {
-                    this.score_a++;
-                    this.server = 'A';
-                    const el = document.getElementById('scoreDigitA');
-                    if (el) { el.classList.add('scale-110'); setTimeout(() => el.classList.remove('scale-110'), 140); }
-                } else {
-                    this.score_b++;
-                    this.server = 'B';
-                    const el = document.getElementById('scoreDigitB');
-                    if (el) { el.classList.add('scale-110'); setTimeout(() => el.classList.remove('scale-110'), 140); }
-                }
-
-                // Check Game Win condition immediately on client
-                const sA = this.score_a;
-                const sB = this.score_b;
-                let won = null;
-
-                if (!deuce) {
-                    if (sA >= target) won = 'A';
-                    else if (sB >= target) won = 'B';
-                } else {
-                    const maxS = Math.max(sA, sB);
-                    const diff = Math.abs(sA - sB);
-                    if (maxS >= cap) {
-                        won = (sA > sB) ? 'A' : 'B';
-                    } else if (sA >= trigger && sB >= trigger) {
-                        if (diff >= 2) won = (sA > sB) ? 'A' : 'B';
-                    } else if (maxS >= target) {
-                        won = (sA > sB) ? 'A' : 'B';
-                    }
-                }
-
-                if (won) {
-                    const tempA = this.games_a + (won === 'A' ? 1 : 0);
-                    const tempB = this.games_b + (won === 'B' ? 1 : 0);
-                    
-                    if (tempA >= gamesNeeded || tempB >= gamesNeeded) {
-                        // Deciding match point reached! Ask the scorer for confirmation
-                        this.showConfirmCompleteModal = true;
-                    } else {
-                        // Regular set won in multi-set game -> Advance to next set
-                        if (won === 'A') this.games_a++; else this.games_b++;
-                        this.notify("Game won by Player " + won + "! Starting next set...");
-                        this.score_a = 0;
-                        this.score_b = 0;
-                    }
-                }
-                
-                this.queueAction('add_' + player.toLowerCase());
-            },
-
-            undoPoint(player) {
-                if (this.isCompleted) return;
-                this.showConfirmCompleteModal = false; // Dismiss prompt on undo
-                
-                // Instant Undo UI Update
-                if (player === 'A' && this.score_a > 0) {
-                    this.score_a--;
-                    const el = document.getElementById('scoreDigitA');
-                    if (el) { el.classList.add('scale-95'); setTimeout(() => el.classList.remove('scale-95'), 140); }
-                } else if (player === 'B' && this.score_b > 0) {
-                    this.score_b--;
-                    const el = document.getElementById('scoreDigitB');
-                    if (el) { el.classList.add('scale-95'); setTimeout(() => el.classList.remove('scale-95'), 140); }
-                } else {
-                    return;
-                }
-
-                this.queueAction('undo_' + player.toLowerCase());
-            },
-
-            async submitOptions() {
-                if (!this.modalWinner || !this.modalReason) return;
-
-                this.isProcessing = true;
-                
-                try {
-                    let fd = new FormData();
-                    fd.append('match_id', <?= $matchId ?>);
-                    fd.append('action', this.modalAction);
-                    fd.append('winner_side', this.modalWinner);
-                    fd.append('reason', this.modalReason);
-                    fd.append('notes', this.modalNotes);
-                    fd.append('csrf_token', '<?= $csrf ?>');
-
-                    const response = await fetch('<?= BASE_URL ?>/api/score.php', { method: 'POST', body: fd });
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                        this.isCompleted = true;
-                        this.showOptions = false;
-                        if (typeof fireConfetti === 'function') {
-                            fireConfetti('fireworks');
-                        }
-                        this.notify("Match outcome recorded! Returning to schedule in 2s...");
-                        setTimeout(() => {
-                            window.location.href = '<?= BASE_URL ?>/admin/scoring/index.php?tournament_id=<?= $match['tournament_id'] ?>';
-                        }, 2000);
-                    } else {
-                        this.notify("Error: " + (data.error || "Failed to record match outcome."));
-                    }
-                } catch (e) {
-                    this.notify("Network error while finalizing match.");
-                } finally {
-                    this.isProcessing = false;
-                }
             }
         }));
     });
