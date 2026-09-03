@@ -9,35 +9,7 @@ $footerSponsors = function_exists('getActiveSponsors') ? getActiveSponsors() : [
 <!-- ============================================================ -->
 <footer class="bg-[#0b1730] text-white border-t border-white/10 mt-auto relative z-20">
     
-    <!-- Sponsor Showcase (Flat list, equal size - GEMINI.md Rule) -->
-    <?php if (!empty($footerSponsors)): ?>
-        <div class="border-b border-white/10 bg-black/25 py-6 px-4 sm:px-6 lg:px-8">
-            <div class="max-w-7xl mx-auto">
-                <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4">
-                    <div class="flex items-center gap-2 text-center sm:text-left">
-                        <i class="ph-fill ph-handshake text-[#c9a84c] text-lg"></i>
-                        <span class="text-xs uppercase tracking-[0.2em] font-black text-[#c9a84c]">Official Tournament Sponsors</span>
-                    </div>
-                    <span class="text-[11px] text-slate-400 font-medium">Proudly supporting community youth athletics</span>
-                </div>
-                
-                <!-- Flat Logo Grid / Flex (All equal size) -->
-                <div class="flex flex-wrap items-center justify-center sm:justify-start gap-4 sm:gap-6">
-                    <?php foreach ($footerSponsors as $sp): 
-                        $spImg = str_starts_with($sp['image_path'], 'uploads/') 
-                            ? BASE_URL . '/' . e($sp['image_path']) 
-                            : BASE_URL . '/uploads/sponsors/' . e($sp['image_path']);
-                    ?>
-                        <div class="bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl p-3 sm:p-4 flex items-center justify-center transition-all duration-300 hover:scale-105 shadow-sm group" title="<?= e($sp['name']) ?>">
-                            <img src="<?= $spImg ?>" 
-                                 alt="<?= e($sp['name']) ?>" 
-                                 class="h-8 sm:h-10 max-w-[120px] sm:max-w-[140px] object-contain filter grayscale group-hover:grayscale-0 opacity-80 group-hover:opacity-100 transition-all duration-300">
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-        </div>
-    <?php endif; ?>
+
 
     <!-- Main Footer Body -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
