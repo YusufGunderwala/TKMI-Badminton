@@ -629,20 +629,6 @@ $gamesToWin = ceil($bestOf / 2);
 
     </main>
 
-    <!-- TV / Hall Screen Floating Sponsor Badge (Corner of live scoreboard - GEMINI.md) -->
-    <?php if (!empty($sponsors)): ?>
-        <div class="fixed bottom-3 right-4 z-30 hidden sm:flex items-center gap-2.5 bg-[#0f2044]/90 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/15 shadow-xl text-[10px] text-slate-300">
-            <span class="font-bold text-[#c9a84c] uppercase tracking-wider text-[9px]">Sponsors</span>
-            <div class="flex items-center gap-2">
-                <?php foreach (array_slice($sponsors, 0, 4) as $sp): 
-                    $spUrl = str_starts_with($sp['image_path'], 'uploads/') ? BASE_URL . '/' . e($sp['image_path']) : BASE_URL . '/uploads/sponsors/' . e($sp['image_path']);
-                ?>
-                    <img src="<?= $spUrl ?>" alt="<?= e($sp['name']) ?>" title="<?= e($sp['name']) ?>" class="h-4 max-w-[50px] object-contain rounded brightness-90 hover:brightness-100 transition">
-                <?php endforeach; ?>
-            </div>
-        </div>
-    <?php endif; ?>
-
     <!-- ============================================================ -->
     <!-- EPIC CHAMPIONSHIP MATCH COMPLETED / VICTORY OVERLAY          -->
     <!-- ============================================================ -->

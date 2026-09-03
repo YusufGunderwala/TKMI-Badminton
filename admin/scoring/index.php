@@ -43,10 +43,26 @@ if ($selectedTourney) {
     $stmt->execute([$tournamentId]);
     $matches = $stmt->fetchAll();
 
+    // Fetch all games for this tournament to show full score history
+    $gamesStmt = $pdo->prepare('
+        SELECT g.* 
+        FROM games g
+        JOIN matches m ON g.match_id = m.id
+        WHERE m.tournament_id = ?
+        ORDER BY g.match_id, g.game_number
+    ');
+    $gamesStmt->execute([$tournamentId]);
+    $allGames = $gamesStmt->fetchAll();
+    $matchGames = [];
+    foreach ($allGames as $g) {
+        $matchGames[$g['match_id']][] = $g;
+    }
+
     foreach ($matches as $m) {
         $isDoubles = !empty($m['team_a_id']);
         $m['display_a'] = $isDoubles ? ($m['ta_name'] ?: 'Team A') : ($m['pa_name'] ?: 'Player A');
         $m['display_b'] = $isDoubles ? ($m['tb_name'] ?: 'Team B') : ($m['pb_name'] ?: 'Player B');
+        $m['games'] = $matchGames[$m['id']] ?? [];
         $groupedMatches[$m['round_key']][] = $m;
     }
 }
@@ -358,15 +374,33 @@ include __DIR__ . '/../includes/header.php';
                                     </div>
 
                                     <!-- Participants -->
-                                    <div class="space-y-2 mb-5">
+                                    <div class="space-y-2 mb-4">
                                         <div class="flex items-center justify-between p-2.5 rounded-lg <?= ($isDone && $m['winner_player_id'] == $m['participant_a_id']) ? 'bg-emerald-50 text-emerald-900 font-black' : 'bg-slate-50 text-slate-800 font-bold' ?>">
                                             <span class="truncate pr-2 text-sm"><?= e($m['display_a']) ?></span>
-                                            <span class="font-black text-base"><?= $m['games_a'] ?> <span class="text-xs text-slate-400 font-normal">(<?= $m['score_a'] ?>)</span></span>
+                                            <span class="font-black text-base"><?= $isLive ? $m['score_a'] : $m['games_a'] ?></span>
                                         </div>
                                         <div class="flex items-center justify-between p-2.5 rounded-lg <?= ($isDone && $m['winner_player_id'] == $m['participant_b_id']) ? 'bg-emerald-50 text-emerald-900 font-black' : 'bg-slate-50 text-slate-800 font-bold' ?>">
                                             <span class="truncate pr-2 text-sm"><?= e($m['display_b']) ?></span>
-                                            <span class="font-black text-base"><?= $m['games_b'] ?> <span class="text-xs text-slate-400 font-normal">(<?= $m['score_b'] ?>)</span></span>
+                                            <span class="font-black text-base"><?= $isLive ? $m['score_b'] : $m['games_b'] ?></span>
                                         </div>
+                                    </div>
+                                    <div class="mb-4 text-[10px] uppercase tracking-widest text-center font-bold text-slate-400">
+                                        <?php 
+                                        if ($isDone) {
+                                            if (!empty($m['games'])) {
+                                                $scoreStrings = array_map(fn($g) => $g['score_a'] . '-' . $g['score_b'], $m['games']);
+                                                echo "Scores: <span class='text-slate-800 font-black'>" . implode(', ', $scoreStrings) . "</span>";
+                                            } else {
+                                                echo "Score: <span class='text-slate-800 font-black'>{$m['score_a']} - {$m['score_b']}</span>";
+                                            }
+                                        }
+                                        elseif ($isLive) {
+                                            echo "<span class='text-red-600 font-black animate-pulse'>Live Sets: {$m['games_a']} - {$m['games_b']}</span>";
+                                        }
+                                        else {
+                                            echo "Upcoming match";
+                                        }
+                                        ?>
                                     </div>
                                 </div>
 

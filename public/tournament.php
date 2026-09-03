@@ -447,7 +447,7 @@ include __DIR__ . '/../includes/header.php';
                                             <img src="<?= $spCornerUrl ?>" alt="Sponsor" class="h-3.5 max-w-[48px] object-contain">
                                         </div>
                                     <?php endif; ?>
-                                    <div class="text-xs font-mono font-black text-red-600 bg-red-50 px-2.5 py-1 rounded-lg">
+                                    <div id="live-game-num-<?= $matchId ?>" class="text-xs font-mono font-black text-red-600 bg-red-50 px-2.5 py-1 rounded-lg">
                                         Game <?= ((int)($m['games_a'] ?? 0) + (int)($m['games_b'] ?? 0)) + 1 ?>
                                     </div>
                                 </div>
@@ -566,7 +566,11 @@ include __DIR__ . '/../includes/header.php';
                             <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-500">
                                 <div class="flex items-center gap-2">
                                     <span class="text-[10px] uppercase tracking-wider text-slate-400">Games Won:</span>
-                                    <span id="live-games-<?= $matchId ?>" class="font-black text-slate-800"><?= $m['games_a'] ?> - <?= $m['games_b'] ?></span>
+                                    <span class="font-black text-slate-800">
+                                        <span id="live-games-a-<?= $matchId ?>"><?= $m['games_a'] ?></span> 
+                                        - 
+                                        <span id="live-games-b-<?= $matchId ?>"><?= $m['games_b'] ?></span>
+                                    </span>
                                 </div>
 
                                 <?php if (!empty($m['games'])): ?>
@@ -897,9 +901,20 @@ include __DIR__ . '/../includes/header.php';
 
                                 <div class="mt-4 pt-3 border-t border-slate-100 text-[10px] uppercase tracking-widest text-center font-bold text-slate-400">
                                     <?php 
-                                    if ($isCompleted) echo "Score: <span class='text-slate-800 font-black'>{$m['score_a']} - {$m['score_b']}</span>";
-                                    elseif ($isLive) echo "<span class='text-red-600 font-black animate-pulse'>Points: {$m['score_a']} - {$m['score_b']}</span>";
-                                    else echo "Upcoming match";
+                                    if ($isCompleted) {
+                                        if (!empty($m['games'])) {
+                                            $scoreStrings = array_map(fn($g) => $g['score_a'] . '-' . $g['score_b'], $m['games']);
+                                            echo "Scores: <span class='text-slate-800 font-black'>" . implode(', ', $scoreStrings) . "</span>";
+                                        } else {
+                                            echo "Score: <span class='text-slate-800 font-black'>{$m['score_a']} - {$m['score_b']}</span>";
+                                        }
+                                    }
+                                    elseif ($isLive) {
+                                        echo "<span class='text-red-600 font-black animate-pulse'>Live Sets: {$m['games_a']} - {$m['games_b']}</span>";
+                                    }
+                                    else {
+                                        echo "Upcoming match";
+                                    }
                                     ?>
                                 </div>
 
