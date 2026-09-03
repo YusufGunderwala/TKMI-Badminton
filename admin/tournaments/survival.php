@@ -182,34 +182,60 @@ include __DIR__ . '/../includes/header.php';
                         </div>
 
                         <!-- Right Fighter (Path 2) -->
-                        <div class="flex-1 bg-white border-2 rounded-xl p-3 flex items-center gap-4 relative group transition-colors shadow-xs"
-                             :class="match.isRematch ? 'border-red-400 bg-red-50/40' : 'border-blue-200 hover:border-blue-400 cursor-pointer'">
+                        <div x-data="{ dropdownOpen: false }" @click.away="dropdownOpen = false"
+                             class="flex-1 bg-white border-2 rounded-xl p-3 flex items-center gap-4 relative group transition-colors shadow-xs cursor-pointer select-none"
+                             :class="match.isRematch ? 'border-red-400 bg-red-50/40' : (dropdownOpen ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-blue-200 hover:border-blue-400')"
+                             @click="dropdownOpen = !dropdownOpen">
                             
                             <div class="absolute top-0 right-0 w-1.5 h-full transition-colors"
                                  :class="match.isRematch ? 'bg-red-500' : 'bg-blue-500'"></div>
                             
-                            <!-- Custom Select Overlay (Click anywhere on card to select) -->
-                            <div class="absolute inset-0 z-20 opacity-0 group-hover:opacity-100 flex items-center justify-end px-4 pointer-events-none transition-opacity">
-                                <div class="w-8 h-8 rounded-full bg-white shadow flex items-center justify-center border border-slate-100 text-blue-500">
+                            <input type="hidden" :name="'pB_' + index" :value="match.pB">
+                            
+                            <!-- Custom Dropdown Icon -->
+                            <div class="absolute inset-0 z-10 flex items-center justify-end px-4 pointer-events-none transition-opacity"
+                                 :class="dropdownOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'">
+                                <div class="w-8 h-8 rounded-full bg-white shadow flex items-center justify-center border border-slate-100 transition-transform"
+                                     :class="dropdownOpen ? 'rotate-180 text-blue-600 bg-blue-50' : 'text-blue-500'">
                                     <i class="ph-bold ph-caret-down text-lg"></i>
                                 </div>
                             </div>
 
-                            <select :name="'pB_' + index" x-model="match.pB" @change="checkConflicts()"
-                                    class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-30">
-                                <option value="0">-- Select Path 2 Opponent --</option>
-                                <template x-for="p2Id in path2" :key="p2Id">
-                                    <option :value="p2Id" x-text="players[p2Id].name + ' (' + players[p2Id].its + ')'"></option>
-                                </template>
-                            </select>
+                            <!-- Custom Alpine Dropdown Menu -->
+                            <div x-show="dropdownOpen" x-transition.opacity.duration.200ms
+                                 class="absolute left-0 right-0 top-[calc(100%+8px)] bg-white border border-slate-200 rounded-xl shadow-2xl z-50 overflow-hidden"
+                                 style="display: none;">
+                                <div class="max-h-60 overflow-y-auto custom-scrollbar">
+                                    <div @click="match.pB = 0; checkConflicts();"
+                                         class="px-4 py-3 border-b border-slate-100 hover:bg-slate-50 text-sm font-bold text-slate-400 transition-colors">
+                                        -- Select Path 2 Opponent --
+                                    </div>
+                                    <template x-for="p2Id in path2" :key="p2Id">
+                                        <div @click.stop="match.pB = p2Id; checkConflicts(); dropdownOpen = false;"
+                                             class="px-4 py-3 border-b border-slate-50 hover:bg-blue-50 cursor-pointer transition-colors flex items-center justify-between"
+                                             :class="match.pB == p2Id ? 'bg-blue-50/60 border-l-2 border-l-blue-500' : 'border-l-2 border-l-transparent'">
+                                            <div>
+                                                <div class="text-sm font-bold text-slate-800" x-text="players[p2Id].name"></div>
+                                                <div class="flex gap-2 mt-1">
+                                                    <span class="text-[10px] font-bold text-slate-500 bg-white px-1.5 rounded border border-slate-100 shadow-sm" x-text="'ITS: ' + players[p2Id].its"></span>
+                                                    <span class="text-[10px] font-bold text-slate-500 bg-white px-1.5 rounded border border-slate-100 shadow-sm" x-text="players[p2Id].mohallah"></span>
+                                                </div>
+                                            </div>
+                                            <div x-show="match.pB == p2Id" class="text-blue-600">
+                                                <i class="ph-bold ph-check-circle text-lg"></i>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
 
-                            <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center flex-shrink-0 border-2 shadow-sm transition-colors"
+                            <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center flex-shrink-0 border-2 shadow-sm transition-colors relative z-0"
                                  :class="match.isRematch ? 'bg-red-50 border-red-200' : (match.pB != 0 ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 border-slate-200 border-dashed')">
                                 <i class="ph-fill ph-user text-2xl" 
                                    :class="match.isRematch ? 'text-red-400' : (match.pB != 0 ? 'text-blue-500' : 'text-slate-300')"></i>
                             </div>
                             
-                            <div class="flex-1 min-w-0 pr-6 py-1">
+                            <div class="flex-1 min-w-0 pr-6 py-1 relative z-0">
                                 <div class="text-[9px] sm:text-[10px] font-black uppercase tracking-wider mb-0.5 transition-colors"
                                      :class="match.isRematch ? 'text-red-600' : 'text-blue-600'">Path 2 (Lost R1)</div>
                                 <div class="text-sm sm:text-base font-bold truncate transition-colors"

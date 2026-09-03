@@ -144,30 +144,96 @@ require_once __DIR__ . '/../../admin/includes/header.php';
                     <i class="ph-bold ph-plus-circle text-blue-500"></i> Create New Team
                 </h3>
                 
-                <form method="POST" action="teams.php?id=<?= $id ?>" class="space-y-4">
+                <form method="POST" action="teams.php?id=<?= $id ?>" class="space-y-4" x-data="{ 
+                    player1: '', 
+                    player2: '',
+                    players: <?= json_encode(array_values(array_map(function($p) use ($pairedPlayerIds) {
+                        return [
+                            'id' => (string)$p['id'],
+                            'name' => $p['display_name'],
+                            'mohallah' => $p['mohallah'],
+                            'disabled' => in_array($p['id'], $pairedPlayerIds)
+                        ];
+                    }, $enrolledPlayers))) ?>,
+                    
+                    validate(e) {
+                        if (!this.player1 || !this.player2) {
+                            e.preventDefault();
+                            alert('Please select both Player 1 and Player 2.');
+                        }
+                    }
+                }" @submit="validate">
                     <?= csrf_field() ?>
                     <input type="hidden" name="action" value="create_team">
                     
                     <div>
                         <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Player 1</label>
-                        <select name="player1_id" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-[#0f2044] focus:outline-none focus:border-blue-500">
-                            <option value="">Select a player...</option>
-                            <?php foreach ($enrolledPlayers as $p): ?>
-                                <?php $disabled = in_array($p['id'], $pairedPlayerIds) ? 'disabled' : ''; ?>
-                                <option value="<?= $p['id'] ?>" <?= $disabled ?>><?= e($p['display_name']) ?> (<?= e($p['mohallah']) ?>)</option>
-                            <?php endforeach; ?>
-                        </select>
+                        <div x-data="{ open: false }" @click.away="open = false" class="relative">
+                            <input type="hidden" name="player1_id" :value="player1">
+                            <button type="button" @click="open = !open" 
+                                    class="w-full flex items-center justify-between bg-slate-50 border border-slate-200 text-[#0f2044] text-sm font-bold rounded-xl px-4 py-3 shadow-sm hover:border-blue-400 transition-colors"
+                                    :class="open ? 'border-blue-500 ring-2 ring-blue-500/20' : ''">
+                                <span class="truncate" :class="player1 == '' ? 'text-slate-400' : ''" x-text="player1 != '' ? (players.find(p => p.id == player1)?.name || '') : 'Select a player...'"></span>
+                                <i class="ph-bold ph-caret-down text-slate-400 text-sm transition-transform" :class="open ? 'rotate-180 text-blue-500' : ''"></i>
+                            </button>
+                            <div x-show="open" x-transition.opacity.duration.200ms
+                                 class="absolute left-0 right-0 top-[calc(100%+8px)] bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden"
+                                 style="display: none;">
+                                <div class="max-h-60 overflow-y-auto custom-scrollbar">
+                                    <div @click="player1 = ''; open = false;" class="px-4 py-3 border-b border-slate-100 hover:bg-slate-50 cursor-pointer text-xs font-bold text-slate-400">
+                                        Select a player...
+                                    </div>
+                                    <template x-for="p in players" :key="p.id">
+                                        <div @click.stop="if(!p.disabled) { player1 = p.id; open = false; }"
+                                             class="px-4 py-3 border-b border-slate-50 transition-colors flex items-center justify-between"
+                                             :class="p.disabled ? 'opacity-50 cursor-not-allowed bg-slate-50' : 'hover:bg-blue-50 cursor-pointer ' + (player1 == p.id ? 'bg-blue-50/60 border-l-2 border-l-blue-500' : 'border-l-2 border-l-transparent')">
+                                            <div>
+                                                <div class="text-sm font-bold text-slate-800" :class="p.disabled ? 'line-through text-slate-400' : ''" x-text="p.name"></div>
+                                                <div class="text-[10px] font-bold text-slate-500" x-text="p.mohallah + (p.disabled ? ' (Already Paired)' : '')"></div>
+                                            </div>
+                                            <div x-show="player1 == p.id" class="text-blue-600">
+                                                <i class="ph-bold ph-check-circle text-lg"></i>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div>
                         <label class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Player 2</label>
-                        <select name="player2_id" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-[#0f2044] focus:outline-none focus:border-blue-500">
-                            <option value="">Select a player...</option>
-                            <?php foreach ($enrolledPlayers as $p): ?>
-                                <?php $disabled = in_array($p['id'], $pairedPlayerIds) ? 'disabled' : ''; ?>
-                                <option value="<?= $p['id'] ?>" <?= $disabled ?>><?= e($p['display_name']) ?> (<?= e($p['mohallah']) ?>)</option>
-                            <?php endforeach; ?>
-                        </select>
+                        <div x-data="{ open: false }" @click.away="open = false" class="relative">
+                            <input type="hidden" name="player2_id" :value="player2">
+                            <button type="button" @click="open = !open" 
+                                    class="w-full flex items-center justify-between bg-slate-50 border border-slate-200 text-[#0f2044] text-sm font-bold rounded-xl px-4 py-3 shadow-sm hover:border-blue-400 transition-colors"
+                                    :class="open ? 'border-blue-500 ring-2 ring-blue-500/20' : ''">
+                                <span class="truncate" :class="player2 == '' ? 'text-slate-400' : ''" x-text="player2 != '' ? (players.find(p => p.id == player2)?.name || '') : 'Select a player...'"></span>
+                                <i class="ph-bold ph-caret-down text-slate-400 text-sm transition-transform" :class="open ? 'rotate-180 text-blue-500' : ''"></i>
+                            </button>
+                            <div x-show="open" x-transition.opacity.duration.200ms
+                                 class="absolute left-0 right-0 top-[calc(100%+8px)] bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden"
+                                 style="display: none;">
+                                <div class="max-h-60 overflow-y-auto custom-scrollbar">
+                                    <div @click="player2 = ''; open = false;" class="px-4 py-3 border-b border-slate-100 hover:bg-slate-50 cursor-pointer text-xs font-bold text-slate-400">
+                                        Select a player...
+                                    </div>
+                                    <template x-for="p in players" :key="p.id">
+                                        <div @click.stop="if(!p.disabled) { player2 = p.id; open = false; }"
+                                             class="px-4 py-3 border-b border-slate-50 transition-colors flex items-center justify-between"
+                                             :class="p.disabled ? 'opacity-50 cursor-not-allowed bg-slate-50' : 'hover:bg-blue-50 cursor-pointer ' + (player2 == p.id ? 'bg-blue-50/60 border-l-2 border-l-blue-500' : 'border-l-2 border-l-transparent')">
+                                            <div>
+                                                <div class="text-sm font-bold text-slate-800" :class="p.disabled ? 'line-through text-slate-400' : ''" x-text="p.name"></div>
+                                                <div class="text-[10px] font-bold text-slate-500" x-text="p.mohallah + (p.disabled ? ' (Already Paired)' : '')"></div>
+                                            </div>
+                                            <div x-show="player2 == p.id" class="text-blue-600">
+                                                <i class="ph-bold ph-check-circle text-lg"></i>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     
                     <button type="submit" <?= $hasMatches ? 'disabled' : '' ?> class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-50">

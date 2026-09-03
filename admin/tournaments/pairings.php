@@ -236,13 +236,37 @@ include __DIR__ . '/../includes/header.php';
                         <!-- Player A Select -->
                         <div>
                             <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Player A</label>
-                            <select :name="'pA_' + idx" x-model.number="m.pA" @change="checkConflicts()"
-                                    class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
-                                <option value="0">-- Select Player A --</option>
-                                <template x-for="p in allPlayersList" :key="p.id">
-                                    <option :value="p.id" x-text="p.name + ' (' + p.its_id + ')'"></option>
-                                </template>
-                            </select>
+                            <div x-data="{ open: false }" @click.away="open = false" class="relative">
+                                <input type="hidden" :name="'pA_' + idx" :value="m.pA">
+                                <button type="button" @click="open = !open" 
+                                        class="w-full flex items-center justify-between bg-white border border-slate-200 text-slate-800 text-xs sm:text-sm font-bold rounded-xl p-2.5 sm:p-3 shadow-sm hover:border-blue-400 transition-colors"
+                                        :class="open ? 'border-blue-500 ring-2 ring-blue-500/20' : ''">
+                                    <span class="truncate" :class="m.pA == 0 ? 'text-slate-400' : ''" x-text="m.pA != 0 ? (allPlayersList.find(p => p.id == m.pA)?.name || '') : '-- Select Player A --'"></span>
+                                    <i class="ph-bold ph-caret-down text-slate-400 text-sm transition-transform" :class="open ? 'rotate-180 text-blue-500' : ''"></i>
+                                </button>
+                                <div x-show="open" x-transition.opacity.duration.200ms
+                                     class="absolute left-0 right-0 top-[calc(100%+8px)] bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden"
+                                     style="display: none;">
+                                    <div class="max-h-60 overflow-y-auto custom-scrollbar">
+                                        <div @click="m.pA = 0; checkConflicts(); open = false;" class="px-4 py-3 border-b border-slate-100 hover:bg-slate-50 cursor-pointer text-xs font-bold text-slate-400">
+                                            -- Select Player A --
+                                        </div>
+                                        <template x-for="p in allPlayersList" :key="p.id">
+                                            <div @click.stop="m.pA = p.id; checkConflicts(); open = false;"
+                                                 class="px-4 py-2.5 border-b border-slate-50 hover:bg-blue-50 cursor-pointer transition-colors flex items-center justify-between"
+                                                 :class="m.pA == p.id ? 'bg-blue-50/60 border-l-2 border-l-blue-500' : 'border-l-2 border-l-transparent'">
+                                                <div>
+                                                    <div class="text-sm font-bold text-slate-800" x-text="p.name"></div>
+                                                    <div class="text-[10px] font-bold text-slate-500" x-text="'ITS: ' + p.its_id"></div>
+                                                </div>
+                                                <div x-show="m.pA == p.id" class="text-blue-600">
+                                                    <i class="ph-bold ph-check-circle text-lg"></i>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="flex items-center justify-center">
@@ -252,13 +276,37 @@ include __DIR__ . '/../includes/header.php';
                         <!-- Player B Select -->
                         <div>
                             <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Player B</label>
-                            <select :name="'pB_' + idx" x-model.number="m.pB" @change="checkConflicts()"
-                                    class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
-                                <option value="0">-- Select Player B --</option>
-                                <template x-for="p in allPlayersList" :key="p.id">
-                                    <option :value="p.id" x-text="p.name + ' (' + p.its_id + ')'"></option>
-                                </template>
-                            </select>
+                            <div x-data="{ open: false }" @click.away="open = false" class="relative">
+                                <input type="hidden" :name="'pB_' + idx" :value="m.pB">
+                                <button type="button" @click="open = !open" 
+                                        class="w-full flex items-center justify-between bg-white border border-slate-200 text-slate-800 text-xs sm:text-sm font-bold rounded-xl p-2.5 sm:p-3 shadow-sm hover:border-blue-400 transition-colors"
+                                        :class="open ? 'border-blue-500 ring-2 ring-blue-500/20' : ''">
+                                    <span class="truncate" :class="m.pB == 0 ? 'text-slate-400' : ''" x-text="m.pB != 0 ? (allPlayersList.find(p => p.id == m.pB)?.name || '') : '-- Select Player B --'"></span>
+                                    <i class="ph-bold ph-caret-down text-slate-400 text-sm transition-transform" :class="open ? 'rotate-180 text-blue-500' : ''"></i>
+                                </button>
+                                <div x-show="open" x-transition.opacity.duration.200ms
+                                     class="absolute left-0 right-0 top-[calc(100%+8px)] bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden"
+                                     style="display: none;">
+                                    <div class="max-h-60 overflow-y-auto custom-scrollbar">
+                                        <div @click="m.pB = 0; checkConflicts(); open = false;" class="px-4 py-3 border-b border-slate-100 hover:bg-slate-50 cursor-pointer text-xs font-bold text-slate-400">
+                                            -- Select Player B --
+                                        </div>
+                                        <template x-for="p in allPlayersList" :key="p.id">
+                                            <div @click.stop="m.pB = p.id; checkConflicts(); open = false;"
+                                                 class="px-4 py-2.5 border-b border-slate-50 hover:bg-blue-50 cursor-pointer transition-colors flex items-center justify-between"
+                                                 :class="m.pB == p.id ? 'bg-blue-50/60 border-l-2 border-l-blue-500' : 'border-l-2 border-l-transparent'">
+                                                <div>
+                                                    <div class="text-sm font-bold text-slate-800" x-text="p.name"></div>
+                                                    <div class="text-[10px] font-bold text-slate-500" x-text="'ITS: ' + p.its_id"></div>
+                                                </div>
+                                                <div x-show="m.pB == p.id" class="text-blue-600">
+                                                    <i class="ph-bold ph-check-circle text-lg"></i>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -277,13 +325,37 @@ include __DIR__ . '/../includes/header.php';
                         <p class="text-xs text-purple-700/80 mt-0.5">Since there are <span x-text="totalPlayers"></span> players, 1 player receives an automatic BYE win for this round.</p>
                         
                         <div class="mt-3 max-w-md">
-                            <select name="bye_player_id" x-model.number="byePlayer" @change="checkConflicts()"
-                                    class="w-full bg-white border border-purple-200 text-purple-900 text-xs font-bold rounded-xl p-2.5 focus:ring-2 focus:ring-purple-500">
-                                <option value="0">-- Select Player for BYE --</option>
-                                <template x-for="p in allPlayersList" :key="p.id">
-                                    <option :value="p.id" x-text="p.name + ' (' + p.its_id + ')'"></option>
-                                </template>
-                            </select>
+                            <div x-data="{ open: false }" @click.away="open = false" class="relative">
+                                <input type="hidden" name="bye_player_id" :value="byePlayer">
+                                <button type="button" @click="open = !open" 
+                                        class="w-full flex items-center justify-between bg-white border border-purple-200 text-purple-900 text-xs sm:text-sm font-bold rounded-xl p-2.5 sm:p-3 shadow-sm hover:border-purple-400 transition-colors"
+                                        :class="open ? 'border-purple-500 ring-2 ring-purple-500/20' : ''">
+                                    <span class="truncate" :class="byePlayer == 0 ? 'text-purple-400' : ''" x-text="byePlayer != 0 ? (allPlayersList.find(p => p.id == byePlayer)?.name || '') : '-- Select Player for BYE --'"></span>
+                                    <i class="ph-bold ph-caret-down text-purple-400 text-sm transition-transform" :class="open ? 'rotate-180 text-purple-500' : ''"></i>
+                                </button>
+                                <div x-show="open" x-transition.opacity.duration.200ms
+                                     class="absolute left-0 right-0 top-[calc(100%+8px)] bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden"
+                                     style="display: none;">
+                                    <div class="max-h-60 overflow-y-auto custom-scrollbar">
+                                        <div @click="byePlayer = 0; checkConflicts(); open = false;" class="px-4 py-3 border-b border-slate-100 hover:bg-slate-50 cursor-pointer text-xs font-bold text-slate-400">
+                                            -- Select Player for BYE --
+                                        </div>
+                                        <template x-for="p in allPlayersList" :key="p.id">
+                                            <div @click.stop="byePlayer = p.id; checkConflicts(); open = false;"
+                                                 class="px-4 py-2.5 border-b border-slate-50 hover:bg-purple-50 cursor-pointer transition-colors flex items-center justify-between"
+                                                 :class="byePlayer == p.id ? 'bg-purple-50/60 border-l-2 border-l-purple-500' : 'border-l-2 border-l-transparent'">
+                                                <div>
+                                                    <div class="text-sm font-bold text-slate-800" x-text="p.name"></div>
+                                                    <div class="text-[10px] font-bold text-slate-500" x-text="'ITS: ' + p.its_id"></div>
+                                                </div>
+                                                <div x-show="byePlayer == p.id" class="text-purple-600">
+                                                    <i class="ph-bold ph-check-circle text-lg"></i>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
