@@ -227,6 +227,13 @@ $gamesToWin = ceil($bestOf / 2);
                 <i class="ph-fill ph-fire text-base text-yellow-200"></i>
                 <span>DEUCE ACTIVE</span>
             </div>
+
+            <!-- Live Cloud Sync Status Pill -->
+            <div class="hidden xs:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono border transition-all duration-200"
+                 :class="isSyncing ? 'bg-cyan-500/20 border-cyan-400 text-cyan-200 shadow-[0_0_15px_rgba(6,182,212,0.4)]' : 'bg-white/5 border-white/10 text-emerald-400/90'">
+                <span class="w-1.5 h-1.5 rounded-full" :class="isSyncing ? 'bg-cyan-400 animate-ping' : 'bg-emerald-400'"></span>
+                <span x-text="isSyncing ? 'SYNCING...' : 'CLOUD SYNCED'"></span>
+            </div>
         </div>
 
         <!-- Right: Quick Options -->
@@ -382,7 +389,7 @@ $gamesToWin = ceil($bestOf / 2);
             <div class="relative z-10 flex items-center justify-between pt-2 border-t border-white/15">
                 <button type="button" 
                         @click="undoLast()" 
-                        :disabled="(score_a === 0 && score_b === 0 && games_a === 0 && games_b === 0) || isProcessing"
+                        :disabled="score_a === 0 && score_b === 0 && games_a === 0 && games_b === 0"
                         :class="(score_a === 0 && score_b === 0 && games_a === 0 && games_b === 0) ? 'opacity-30 cursor-not-allowed' : 'hover:bg-red-500/30 hover:text-white active:scale-95 cursor-pointer'"
                         class="px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-white/10 border border-white/20 text-slate-200 text-[10px] sm:text-xs font-bold transition flex items-center gap-1 sm:gap-1.5 shadow-sm">
                     <i class="ph-bold ph-arrow-counter-clockwise"></i>
@@ -488,7 +495,7 @@ $gamesToWin = ceil($bestOf / 2);
             <div class="relative z-10 flex items-center justify-between pt-2 border-t border-white/15">
                 <button type="button" 
                         @click="undoLast()" 
-                        :disabled="(score_a === 0 && score_b === 0 && games_a === 0 && games_b === 0) || isProcessing"
+                        :disabled="score_a === 0 && score_b === 0 && games_a === 0 && games_b === 0"
                         :class="(score_a === 0 && score_b === 0 && games_a === 0 && games_b === 0) ? 'opacity-30 cursor-not-allowed' : 'hover:bg-red-500/30 hover:text-white active:scale-95 cursor-pointer'"
                         class="px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-white/10 border border-white/20 text-slate-200 text-[10px] sm:text-xs font-bold transition flex items-center gap-1 sm:gap-1.5 shadow-sm">
                     <i class="ph-bold ph-arrow-counter-clockwise"></i>
@@ -705,7 +712,6 @@ $gamesToWin = ceil($bestOf / 2);
             games_b: <?= (int)$match['games_b'] ?>,
             isCompleted: <?= in_array($match['status'], [MATCH_COMPLETED, MATCH_WALKOVER, MATCH_RETIRED]) ? 'true' : 'false' ?>,
             serverWinnerSide: '<?= $serverWinnerSide ?>',
-            isProcessing: false,
             server: 'A', // Informational only
 
             bestOf: <?= (int)$match['best_of'] ?>,
@@ -740,7 +746,7 @@ $gamesToWin = ceil($bestOf / 2);
             },
 
             handleKeyboardShortcuts(e) {
-                if (this.isCompleted || this.showOptions || this.isProcessing) return;
+                if (this.isCompleted || this.showOptions) return;
                 if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
 
                 const key = e.key.toLowerCase();
@@ -758,6 +764,12 @@ $gamesToWin = ceil($bestOf / 2);
                 }
             },
 
+            // Live Cloud Queue & Sync State
+            isSyncing: false,
+            actionQueue: [],
+            isQueueRunning: false,
+            lastTapTime: 0,
+
             generateUUID() {
                 return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
                     var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
@@ -765,61 +777,145 @@ $gamesToWin = ceil($bestOf / 2);
                 });
             },
 
-            async executeAction(actionName, extraData = {}) {
-                if (this.isProcessing) return;
-                this.isProcessing = true;
-                
+            addPoint(player) {
+                if (this.isCompleted) return;
+
+                // Micro-throttle: ignore accidental capacitive multi-touch bounce (<130ms)
+                const now = Date.now();
+                if (now - this.lastTapTime < 130) return;
+                this.lastTapTime = now;
+
+                // 1. Instant Zero-Latency Optimistic UI Increment
+                if (player === 'A') {
+                    this.score_a++;
+                    const el = document.getElementById('scoreDigitA');
+                    if (el) {
+                        el.classList.remove('scale-110');
+                        void el.offsetWidth;
+                        el.classList.add('scale-110');
+                        setTimeout(() => el.classList.remove('scale-110'), 140);
+                    }
+                } else {
+                    this.score_b++;
+                    const el = document.getElementById('scoreDigitB');
+                    if (el) {
+                        el.classList.remove('scale-110');
+                        void el.offsetWidth;
+                        el.classList.add('scale-110');
+                        setTimeout(() => el.classList.remove('scale-110'), 140);
+                    }
+                }
+
+                // 2. Tactile Haptic Buzz on Mobile / Tablet
+                if (navigator.vibrate) {
+                    try { navigator.vibrate(25); } catch(e) {}
+                }
+
+                // 3. Queue Action for Atomic Cloud Persistence
+                this.queueAction('add_point', { side: player });
+            },
+
+            undoLast() {
+                if (this.isCompleted) return;
+
+                const now = Date.now();
+                if (now - this.lastTapTime < 130) return;
+                this.lastTapTime = now;
+
+                // Animate tactile undo
+                const elA = document.getElementById('scoreDigitA');
+                const elB = document.getElementById('scoreDigitB');
+                if (elA) { elA.classList.add('scale-95'); setTimeout(() => elA.classList.remove('scale-95'), 140); }
+                if (elB) { elB.classList.add('scale-95'); setTimeout(() => elB.classList.remove('scale-95'), 140); }
+
+                if (navigator.vibrate) {
+                    try { navigator.vibrate(15); } catch(e) {}
+                }
+
+                this.queueAction('undo_last');
+            },
+
+            undoPoint(player) {
+                this.undoLast();
+            },
+
+            queueAction(actionName, extraData = {}) {
+                const reqId = this.generateUUID();
+                this.actionQueue.push({ actionName, extraData, reqId });
+                this.processQueue();
+            },
+
+            async processQueue() {
+                if (this.isQueueRunning || this.actionQueue.length === 0) return;
+                this.isQueueRunning = true;
+                this.isSyncing = true;
+
+                const item = this.actionQueue.shift();
+
                 try {
                     let fd = new FormData();
                     fd.append('match_id', <?= $matchId ?>);
-                    fd.append('action', actionName);
-                    fd.append('request_id', this.generateUUID());
+                    fd.append('action', item.actionName);
+                    fd.append('request_id', item.reqId);
                     fd.append('csrf_token', '<?= $csrf ?>');
-                    
-                    for (const [key, value] of Object.entries(extraData)) {
+
+                    for (const [key, value] of Object.entries(item.extraData)) {
                         fd.append(key, value);
                     }
 
                     const response = await fetch('<?= BASE_URL ?>/api/score.php', { method: 'POST', body: fd });
                     const data = await response.json();
-                    
+
                     if (data.success) {
-                        this.score_a = data.score_a;
-                        this.score_b = data.score_b;
-                        this.games_a = data.games_a;
-                        this.games_b = data.games_b;
-                        
-                        if (data.is_completed && !this.isCompleted) {
+                        // Match completed -> Finalize immediately
+                        if (data.is_completed) {
                             this.isCompleted = true;
+                            this.actionQueue = [];
+                            this.score_a = data.score_a;
+                            this.score_b = data.score_b;
+                            this.games_a = data.games_a;
+                            this.games_b = data.games_b;
                             if (typeof fireConfetti === 'function') fireConfetti('fireworks');
-                            this.notify("Match Finalized! Returning to Tournament...");
+                            this.notify("🏆 Match Completed! Recording final result...");
                             const targetUrl = data.redirect_url || '<?= BASE_URL ?>/admin/scoring/index.php?tournament_id=<?= $match['tournament_id'] ?>';
                             setTimeout(() => { window.location.href = targetUrl; }, 2000);
-                        } else if (!data.is_completed && this.isCompleted) {
-                            // Handled Undo from completed state
-                            this.isCompleted = false;
+                            return;
+                        }
+
+                        // Reconcile games won if game finished
+                        if (data.games_a !== this.games_a || data.games_b !== this.games_b) {
+                            this.games_a = data.games_a;
+                            this.games_b = data.games_b;
+                            this.notify("Game won! Starting next game...");
+                        }
+
+                        // Reconcile points if queue is empty (all pending taps processed)
+                        if (this.actionQueue.length === 0) {
+                            this.score_a = data.score_a;
+                            this.score_b = data.score_b;
+                            this.games_a = data.games_a;
+                            this.games_b = data.games_b;
                         }
                     } else {
-                        this.notify("Error: " + (data.error || "Failed to execute action."));
+                        // Server rejected action
+                        this.notify("Error: " + (data.error || "Action failed"));
+                        if (data.score_a !== undefined) {
+                            this.score_a = data.score_a;
+                            this.score_b = data.score_b;
+                            this.games_a = data.games_a;
+                            this.games_b = data.games_b;
+                        }
                     }
                 } catch (e) {
-                    this.notify("Network error.");
+                    this.notify("Network issue. Reconnecting...");
                 } finally {
-                    this.isProcessing = false;
+                    this.isQueueRunning = false;
+                    if (this.actionQueue.length > 0) {
+                        this.processQueue();
+                    } else {
+                        this.isSyncing = false;
+                    }
                 }
-            },
-
-            addPoint(player) {
-                if (this.isCompleted) return;
-                this.executeAction('add_point', { side: player });
-            },
-
-            undoLast() {
-                this.executeAction('undo_last');
-            },
-
-            undoPoint(player) {
-                this.undoLast();
             },
 
             async submitOptions() {
@@ -836,10 +932,8 @@ $gamesToWin = ceil($bestOf / 2);
                     extra.retired_side = (this.modalWinner === 'A') ? 'B' : 'A';
                 }
 
-                await this.executeAction(this.modalAction, extra);
-                if (this.isCompleted) {
-                    this.showOptions = false;
-                }
+                this.queueAction(this.modalAction, extra);
+                this.showOptions = false;
             },
 
             getWinnerSide() {
