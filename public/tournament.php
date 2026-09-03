@@ -707,12 +707,12 @@ include __DIR__ . '/../includes/header.php';
                                                     </span>
                                                 <?php endif; ?>
                                             </div>
-                                            <div class="text-[11px] text-slate-400 font-mono"><?= e($s['its_id']) ?> &bull; <?= e($s['display_name']) ?></div>
+                                            <div class="text-[11px] text-slate-400 font-mono whitespace-nowrap"><?= e($s['its_id']) ?> &bull; <?= e($s['display_name']) ?></div>
                                         </div>
                                     </div>
                                 </td>
 
-                                <td class="p-4 text-xs font-medium text-slate-600">
+                                <td class="p-4 text-xs font-medium text-slate-600 whitespace-nowrap">
                                     <span class="inline-flex items-center gap-1 bg-slate-100 px-2.5 py-1 rounded-lg">
                                         <i class="ph-fill ph-map-pin text-[#c9a84c]"></i> <?= e($s['mohallah']) ?>
                                     </span>
@@ -942,7 +942,8 @@ include __DIR__ . '/../includes/header.php';
     <!-- ============================================================ -->
     <div x-show="tab === 'standings'" x-cloak class="space-y-6">
         <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-            <div class="px-6 py-5 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between">
+            <!-- Standings Header -->
+            <div class="px-6 py-5 border-b border-slate-100 bg-slate-50/70 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-xl bg-[#0f2044] text-[#c9a84c] flex items-center justify-center font-bold shadow-xs">
                         <i class="ph-fill ph-trophy text-lg"></i>
@@ -952,22 +953,31 @@ include __DIR__ . '/../includes/header.php';
                         <p class="text-xs text-slate-400 font-medium">Rankings across all qualifier and pool stages</p>
                     </div>
                 </div>
-            <div class="md:hidden px-4 py-2 bg-slate-50 border-b border-slate-100 flex items-center justify-center gap-1.5 text-[11px] font-bold text-slate-500">
-                <i class="ph-bold ph-arrows-left-right text-xs text-[#c9a84c]"></i>
-                <span>Swipe table horizontally to view stats</span>
+
+                <div class="hidden sm:flex items-center gap-2 text-[11px] font-mono font-bold text-slate-500 bg-white px-3.5 py-2 rounded-xl border border-slate-200/80 shadow-2xs">
+                    <i class="ph-bold ph-info text-[#c9a84c]"></i>
+                    <span>Tiebreaker: 1. Total Wins &bull; 2. Net Points &bull; 3. Head-to-Head</span>
+                </div>
             </div>
 
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse min-w-[640px]">
+            <!-- Mobile Swipe Hint -->
+            <div class="md:hidden px-4 py-2 bg-slate-50 border-b border-slate-100 flex items-center justify-center gap-1.5 text-[11px] font-bold text-slate-500">
+                <i class="ph-bold ph-arrows-left-right text-xs text-[#c9a84c]"></i>
+                <span>Swipe table horizontally to view full stats</span>
+            </div>
+
+            <!-- Full Width Standings Table -->
+            <div class="overflow-x-auto w-full">
+                <table class="w-full text-left border-collapse min-w-[700px]">
                     <thead>
-                        <tr class="bg-slate-50/50 text-slate-400 text-[10px] uppercase tracking-widest font-black border-b border-slate-100">
+                        <tr class="bg-slate-50/70 text-slate-400 text-[10px] uppercase tracking-widest font-black border-b border-slate-100">
                             <th class="p-4 pl-6 w-16 text-center">Rank</th>
-                            <th class="p-4">Player Details</th>
-                            <th class="p-4">Mohallah</th>
-                            <th class="p-4 text-center">Played</th>
-                            <th class="p-4 text-center text-emerald-600">Wins</th>
-                            <th class="p-4 text-center text-red-500">Losses</th>
-                            <th class="p-4 text-center text-blue-600 pr-6">Net Points</th>
+                            <th class="p-4 min-w-[220px]">Player Details</th>
+                            <th class="p-4 min-w-[140px]">Mohallah</th>
+                            <th class="p-4 text-center w-20">Played</th>
+                            <th class="p-4 text-center w-20 text-emerald-600 font-black">Wins</th>
+                            <th class="p-4 text-center w-20 text-red-500 font-black">Losses</th>
+                            <th class="p-4 text-center w-24 text-blue-600 pr-6 font-black">Net Points</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 text-sm">
@@ -1019,12 +1029,12 @@ include __DIR__ . '/../includes/header.php';
                                                     </span>
                                                 <?php endif; ?>
                                             </div>
-                                            <div class="text-[11px] text-slate-400 font-mono"><?= e($s['its_id']) ?> &bull; <?= e($s['display_name']) ?></div>
+                                            <div class="text-[11px] text-slate-400 font-mono whitespace-nowrap"><?= e($s['its_id']) ?> &bull; <?= e($s['display_name']) ?></div>
                                         </div>
                                     </div>
                                 </td>
 
-                                <td class="p-4 text-xs font-medium text-slate-600">
+                                <td class="p-4 text-xs font-medium text-slate-600 whitespace-nowrap">
                                     <span class="inline-flex items-center gap-1 bg-slate-100 px-2.5 py-1 rounded-lg">
                                         <i class="ph-fill ph-map-pin text-[#c9a84c]"></i> <?= e($s['mohallah']) ?>
                                     </span>
