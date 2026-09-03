@@ -43,6 +43,11 @@ if (!$match) {
     exit;
 }
 
+// Fetch finished games for this match
+$gamesStmt = $pdo->prepare('SELECT game_number, score_a, score_b, winner_side FROM games WHERE match_id = ? ORDER BY game_number ASC');
+$gamesStmt->execute([$matchId]);
+$completedGames = $gamesStmt->fetchAll(PDO::FETCH_ASSOC);
+
 $isDoubles = !empty($match['team_a_id']);
 $hasParticipantA = $isDoubles ? !empty($match['team_a_id']) : !empty($match['participant_a_id']);
 $hasParticipantB = $isDoubles ? !empty($match['team_b_id']) : !empty($match['participant_b_id']);
@@ -575,96 +580,137 @@ $gamesToWin = ceil($bestOf / 2);
     <!-- ============================================================ -->
     <!-- EPIC CHAMPIONSHIP MATCH COMPLETED / VICTORY OVERLAY          -->
     <!-- ============================================================ -->
-    <div class="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 bg-gradient-to-br from-[#0e214d] via-[#152e69] to-[#0a1733] text-center z-40 relative overflow-y-auto" 
+    <div class="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 bg-gradient-to-br from-[#060e22] via-[#0b1a3d] to-[#040a18] text-center z-40 relative overflow-y-auto" 
          x-show="isCompleted" 
          x-cloak>
         
-        <!-- Festive Victory Aura & Beams -->
-        <div class="absolute -top-20 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-gradient-to-b from-[#c9a84c]/25 via-blue-500/20 to-transparent rounded-full blur-[140px] pointer-events-none"></div>
+        <!-- Subtle Ambient Warm Glow -->
+        <div class="absolute -top-24 left-1/2 -translate-x-1/2 w-[550px] h-[350px] bg-gradient-to-b from-amber-400/20 via-blue-600/10 to-transparent rounded-full blur-[100px] pointer-events-none"></div>
 
-        <div class="max-w-2xl w-full bg-[#0f234f]/95 backdrop-blur-2xl border-2 border-[#c9a84c]/60 rounded-3xl p-6 sm:p-10 shadow-[0_20px_70px_rgba(0,0,0,0.6)] relative z-10 my-auto">
+        <div class="max-w-2xl w-full bg-[#0d1f42]/95 backdrop-blur-2xl border border-amber-400/35 rounded-3xl p-6 sm:p-8 shadow-[0_25px_80px_rgba(0,0,0,0.7)] relative z-10 my-auto">
             
-            <!-- Floating Crown / Trophy Badge -->
-            <div class="relative inline-block mb-3">
-                <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-gradient-to-br from-amber-300 via-[#c9a84c] to-amber-700 flex items-center justify-center text-[#080e1e] shadow-[0_0_40px_rgba(201,168,76,0.5)] mx-auto border-2 border-white/40 transform hover:scale-105 transition-transform">
-                    <i class="ph-fill ph-trophy text-4xl sm:text-5xl drop-shadow-md"></i>
+            <!-- Floating Trophy Medallion -->
+            <div class="inline-flex flex-col items-center mb-2">
+                <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-amber-300 via-[#c9a84c] to-amber-600 flex items-center justify-center text-[#080e1e] shadow-[0_0_35px_rgba(201,168,76,0.35)] border-2 border-amber-200/60 mb-2 transform hover:scale-105 transition-transform">
+                    <i class="ph-fill ph-trophy text-3xl sm:text-4xl text-slate-950 drop-shadow"></i>
                 </div>
-                <div class="absolute -bottom-2.5 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-emerald-500 text-white font-black text-[9px] uppercase tracking-widest shadow-md whitespace-nowrap">
-                    ✓ Official Result
+                <div class="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-black uppercase tracking-widest">
+                    <i class="ph-bold ph-check-circle"></i> Official Result
                 </div>
             </div>
 
             <!-- Victory Headline -->
-            <div class="mt-4 mb-6">
-                <div class="inline-flex items-center gap-1.5 text-xs font-mono font-black text-[#c9a84c] uppercase tracking-widest mb-1">
+            <div class="mt-2 mb-6">
+                <div class="inline-flex items-center gap-1.5 text-[11px] font-mono font-bold text-amber-300/90 uppercase tracking-widest mb-1">
                     <i class="ph-fill ph-crown text-amber-400"></i>
-                    <span>MATCH VICTORY</span>
+                    <span>Match Victory</span>
                 </div>
                 
-                <h2 class="text-3xl sm:text-4xl lg:text-5xl font-black font-display text-white tracking-tight leading-tight">
-                    <span x-text="getWinnerSide() === 'A' ? '<?= e($pA_display) ?>' : '<?= e($pB_display) ?>'"></span> 
-                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#ffd978] via-[#c9a84c] to-amber-500">Wins!</span>
+                <h2 class="text-3xl sm:text-4xl font-black font-display text-white tracking-tight leading-tight">
+                    <span x-text="getWinnerName()"></span> 
+                    <span class="text-amber-400">Wins!</span>
                 </h2>
                 
-                <p class="text-xs sm:text-sm text-blue-200/80 mt-1 font-medium">
-                    Match scores and bracket advances have been locked and broadcast live.
+                <p class="text-xs sm:text-sm text-slate-300/80 mt-1 font-medium">
+                    Scores verified and bracket advances locked.
                 </p>
             </div>
 
             <!-- Head-to-Head Final Match Scorecard -->
-            <div class="bg-black/30 border border-white/15 rounded-2xl p-4 sm:p-6 mb-8 grid grid-cols-3 items-center gap-2 sm:gap-4 shadow-inner">
+            <div class="bg-black/35 border border-white/10 rounded-2xl p-4 sm:p-5 mb-6 grid grid-cols-3 items-center gap-3 sm:gap-4 shadow-inner">
                 
                 <!-- Player A Card -->
-                <div class="flex flex-col items-center text-center p-2 rounded-xl"
-                     :class="getWinnerSide() === 'A' ? 'bg-cyan-500/10 border border-cyan-400/30' : 'opacity-70'">
-                    <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-700 text-white font-black text-lg sm:text-xl flex items-center justify-center border-2 border-cyan-300 shadow-md mb-2">
-                        <?= strtoupper(substr($pA_display, 0, 1)) ?>
+                <div class="rounded-2xl p-3 sm:p-4 flex flex-col items-center text-center transition-all"
+                     :class="getWinnerSide() === 'A' 
+                        ? 'bg-amber-400/10 border-2 border-amber-400/50 shadow-[0_0_20px_rgba(201,168,76,0.15)] ring-1 ring-amber-400/20' 
+                        : 'bg-white/[0.03] border border-white/10 opacity-75'">
+                    
+                    <!-- Avatar -->
+                    <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center font-black text-lg sm:text-xl border-2 mb-2 shadow-md overflow-hidden"
+                         :class="getWinnerSide() === 'A' ? 'border-amber-400 bg-gradient-to-br from-amber-400 to-amber-600 text-slate-950' : 'border-slate-500/40 bg-slate-800 text-slate-200'">
+                        <?php if (!empty($match['pa_photo'])): ?>
+                            <img src="<?= BASE_URL ?>/uploads/players/<?= e($match['pa_photo']) ?>" alt="<?= e($pA_display) ?>" class="w-full h-full object-cover">
+                        <?php else: ?>
+                            <?= strtoupper(substr($pA_display, 0, 1)) ?>
+                        <?php endif; ?>
                     </div>
+
                     <div class="text-xs sm:text-sm font-black text-white truncate max-w-full"><?= e($pA_display) ?></div>
-                    <div class="text-[10px] text-cyan-300 font-bold"><?= e($match['pa_mohallah'] ?: 'TKMI') ?></div>
-                    <div class="mt-2 px-2.5 py-0.5 rounded-full bg-cyan-400/20 text-cyan-200 text-[10px] font-black" x-show="getWinnerSide() === 'A'">🏆 WINNER</div>
+                    <div class="text-[10px] text-slate-400 font-medium truncate max-w-full"><?= e($match['pa_mohallah'] ?: 'TKMI') ?></div>
+                    
+                    <div class="mt-2" x-show="getWinnerSide() === 'A'">
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-400/25 text-amber-200 text-[10px] font-black uppercase tracking-wider border border-amber-400/30">
+                            <i class="ph-fill ph-crown text-xs"></i> Winner
+                        </span>
+                    </div>
+                    <div class="mt-2" x-show="getWinnerSide() !== 'A'">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-white/5 text-slate-400 text-[10px] font-semibold uppercase tracking-wider border border-white/5">
+                            Runner-Up
+                        </span>
+                    </div>
                 </div>
 
                 <!-- Center Score Pill -->
                 <div class="flex flex-col items-center justify-center">
-                    <div class="px-4 sm:px-6 py-2.5 sm:py-3.5 rounded-2xl bg-white/10 border border-white/20 shadow-lg backdrop-blur-md">
-                        <div class="text-2xl sm:text-4xl font-black font-display text-white tracking-widest" x-text="getDisplayGames()"></div>
-                        <div class="text-[8px] sm:text-[9px] font-mono font-bold uppercase tracking-widest text-[#ffd978] mt-0.5">GAMES WON</div>
+                    <div class="w-full py-3 sm:py-3.5 rounded-2xl bg-black/50 border border-white/10 shadow-lg backdrop-blur-md">
+                        <div class="text-2xl sm:text-4xl font-black font-mono text-white tracking-widest" x-text="getDisplayGames()"></div>
+                        <div class="text-[9px] font-bold uppercase tracking-widest text-amber-300/90 mt-0.5">Games Won</div>
+                        <div class="mt-1.5 text-[11px] font-mono text-slate-300 font-semibold" x-show="getSetsBreakdown()" x-text="getSetsBreakdown()"></div>
                     </div>
-                    <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-2">
+                    <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-2.5">
                         Match #<?= $match['match_number'] ?> &bull; <?= getRoundLabel($match['round_key']) ?>
                     </div>
                 </div>
 
                 <!-- Player B Card -->
-                <div class="flex flex-col items-center text-center p-2 rounded-xl"
-                     :class="getWinnerSide() === 'B' ? 'bg-amber-500/10 border border-amber-400/30' : 'opacity-70'">
-                    <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-[#c9a84c] to-amber-700 text-[#080e1e] font-black text-lg sm:text-xl flex items-center justify-center border-2 border-[#ffd978] shadow-md mb-2">
-                        <?= strtoupper(substr($pB_display, 0, 1)) ?>
+                <div class="rounded-2xl p-3 sm:p-4 flex flex-col items-center text-center transition-all"
+                     :class="getWinnerSide() === 'B' 
+                        ? 'bg-amber-400/10 border-2 border-amber-400/50 shadow-[0_0_20px_rgba(201,168,76,0.15)] ring-1 ring-amber-400/20' 
+                        : 'bg-white/[0.03] border border-white/10 opacity-75'">
+                    
+                    <!-- Avatar -->
+                    <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center font-black text-lg sm:text-xl border-2 mb-2 shadow-md overflow-hidden"
+                         :class="getWinnerSide() === 'B' ? 'border-amber-400 bg-gradient-to-br from-amber-400 to-amber-600 text-slate-950' : 'border-slate-500/40 bg-slate-800 text-slate-200'">
+                        <?php if (!empty($match['pb_photo'])): ?>
+                            <img src="<?= BASE_URL ?>/uploads/players/<?= e($match['pb_photo']) ?>" alt="<?= e($pB_display) ?>" class="w-full h-full object-cover">
+                        <?php else: ?>
+                            <?= strtoupper(substr($pB_display, 0, 1)) ?>
+                        <?php endif; ?>
                     </div>
+
                     <div class="text-xs sm:text-sm font-black text-white truncate max-w-full"><?= e($pB_display) ?></div>
-                    <div class="text-[10px] text-[#ffd978] font-bold"><?= e($match['pb_mohallah'] ?: 'TKMI') ?></div>
-                    <div class="mt-2 px-2.5 py-0.5 rounded-full bg-amber-400/20 text-amber-200 text-[10px] font-black" x-show="getWinnerSide() === 'B'">🏆 WINNER</div>
+                    <div class="text-[10px] text-slate-400 font-medium truncate max-w-full"><?= e($match['pb_mohallah'] ?: 'TKMI') ?></div>
+                    
+                    <div class="mt-2" x-show="getWinnerSide() === 'B'">
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-400/25 text-amber-200 text-[10px] font-black uppercase tracking-wider border border-amber-400/30">
+                            <i class="ph-fill ph-crown text-xs"></i> Winner
+                        </span>
+                    </div>
+                    <div class="mt-2" x-show="getWinnerSide() !== 'B'">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-white/5 text-slate-400 text-[10px] font-semibold uppercase tracking-wider border border-white/5">
+                            Runner-Up
+                        </span>
+                    </div>
                 </div>
 
             </div>
 
             <!-- Action Buttons -->
-            <div class="flex flex-col sm:flex-row gap-3 justify-center">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                 <a href="<?= BASE_URL ?>/admin/scoring/index.php?tournament_id=<?= $match['tournament_id'] ?>" 
-                   class="bg-gradient-to-r from-amber-400 via-[#c9a84c] to-amber-500 hover:from-amber-300 hover:to-amber-400 text-[#080e1e] font-black py-4 px-8 rounded-2xl shadow-xl hover:shadow-amber-500/30 transition-all flex items-center justify-center gap-2 text-sm uppercase tracking-wider cursor-pointer">
-                    <i class="ph-bold ph-calendar-check text-lg"></i>
-                    <span>Back to Tournament Schedule</span>
+                   class="bg-gradient-to-r from-amber-400 via-[#c9a84c] to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black py-3 px-4 rounded-xl shadow-lg hover:shadow-amber-500/20 transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-wider cursor-pointer">
+                    <i class="ph-bold ph-calendar-check text-base"></i>
+                    <span>Tournament Hub</span>
                 </a>
                 <a href="<?= BASE_URL ?>/admin/tournaments/view.php?id=<?= $match['tournament_id'] ?>" 
-                   class="bg-white/10 hover:bg-white/20 text-white font-bold py-4 px-6 rounded-2xl border border-white/20 transition-all text-sm flex items-center justify-center gap-2 cursor-pointer shadow-md">
-                    <i class="ph-bold ph-trophy text-lg text-[#c9a84c]"></i>
-                    <span>Tournament Dashboard</span>
+                   class="bg-white/10 hover:bg-white/15 text-white font-bold py-3 px-4 rounded-xl border border-white/15 transition-all text-xs flex items-center justify-center gap-2 cursor-pointer shadow-sm">
+                    <i class="ph-bold ph-chart-line text-base text-amber-400"></i>
+                    <span>Dashboard</span>
                 </a>
                 <a href="<?= BASE_URL ?>/public/tournament.php?id=<?= $match['tournament_id'] ?>&tab=bracket" 
                    target="_blank"
-                   class="bg-white/10 hover:bg-white/20 text-white font-bold py-4 px-6 rounded-2xl border border-white/20 transition-all text-sm flex items-center justify-center gap-2 cursor-pointer shadow-md">
-                    <i class="ph-bold ph-tree-structure text-lg text-[#c9a84c]"></i>
+                   class="bg-white/10 hover:bg-white/15 text-white font-bold py-3 px-4 rounded-xl border border-white/15 transition-all text-xs flex items-center justify-center gap-2 cursor-pointer shadow-sm">
+                    <i class="ph-bold ph-tree-structure text-base text-cyan-400"></i>
                     <span>Public Bracket</span>
                 </a>
             </div>
@@ -856,6 +902,7 @@ $gamesToWin = ceil($bestOf / 2);
             transitionNextGameNum: 2,
             transitionGamesA: <?= (int)$match['games_a'] ?>,
             transitionGamesB: <?= (int)$match['games_b'] ?>,
+            completedGames: <?= json_encode($completedGames ?: []) ?>,
 
             triggerGameWon(wonBy, scoreA, scoreB, finishedGameNum, nextGamesA, nextGamesB) {
                 this.transitionGameWonBy = wonBy;
@@ -866,6 +913,13 @@ $gamesToWin = ceil($bestOf / 2);
                 this.transitionNextGameNum = finishedGameNum + 1;
                 this.transitionGamesA = nextGamesA !== undefined ? nextGamesA : this.games_a;
                 this.transitionGamesB = nextGamesB !== undefined ? nextGamesB : this.games_b;
+                
+                // Track finished game score
+                const exists = this.completedGames.some(g => g.game_number === finishedGameNum);
+                if (!exists) {
+                    this.completedGames.push({ game_number: finishedGameNum, score_a: scoreA, score_b: scoreB, winner_side: wonBy });
+                }
+
                 this.showGameTransitionModal = true;
                 if (typeof fireConfetti === 'function') {
                     try { fireConfetti('stars'); } catch(e) {}
@@ -955,6 +1009,18 @@ $gamesToWin = ceil($bestOf / 2);
                         this.games_b = tempGamesB;
                         this.isCompleted = true;
                         this.serverWinnerSide = gameWinner;
+                        
+                        const finalGameNum = this.games_a + this.games_b;
+                        const exists = this.completedGames.some(g => g.game_number === finalGameNum);
+                        if (!exists) {
+                            this.completedGames.push({
+                                game_number: finalGameNum,
+                                score_a: this.score_a,
+                                score_b: this.score_b,
+                                winner_side: gameWinner
+                            });
+                        }
+
                         this.notify("🏆 Match Won by " + (gameWinner === 'A' ? '<?= e($pA_display) ?>' : '<?= e($pB_display) ?>') + "!");
                         if (typeof fireConfetti === 'function') {
                             try { fireConfetti('fireworks'); } catch(e) {}
@@ -1049,9 +1115,7 @@ $gamesToWin = ceil($bestOf / 2);
                             if (typeof fireConfetti === 'function') {
                                 try { fireConfetti('fireworks'); } catch(e) {}
                             }
-                            this.notify("🏆 Match Finished! Returning to Tournament Hub...");
-                            const targetUrl = data.redirect_url || '<?= BASE_URL ?>/admin/scoring/index.php?tournament_id=<?= $match['tournament_id'] ?>';
-                            setTimeout(() => { window.location.href = targetUrl; }, 2200);
+                            this.notify("🏆 Match Finished! Official Result Confirmed.");
                             return;
                         }
 
@@ -1121,6 +1185,19 @@ $gamesToWin = ceil($bestOf / 2);
                 if (this.games_b > this.games_a) return 'B';
                 if (this.serverWinnerSide) return this.serverWinnerSide;
                 return (this.score_a >= this.score_b) ? 'A' : 'B';
+            },
+
+            getWinnerName() {
+                return this.getWinnerSide() === 'A' ? '<?= e($pA_display) ?>' : '<?= e($pB_display) ?>';
+            },
+
+            getRunnerUpName() {
+                return this.getWinnerSide() === 'A' ? '<?= e($pB_display) ?>' : '<?= e($pA_display) ?>';
+            },
+
+            getSetsBreakdown() {
+                if (!this.completedGames || this.completedGames.length === 0) return '';
+                return this.completedGames.map(g => `${g.score_a}-${g.score_b}`).join(', ');
             },
 
             getMatchWinnerName() {
