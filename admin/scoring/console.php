@@ -675,7 +675,7 @@ $gamesToWin = ceil($bestOf / 2);
     <!-- ============================================================ -->
     <!-- BOTTOM KEYBOARD SHORTCUTS HINT BAR                           -->
     <!-- ============================================================ -->
-    <footer class="bg-[#0b1b3d]/95 backdrop-blur-md border-t border-white/15 px-4 py-2.5 flex items-center justify-between text-[11px] text-slate-300 shrink-0 z-20">
+    <footer class="bg-[#0b1b3d]/95 backdrop-blur-md border-t border-white/15 px-4 py-2.5 flex items-center justify-between text-[11px] text-slate-300 shrink-0 z-20 gap-4">
         <div class="flex items-center gap-4 flex-wrap">
             <span class="flex items-center gap-1"><kbd class="px-1.5 py-0.5 rounded bg-white/15 border border-white/20 text-cyan-300 font-mono font-bold">A</kbd> or <kbd class="px-1.5 py-0.5 rounded bg-white/15 border border-white/20 font-mono text-white">←</kbd> Point A</span>
             <span class="flex items-center gap-1"><kbd class="px-1.5 py-0.5 rounded bg-white/15 border border-white/20 text-[#ffd978] font-mono font-bold">L</kbd> or <kbd class="px-1.5 py-0.5 rounded bg-white/15 border border-white/20 font-mono text-white">→</kbd> Point B</span>
@@ -683,6 +683,21 @@ $gamesToWin = ceil($bestOf / 2);
             <span class="flex items-center gap-1"><kbd class="px-1.5 py-0.5 rounded bg-white/15 border border-white/20 font-mono text-white">M</kbd> Undo B</span>
             <span class="flex items-center gap-1"><kbd class="px-1.5 py-0.5 rounded bg-white/15 border border-white/20 font-mono text-white">S</kbd> Switch Serve</span>
         </div>
+
+        <?php if (!empty($sponsors)): ?>
+            <div class="hidden md:flex items-center gap-2 pl-4 border-l border-white/15 shrink-0">
+                <span class="text-[9px] font-mono uppercase tracking-widest text-[#ffd978]/90 font-bold">Sponsors:</span>
+                <div class="flex items-center gap-2">
+                    <?php foreach ($sponsors as $sp): ?>
+                        <div class="bg-white/95 rounded px-1.5 py-0.5 shadow-sm border border-white/30 flex items-center" title="<?= e($sp['name']) ?>">
+                            <img src="<?= UPLOAD_SPONSORS_URL ?>/<?= e($sp['image_path']) ?>" 
+                                 alt="<?= e($sp['name']) ?>" 
+                                 class="h-4.5 max-h-5 w-auto max-w-[65px] object-contain">
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        <?php endif; ?>
     </footer>
 
     <!-- ============================================================ -->

@@ -91,7 +91,8 @@ while (true) {
             // Broadcast payload
             $payload = [
                 'timestamp' => date('H:i:s'),
-                'matches' => $liveMatches
+                'matches' => $liveMatches,
+                'live_matches' => $liveMatches
             ];
 
             echo "data: " . json_encode($payload) . "\n\n";

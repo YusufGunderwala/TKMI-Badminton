@@ -26,7 +26,10 @@ document.addEventListener('DOMContentLoaded', () => {
         evtSource.onmessage = function(event) {
             try {
                 const data = JSON.parse(event.data);
-                updateLiveScores(data.live_matches);
+                const matches = data ? (data.live_matches || data.matches) : null;
+                if (matches) {
+                    updateLiveScores(matches);
+                }
             } catch (err) {
                 console.error("SSE parse error", err);
             }
@@ -92,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     <!-- Player A -->
                     <div class="text-center flex flex-col justify-center h-full">
-                        <div class="font-black text-slate-800 text-base leading-snug line-clamp-2" title="${escapeHtml(match.player_a)}">${escapeHtml(match.player_a)}</div>
+                        <div class="font-black text-slate-800 text-base leading-snug line-clamp-2" title="${escapeHtml(match.display_a || match.player_a || 'Player A')}">${escapeHtml(match.display_a || match.player_a || 'Player A')}</div>
                         ${buildGameDots(match.games_a || 0)}
                     </div>
 
@@ -105,7 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     <!-- Player B -->
                     <div class="text-center flex flex-col justify-center h-full">
-                        <div class="font-black text-slate-800 text-base leading-snug line-clamp-2" title="${escapeHtml(match.player_b)}">${escapeHtml(match.player_b)}</div>
+                        <div class="font-black text-slate-800 text-base leading-snug line-clamp-2" title="${escapeHtml(match.display_b || match.player_b || 'Player B')}">${escapeHtml(match.display_b || match.player_b || 'Player B')}</div>
                         ${buildGameDots(match.games_b || 0)}
                     </div>
                 </div>

@@ -163,9 +163,8 @@ foreach ($allMatches as $m) {
         if ($m['round_key'] === ROUND_SF) $bracket['sf'][] = $m;
         if ($m['round_key'] === ROUND_FINAL) $bracket['final'][] = $m;
         if ($m['round_key'] === ROUND_3RD_PLACE) $bracket['3rd'][] = $m;
-    } else {
-        $listMatchesByRound[$m['round_key']][] = $m;
     }
+    $listMatchesByRound[$m['round_key']][] = $m;
 }
 
     $podium = Matchmaker::getPodiumWinners($id);
@@ -178,6 +177,11 @@ foreach ($allMatches as $m) {
 
 $shareUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
 $shareText = rawurlencode("🏸 Follow live scores & standings for {$tournament['name']} on TKMI Badminton: {$shareUrl}");
+
+$ogTitle = $tournament['name'] . ' | TKMI Badminton Championship';
+$ogDesc = count($liveMatches) > 0 
+    ? count($liveMatches) . " match(es) LIVE on court now! Follow real-time scores, standings, and brackets."
+    : (!empty($podium['is_finished']) ? "Tournament concluded! Champion: " . ($podium['champion']['name'] ?? 'Winner') . ". View full results & podium." : ($tournament['description'] ?: "Official championship tournament division of Toloba ul Kulliyaat il Muminoon. Follow live court action, qualifiers, and knockout brackets."));
 
 include __DIR__ . '/../includes/header.php';
 ?><!-- Main Manager Wrapper for Tabs, Live SSE, and Sponsor Spotlight -->
@@ -1214,8 +1218,9 @@ function tournamentPublicManager(defaultTab, tournamentId) {
                     evtSource.onmessage = (e) => {
                         try {
                             const data = JSON.parse(e.data);
-                            if (data && data.live_matches) {
-                                this.updateLiveScores(data.live_matches);
+                            const matches = data ? (data.matches || data.live_matches) : null;
+                            if (matches) {
+                                this.updateLiveScores(matches);
                             }
                         } catch (parseErr) {
                             console.error('SSE JSON Error:', parseErr);

@@ -48,10 +48,11 @@ try {
             }
             if (isset($manifest['stage_2']['rounds'])) {
                 foreach ($manifest['stage_2']['rounds'] as $r) {
-                    // Stage 2 goes to 15 or 21 depending on the round, but we'll set defaults that Admin can change
-                    $pts = ($r === 'stage2_final') ? 21 : 15;
-                    $dt = ($r === 'stage2_final') ? 20 : 14;
-                    $dc = ($r === 'stage2_final') ? 26 : 21;
+                    // Final is 21 pts (deuce 20-20, cap 26); all other Stage 2 rounds are 15 pts (deuce 14-14, cap 21)
+                    $isFinal = ($r === 'stage2_final' || $r === 'final' || $r === ROUND_FINAL);
+                    $pts = $isFinal ? 21 : 15;
+                    $dt = $isFinal ? 20 : 14;
+                    $dc = $isFinal ? 26 : 21;
                     $insertStmt->execute([$id, $r, ucwords(str_replace('_', ' ', $r)), 3, $pts, 1, $dt, $dc, $sort++]);
                 }
             }
