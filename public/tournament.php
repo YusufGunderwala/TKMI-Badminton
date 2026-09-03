@@ -188,32 +188,42 @@ include __DIR__ . '/../includes/header.php';
 <div x-data="tournamentPublicManager('<?= e($initialTab) ?>', <?= $id ?>)" class="w-full max-w-full overflow-x-hidden min-w-0">
 
 <!-- ============================================================ -->
-<!-- 1. CLEAN SPONSOR LOGOS MARQUEE RIBBON                       -->
+<!-- 1. PREMIUM GLASSMORPHISM SPONSOR MARQUEE                    -->
 <!-- ============================================================ -->
 <?php if (!empty($sponsors)): ?>
-<div class="bg-gradient-to-r from-[#060e22] via-[#0d1d3f] to-[#060e22] border-b border-[#c9a84c]/30 py-2 overflow-hidden shadow-sm relative z-30">
-    <div class="max-w-7xl mx-auto px-4 flex items-center justify-between gap-6">
-        <div class="flex items-center gap-2 text-[#c9a84c] text-[10px] font-black uppercase tracking-widest flex-shrink-0">
-            <i class="ph-fill ph-trophy text-xs"></i>
+<div class="bg-[#080e1e] border-b border-white/5 py-3 relative z-30 overflow-hidden shadow-2xl">
+    <!-- Ambient Glow behind marquee -->
+    <div class="absolute inset-0 bg-gradient-to-r from-blue-900/10 via-[#c9a84c]/5 to-blue-900/10 opacity-60"></div>
+    
+    <div class="w-full mx-auto flex flex-col sm:flex-row items-center gap-4 sm:gap-6 px-4">
+        
+        <!-- Sponsor Badge -->
+        <div class="flex items-center gap-2 text-[#c9a84c] text-[10px] sm:text-xs font-black uppercase tracking-widest flex-shrink-0 bg-[#c9a84c]/10 px-4 py-2 rounded-full border border-[#c9a84c]/20 shadow-inner z-10">
+            <i class="ph-fill ph-handshake text-sm"></i>
             <span>Official Sponsors</span>
         </div>
 
-        <!-- Continuous Smooth Flat Logo Marquee -->
-        <div class="flex-1 overflow-hidden relative group/marquee">
-            <div class="flex items-center gap-6 animate-marquee whitespace-nowrap py-0.5">
-                <?php for ($rep = 0; $rep < 4; $rep++): ?>
-                    <?php foreach ($sponsors as $s): 
-                        $imgUrl = str_starts_with($s['image_path'], 'uploads/') ? BASE_URL . '/' . e($s['image_path']) : BASE_URL . '/uploads/sponsors/' . e($s['image_path']);
-                    ?>
-                        <div class="inline-flex items-center gap-2.5 px-3 py-1 rounded-xl bg-white/[0.08] border border-white/10 hover:bg-white/[0.15] transition-all">
-                            <div class="h-7 w-16 flex items-center justify-center bg-white rounded-lg p-1 shadow-xs flex-shrink-0">
-                                <img src="<?= $imgUrl ?>" alt="<?= e($s['name']) ?>" class="max-h-full max-w-full object-contain">
-                            </div>
-                            <span class="text-xs font-bold text-slate-200"><?= e($s['name']) ?></span>
+        <!-- Seamless Infinite Marquee with Gradient Fade Mask -->
+        <div class="flex-1 overflow-hidden relative group w-full" style="-webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent); mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);">
+            
+            <div class="flex w-max items-center gap-4 animate-marquee hover:[animation-play-state:paused] py-1">
+                <?php 
+                // Double the array for seamless infinite scroll (CSS translates to -50%)
+                $marqueeSponsors = array_merge($sponsors, $sponsors, $sponsors, $sponsors, $sponsors, $sponsors); 
+                ?>
+                <?php foreach ($marqueeSponsors as $s): 
+                    $imgUrl = str_starts_with($s['image_path'], 'uploads/') ? BASE_URL . '/' . e($s['image_path']) : BASE_URL . '/uploads/sponsors/' . e($s['image_path']);
+                ?>
+                    <!-- 3D Glass Pill Sponsor Card -->
+                    <div class="inline-flex items-center gap-3 px-1.5 py-1.5 pr-4 rounded-full bg-white/5 backdrop-blur-md border border-white/10 shadow-sm hover:bg-white/10 hover:border-white/20 transition-all duration-300 hover:scale-105 cursor-default hover:shadow-[#c9a84c]/20 hover:shadow-lg">
+                        <div class="h-8 w-8 sm:h-9 sm:w-9 flex items-center justify-center bg-white rounded-full p-1.5 shadow-inner flex-shrink-0 border border-slate-200">
+                            <img src="<?= $imgUrl ?>" alt="<?= e($s['name']) ?>" class="max-h-full max-w-full object-contain">
                         </div>
-                    <?php endforeach; ?>
-                <?php endfor; ?>
+                        <span class="text-[10px] sm:text-xs font-black text-slate-300 tracking-wide whitespace-nowrap"><?= e($s['name']) ?></span>
+                    </div>
+                <?php endforeach; ?>
             </div>
+            
         </div>
     </div>
 </div>
