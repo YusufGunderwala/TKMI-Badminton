@@ -455,19 +455,72 @@ include __DIR__ . '/../includes/header.php';
         </div>
     <?php else: ?>
         <?php
-        // Helper closure to render a single round section consistently
+        // Helper closure to render a single round section consistently as a collapsible dropdown
         $renderRoundSection = function($roundKey, $rMatches) {
+            $totalMatches = count($rMatches);
+            $liveCount = 0;
+            $completedCount = 0;
+            $readyCount = 0;
+            foreach ($rMatches as $m) {
+                if ($m['status'] === 'in_progress') $liveCount++;
+                elseif (in_array($m['status'], ['completed', 'walkover', 'retired'])) $completedCount++;
+                elseif (!empty($m['is_ready']) && $m['status'] === 'scheduled') $readyCount++;
+            }
+            $isAllCompleted = ($totalMatches > 0 && $completedCount === $totalMatches);
         ?>
-            <div class="mb-10">
-                <div class="flex items-center gap-3 mb-4 border-b border-slate-200 pb-3">
-                    <span class="w-3 h-3 rounded-full bg-[#c9a84c]"></span>
-                    <h4 class="text-base font-black font-display text-[#0f2044] uppercase tracking-wider">
-                        <?= getRoundLabel($roundKey) ?>
-                    </h4>
-                    <span class="text-xs font-bold text-slate-400 ml-auto"><?= count($rMatches) ?> matches</span>
-                </div>
+            <div x-data="{ open: true }" 
+                 @collapse-all.window="open = false" 
+                 @expand-all.window="open = true" 
+                 class="mb-6 bg-white border border-slate-200/90 rounded-2xl shadow-xs overflow-hidden transition-all">
+                
+                <!-- Collapsible Round Header Button -->
+                <button type="button" 
+                        @click="open = !open" 
+                        class="w-full flex items-center justify-between p-4 sm:p-5 bg-slate-50/80 hover:bg-slate-100 transition-colors text-left cursor-pointer select-none group border-b border-transparent"
+                        :class="{ 'border-slate-200 bg-slate-50': open }">
+                    
+                    <div class="flex items-center gap-2.5 sm:gap-3 flex-wrap">
+                        <span class="w-3.5 h-3.5 rounded-full bg-[#c9a84c] flex-shrink-0 shadow-2xs"></span>
+                        <h4 class="text-base sm:text-lg font-black font-display text-[#0f2044] uppercase tracking-wider group-hover:text-blue-900 transition-colors">
+                            <?= getRoundLabel($roundKey) ?>
+                        </h4>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                        <?php if ($liveCount > 0): ?>
+                            <span class="px-2.5 py-0.5 bg-red-500 text-white text-[10px] font-black uppercase tracking-wider rounded-full flex items-center gap-1 shadow-xs animate-pulse">
+                                <span>●</span> <?= $liveCount ?> ON COURT
+                            </span>
+                        <?php elseif ($isAllCompleted): ?>
+                            <span class="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase tracking-wider rounded-full border border-emerald-200 flex items-center gap-1">
+                                <i class="ph-bold ph-check"></i> ALL COMPLETED
+                            </span>
+                        <?php elseif ($readyCount > 0): ?>
+                            <span class="px-2.5 py-0.5 bg-blue-100 text-blue-800 text-[10px] font-black uppercase tracking-wider rounded-full border border-blue-200">
+                                <?= $readyCount ?> READY
+                            </span>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="flex items-center gap-2.5 sm:gap-3 flex-shrink-0">
+                        <span class="text-xs font-bold text-slate-500 bg-white px-3 py-1.5 rounded-xl border border-slate-200/80 shadow-2xs hidden sm:inline">
+                            <span class="text-slate-800 font-black"><?= $completedCount ?>/<?= $totalMatches ?></span> Finished
+                        </span>
+
+                        <span class="text-xs font-black text-slate-600 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs">
+                            <?= $totalMatches ?> matches
+                        </span>
+
+                        <div class="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-600 shadow-2xs group-hover:border-slate-300 transition-transform duration-200"
+                             :class="{ 'rotate-180': open }">
+                            <i class="ph-bold ph-caret-down text-base"></i>
+                        </div>
+                    </div>
+                </button>
+
+                <!-- Collapsible Match Grid Container -->
+                <div x-show="open" 
+                     x-transition.opacity.duration.200ms 
+                     class="p-4 sm:p-6 bg-slate-50/20">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                     <?php foreach ($rMatches as $m): 
                         $isLive = $m['status'] === 'in_progress';
                         $isDone = in_array($m['status'], ['completed', 'walkover', 'retired']);
@@ -598,13 +651,30 @@ include __DIR__ . '/../includes/header.php';
                             </div>
                         </div>
                     <?php endforeach; ?>
+                    </div>
                 </div>
             </div>
         <?php
         };
         ?>
 
-        <div class="space-y-12">
+        <div class="space-y-10">
+            <!-- Global Controls Bar -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white border border-slate-200 px-5 py-3 rounded-2xl shadow-2xs">
+                <div class="text-xs font-bold text-slate-500 flex items-center gap-2">
+                    <i class="ph-fill ph-funnel text-[#c9a84c] text-sm"></i>
+                    <span>Click on any round header to collapse or expand its matches</span>
+                </div>
+                <div class="flex items-center gap-2 self-end sm:self-auto">
+                    <button type="button" @click="$dispatch('expand-all')" class="text-xs font-bold text-slate-700 hover:text-[#0f2044] bg-slate-50 hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl transition shadow-2xs flex items-center gap-1.5 cursor-pointer">
+                        <i class="ph-bold ph-arrows-out-simple text-[#c9a84c]"></i> Expand All
+                    </button>
+                    <button type="button" @click="$dispatch('collapse-all')" class="text-xs font-bold text-slate-700 hover:text-[#0f2044] bg-slate-50 hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl transition shadow-2xs flex items-center gap-1.5 cursor-pointer">
+                        <i class="ph-bold ph-arrows-in-simple text-slate-400"></i> Collapse All
+                    </button>
+                </div>
+            </div>
+
             <!-- STAGE 1: SWISS QUALIFIER -->
             <?php if (!empty($stage1Grouped)): ?>
                 <div>
