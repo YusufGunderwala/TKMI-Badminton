@@ -29,36 +29,49 @@ if (!$id || !$action) {
 try {
     switch ($action) {
         case 'lock_enrollment':
-            $manifest = Matchmaker::generateStructureManifest($id);
-            
-            // Delete old configs if any
-            db()->prepare('DELETE FROM round_configs WHERE tournament_id = ?')->execute([$id]);
-            
-            $insertStmt = db()->prepare('
-                INSERT INTO round_configs 
-                (tournament_id, round_key, round_label, best_of, points_per_game, deuce_enabled, deuce_trigger, deuce_cap, sort_order)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ');
-            
-            $sort = 1;
-            if (isset($manifest['stage_1']['rounds'])) {
-                foreach ($manifest['stage_1']['rounds'] as $r) {
-                    $insertStmt->execute([$id, $r, ucwords(str_replace('_', ' ', $r)), 3, 11, 1, 10, 16, $sort++]);
+            $pdo = db();
+            $pdo->beginTransaction();
+            try {
+                // Exclusive lock on this tournament — prevents two admins from
+                // simultaneously deleting & re-inserting round configs.
+                $pdo->prepare('SELECT id FROM tournaments WHERE id = ? FOR UPDATE')->execute([$id]);
+
+                $manifest = Matchmaker::generateStructureManifest($id);
+                
+                // Delete old configs if any
+                $pdo->prepare('DELETE FROM round_configs WHERE tournament_id = ?')->execute([$id]);
+                
+                $insertStmt = $pdo->prepare('
+                    INSERT INTO round_configs 
+                    (tournament_id, round_key, round_label, best_of, points_per_game, deuce_enabled, deuce_trigger, deuce_cap, sort_order)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ');
+                
+                $sort = 1;
+                if (isset($manifest['stage_1']['rounds'])) {
+                    foreach ($manifest['stage_1']['rounds'] as $r) {
+                        $insertStmt->execute([$id, $r, ucwords(str_replace('_', ' ', $r)), 3, 11, 1, 10, 16, $sort++]);
+                    }
                 }
-            }
-            if (isset($manifest['stage_2']['rounds'])) {
-                foreach ($manifest['stage_2']['rounds'] as $r) {
-                    // Final is 21 pts (deuce 20-20, cap 26); all other Stage 2 rounds are 15 pts (deuce 14-14, cap 21)
-                    $isFinal = ($r === 'stage2_final' || $r === 'final' || $r === ROUND_FINAL);
-                    $pts = $isFinal ? 21 : 15;
-                    $dt = $isFinal ? 20 : 14;
-                    $dc = $isFinal ? 26 : 21;
-                    $insertStmt->execute([$id, $r, ucwords(str_replace('_', ' ', $r)), 3, $pts, 1, $dt, $dc, $sort++]);
+                if (isset($manifest['stage_2']['rounds'])) {
+                    foreach ($manifest['stage_2']['rounds'] as $r) {
+                        // Final is 21 pts (deuce 20-20, cap 26); all other Stage 2 rounds are 15 pts (deuce 14-14, cap 21)
+                        $isFinal = ($r === 'stage2_final' || $r === 'final' || $r === ROUND_FINAL);
+                        $pts = $isFinal ? 21 : 15;
+                        $dt = $isFinal ? 20 : 14;
+                        $dc = $isFinal ? 26 : 21;
+                        $insertStmt->execute([$id, $r, ucwords(str_replace('_', ' ', $r)), 3, $pts, 1, $dt, $dc, $sort++]);
+                    }
                 }
+                
+                $pdo->commit();
+            } catch (Exception $e) {
+                $pdo->rollBack();
+                throw $e;
             }
-            
             flash_set('tournament_view', 'Enrollment locked and structure generated successfully!', 'success');
             break;
+
 
         case 'lock_rules':
             db()->prepare('UPDATE tournaments SET status = ? WHERE id = ?')->execute(['rules_locked', $id]);

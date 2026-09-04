@@ -184,20 +184,31 @@ class Matchmaker {
         $manifest = json_decode($tourney['structure_manifest'], true);
         if (!$manifest) throw new Exception("Structure Manifest not found. Please generate structure first.");
 
-        $stmt = $pdo->prepare('SELECT COUNT(*) FROM matches WHERE tournament_id = ? AND round_key = ?');
-        $stmt->execute([$tournamentId, ROUND_STAGE1_R1]);
-        if ($stmt->fetchColumn() > 0) throw new Exception("Round 1 already generated.");
-
         $participants = self::getParticipants($tournamentId);
         if (count($participants) < 4) throw new Exception("Need at least 4 participants.");
 
         try {
             $pdo->beginTransaction();
 
+            // ── Concurrency Lock ─────────────────────────────────────────────
+            // Acquire exclusive lock on this tournament row FIRST, so two
+            // admins clicking simultaneously cannot both pass the exists-check.
+            $pdo->prepare('SELECT id FROM tournaments WHERE id = ? FOR UPDATE')->execute([$tournamentId]);
+
+            // Now safely re-check inside the lock
+            $chk = $pdo->prepare('SELECT COUNT(*) FROM matches WHERE tournament_id = ? AND round_key = ?');
+            $chk->execute([$tournamentId, ROUND_STAGE1_R1]);
+            if ($chk->fetchColumn() > 0) {
+                $pdo->rollBack();
+                throw new Exception("Round 1 already generated.");
+            }
+            // ─────────────────────────────────────────────────────────────────
+
             self::initRecords($pdo, $tournamentId, $participants);
 
             // Random draw
             shuffle($participants);
+
 
             $byeParticipant = null;
             if (count($participants) % 2 !== 0) {
@@ -257,12 +268,18 @@ class Matchmaker {
         $tourney = getTournament($tournamentId);
         $isDoubles = ($tourney['match_type'] === 'doubles');
 
-        $stmt = $pdo->prepare('SELECT COUNT(*) FROM matches WHERE tournament_id = ? AND round_key = ?');
-        $stmt->execute([$tournamentId, ROUND_STAGE1_R2]);
-        if ($stmt->fetchColumn() > 0) throw new Exception("Round 2 already exists.");
-
         try {
             $pdo->beginTransaction();
+
+            // ── Concurrency Lock ─────────────────────────────────────────────
+            $pdo->prepare('SELECT id FROM tournaments WHERE id = ? FOR UPDATE')->execute([$tournamentId]);
+            $chk = $pdo->prepare('SELECT COUNT(*) FROM matches WHERE tournament_id = ? AND round_key = ?');
+            $chk->execute([$tournamentId, ROUND_STAGE1_R2]);
+            if ($chk->fetchColumn() > 0) {
+                $pdo->rollBack();
+                throw new Exception("Round 2 already exists.");
+            }
+            // ─────────────────────────────────────────────────────────────────
 
             if ($isDoubles) {
                 $stmtWinners = $pdo->prepare("SELECT winner_team_id FROM matches WHERE tournament_id = ? AND round_key = ? AND winner_team_id IS NOT NULL");
@@ -363,12 +380,18 @@ class Matchmaker {
         $tourney = getTournament($tournamentId);
         $isDoubles = ($tourney['match_type'] === 'doubles');
 
-        $stmt = $pdo->prepare('SELECT COUNT(*) FROM matches WHERE tournament_id = ? AND round_key = ?');
-        $stmt->execute([$tournamentId, ROUND_STAGE1_SURVIVAL]);
-        if ($stmt->fetchColumn() > 0) throw new Exception("Survival Round already exists.");
-
         try {
             $pdo->beginTransaction();
+
+            // ── Concurrency Lock ─────────────────────────────────────────────
+            $pdo->prepare('SELECT id FROM tournaments WHERE id = ? FOR UPDATE')->execute([$tournamentId]);
+            $chk = $pdo->prepare('SELECT COUNT(*) FROM matches WHERE tournament_id = ? AND round_key = ?');
+            $chk->execute([$tournamentId, ROUND_STAGE1_SURVIVAL]);
+            if ($chk->fetchColumn() > 0) {
+                $pdo->rollBack();
+                throw new Exception("Survival Round already exists.");
+            }
+            // ─────────────────────────────────────────────────────────────────
 
             $pdo->prepare('UPDATE player_tournament_records SET tier = ? WHERE tournament_id = ? AND wins >= 2')->execute([TIER_1, $tournamentId]);
             $pdo->prepare('UPDATE player_tournament_records SET tier = ?, is_eliminated = TRUE WHERE tournament_id = ? AND losses >= 2')->execute([TIER_ELIMINATED, $tournamentId]);
@@ -461,18 +484,25 @@ class Matchmaker {
 
         $isDoubles = ($tourney['match_type'] === 'doubles');
 
-        $stmt = $pdo->prepare('SELECT COUNT(*) FROM matches WHERE tournament_id = ? AND stage = ?');
-        $stmt->execute([$tournamentId, 'stage2']);
-        if ($stmt->fetchColumn() > 0) throw new Exception("Stage 2 already generated.");
-
         try {
             $pdo->beginTransaction();
+
+            // ── Concurrency Lock ─────────────────────────────────────────────
+            $pdo->prepare('SELECT id FROM tournaments WHERE id = ? FOR UPDATE')->execute([$tournamentId]);
+            $chk = $pdo->prepare('SELECT COUNT(*) FROM matches WHERE tournament_id = ? AND stage = ?');
+            $chk->execute([$tournamentId, 'stage2']);
+            if ($chk->fetchColumn() > 0) {
+                $pdo->rollBack();
+                throw new Exception("Stage 2 already generated.");
+            }
+            // ─────────────────────────────────────────────────────────────────
 
             // 1. Process Survival Results
             $pdo->prepare('UPDATE player_tournament_records SET tier = ? WHERE tournament_id = ? AND wins = 2 AND tier = ?')
                 ->execute([TIER_2, $tournamentId, TIER_ACTIVE]);
             $pdo->prepare('UPDATE player_tournament_records SET tier = ?, is_eliminated = TRUE WHERE tournament_id = ? AND losses >= 2 AND wins < 2')
                 ->execute([TIER_ELIMINATED, $tournamentId]);
+
 
             // 2. Fetch T1 and T2
             if ($isDoubles) {
