@@ -125,24 +125,88 @@ include __DIR__ . '/../includes/header.php';
             </div>
 
             <div class="col-span-full">
-                <label class="block text-sm font-bold text-slate-700 mb-2">Tournament Format</label>
-                <input type="hidden" name="format" value="swiss_knockout">
+                <label class="block text-sm font-bold text-slate-700 mb-2">Tournament Format <span class="text-red-500">*</span></label>
                 
-                <div class="bg-slate-50 border border-slate-200/80 rounded-2xl p-5 flex items-start gap-4">
-                    <div class="w-12 h-12 rounded-2xl bg-[#0f2044] text-[#c9a84c] flex items-center justify-center font-bold text-2xl flex-shrink-0 shadow-md">
-                        <i class="ph-bold ph-strategy"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="flex items-center gap-2.5">
-                            <h4 class="text-base font-black text-[#0f2044]">Official Swiss + Knockout</h4>
-                            <span class="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase tracking-wider">Dynamic Engine</span>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Option 1: Swiss + Knockout -->
+                    <label class="relative flex cursor-pointer rounded-2xl border bg-white p-4 shadow-sm hover:bg-slate-50 focus:outline-none transition-all has-[:checked]:border-[#c9a84c] has-[:checked]:ring-2 has-[:checked]:ring-[#c9a84c] has-[:checked]:bg-[#c9a84c]/5 group">
+                        <input type="radio" name="format" value="swiss_knockout" class="sr-only" checked required>
+                        <div class="flex items-start gap-3 w-full">
+                            <div class="w-10 h-10 rounded-xl bg-[#0f2044] text-[#c9a84c] flex items-center justify-center font-bold text-xl flex-shrink-0 shadow-sm mt-0.5">
+                                <i class="ph-bold ph-strategy"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center justify-between">
+                                    <h4 class="text-sm font-black text-[#0f2044]">Swiss + Knockout</h4>
+                                    <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[9px] font-black uppercase tracking-wider">Default</span>
+                                </div>
+                                <p class="text-slate-500 text-xs mt-1 leading-snug">
+                                    Stage 1: Swiss Qualifiers with 2-loss elimination.<br>
+                                    Stage 2: Single-elimination championship bracket.
+                                </p>
+                            </div>
                         </div>
-                        <p class="text-slate-600 text-xs mt-1.5 leading-relaxed font-medium">
-                            <strong class="text-slate-800">Stage 1:</strong> 3 Swiss Qualifier rounds with 2-loss elimination and auto-pairing.<br>
-                            <strong class="text-slate-800">Stage 2:</strong> Single-elimination championship bracket down to the 🏆 Final & 🥉 3rd Place match.<br>
-                            <span class="text-blue-600 font-semibold mt-1 inline-block">✨ Dynamically adapts to any player count (24, 32, 16, etc.) with automatic seeding and BYEs.</span>
-                        </p>
-                    </div>
+                    </label>
+
+                    <!-- Option 2: Custom Matchmaking + Knockout (Perfect for 26 players!) -->
+                    <label class="relative flex cursor-pointer rounded-2xl border bg-white p-4 shadow-sm hover:bg-slate-50 focus:outline-none transition-all has-[:checked]:border-[#c9a84c] has-[:checked]:ring-2 has-[:checked]:ring-[#c9a84c] has-[:checked]:bg-[#c9a84c]/5 group">
+                        <input type="radio" name="format" value="custom_knockout" class="sr-only" required>
+                        <div class="flex items-start gap-3 w-full">
+                            <div class="w-10 h-10 rounded-xl bg-purple-900 text-purple-200 flex items-center justify-center font-bold text-xl flex-shrink-0 shadow-sm mt-0.5">
+                                <i class="ph-bold ph-hand-pointing"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center justify-between">
+                                    <h4 class="text-sm font-black text-[#0f2044]">Custom Matchmaking + Knockout</h4>
+                                    <span class="px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 text-[9px] font-black uppercase tracking-wider">Flexible</span>
+                                </div>
+                                <p class="text-slate-500 text-xs mt-1 leading-snug">
+                                    Admin creates custom rounds manually (no forced byes).<br>
+                                    Live Leaderboard ranks all players &rarr; Qualify Top 16 to Knockout!
+                                </p>
+                            </div>
+                        </div>
+                    </label>
+
+                    <!-- Option 3: Pools + Knockout -->
+                    <label class="relative flex cursor-pointer rounded-2xl border bg-white p-4 shadow-sm hover:bg-slate-50 focus:outline-none transition-all has-[:checked]:border-[#c9a84c] has-[:checked]:ring-2 has-[:checked]:ring-[#c9a84c] has-[:checked]:bg-[#c9a84c]/5 group">
+                        <input type="radio" name="format" value="pools_knockout" class="sr-only" required>
+                        <div class="flex items-start gap-3 w-full">
+                            <div class="w-10 h-10 rounded-xl bg-blue-900 text-blue-200 flex items-center justify-center font-bold text-xl flex-shrink-0 shadow-sm mt-0.5">
+                                <i class="ph-bold ph-columns"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center justify-between">
+                                    <h4 class="text-sm font-black text-[#0f2044]">Pools + Knockout</h4>
+                                    <span class="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[9px] font-black uppercase tracking-wider">Group Stage</span>
+                                </div>
+                                <p class="text-slate-500 text-xs mt-1 leading-snug">
+                                    Divide players into group pools (A, B, C...).<br>
+                                    Top players from each pool advance to Knockout.
+                                </p>
+                            </div>
+                        </div>
+                    </label>
+
+                    <!-- Option 4: Round Robin -->
+                    <label class="relative flex cursor-pointer rounded-2xl border bg-white p-4 shadow-sm hover:bg-slate-50 focus:outline-none transition-all has-[:checked]:border-[#c9a84c] has-[:checked]:ring-2 has-[:checked]:ring-[#c9a84c] has-[:checked]:bg-[#c9a84c]/5 group">
+                        <input type="radio" name="format" value="round_robin" class="sr-only" required>
+                        <div class="flex items-start gap-3 w-full">
+                            <div class="w-10 h-10 rounded-xl bg-slate-800 text-[#c9a84c] flex items-center justify-center font-bold text-xl flex-shrink-0 shadow-sm mt-0.5">
+                                <i class="ph-bold ph-arrows-clockwise"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center justify-between">
+                                    <h4 class="text-sm font-black text-[#0f2044]">Round Robin (League)</h4>
+                                    <span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[9px] font-black uppercase tracking-wider">Points Table</span>
+                                </div>
+                                <p class="text-slate-500 text-xs mt-1 leading-snug">
+                                    Every player plays every other player.<br>
+                                    Champion is decided purely by total points table ranking.
+                                </p>
+                            </div>
+                        </div>
+                    </label>
                 </div>
             </div>
 

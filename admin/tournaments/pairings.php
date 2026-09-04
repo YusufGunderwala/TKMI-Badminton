@@ -25,17 +25,20 @@ $admin = currentAdmin();
 $error = '';
 
 // Check if round already generated
-$roundKey = $round === 'r2' ? ROUND_STAGE1_R2 : ROUND_STAGE1_R1;
+$roundKey = $round;
+if ($tournament['format'] === FORMAT_SWISS_KNOCKOUT) {
+    $roundKey = $round === 'r2' ? ROUND_STAGE1_R2 : ROUND_STAGE1_R1;
+    if ($round === 'r2' && !Matchmaker::isRoundComplete($id, ROUND_STAGE1_R1)) {
+        flash_set('tournament_view', 'Cannot start Round 2 manual pairing until Round 1 matches finish.', 'error');
+        header('Location: ' . BASE_URL . '/admin/tournaments/view.php?id=' . $id);
+        exit;
+    }
+}
+
 $stmt = $pdo->prepare('SELECT COUNT(*) FROM matches WHERE tournament_id = ? AND round_key = ?');
 $stmt->execute([$id, $roundKey]);
 if ($stmt->fetchColumn() > 0) {
-    flash_set('tournament_view', ($round === 'r2' ? 'Round 2' : 'Round 1') . ' has already been generated.', 'info');
-    header('Location: ' . BASE_URL . '/admin/tournaments/view.php?id=' . $id);
-    exit;
-}
-
-if ($round === 'r2' && !Matchmaker::isRoundComplete($id, ROUND_STAGE1_R1)) {
-    flash_set('tournament_view', 'Cannot start Round 2 manual pairing until Round 1 matches finish.', 'error');
+    flash_set('tournament_view', getRoundLabel($roundKey) . ' has already been generated.', 'info');
     header('Location: ' . BASE_URL . '/admin/tournaments/view.php?id=' . $id);
     exit;
 }
@@ -67,7 +70,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'Please configure at least one match pair.';
         } else {
             try {
-                if ($round === 'r2') {
+                if ($tournament['format'] === FORMAT_CUSTOM_KNOCKOUT) {
+                    Matchmaker::saveCustomRound($id, $roundKey, $pairs, $byePlayerId, $admin['id']);
+                    flash_set('tournament_view', getRoundLabel($roundKey) . ' manual pairings saved and fixtures generated!', 'success');
+                } elseif ($round === 'r2') {
                     Matchmaker::saveCustomRound2($id, $pairs, $byePlayerId, $admin['id']);
                     flash_set('tournament_view', 'Round 2 manual pairings saved and fixtures generated!', 'success');
                 } else {
@@ -86,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Prepare available players
 $availablePlayers = [];
-if ($round === 'r2') {
+if ($tournament['format'] === FORMAT_SWISS_KNOCKOUT && $round === 'r2') {
     // Get winners and losers
     $stmtW = $pdo->prepare('SELECT p.*, r.wins, r.losses FROM players p JOIN player_tournament_records r ON p.id = r.player_id WHERE r.tournament_id = ? AND r.wins = 1 AND r.losses = 0');
     $stmtW->execute([$id]);
@@ -98,7 +104,7 @@ if ($round === 'r2') {
 
     $availablePlayers = array_merge($winners, $losers);
 } else {
-    // Get all enrolled players for R1
+    // Get all enrolled players
     $stmt = $pdo->prepare('SELECT p.* FROM players p JOIN tournament_players tp ON p.id = tp.player_id WHERE tp.tournament_id = ? ORDER BY p.display_name ASC');
     $stmt->execute([$id]);
     $availablePlayers = $stmt->fetchAll();
@@ -132,7 +138,7 @@ include __DIR__ . '/../includes/header.php';
                 Manual Pairing Studio
             </h2>
             <span class="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-blue-100 text-blue-800">
-                <?= $round === 'r2' ? 'Stage 1 — Round 2' : 'Stage 1 — Round 1' ?>
+                <?= getRoundLabel($roundKey) ?>
             </span>
         </div>
         <p class="text-slate-500 font-medium mt-1">
@@ -167,6 +173,9 @@ include __DIR__ . '/../includes/header.php';
             </div>
 
             <div class="flex flex-wrap items-center gap-2">
+                <button type="button" @click="addMatch()" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-1.5 shadow-sm">
+                    <i class="ph-bold ph-plus"></i> <span>Add Match</span>
+                </button>
                 <button type="button" @click="autoShuffle()" class="bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-1.5 shadow-sm">
                     <i class="ph-bold ph-shuffle"></i> <span>Auto-Suggest Pairs</span>
                 </button>
@@ -228,6 +237,9 @@ include __DIR__ . '/../includes/header.php';
                             <span x-show="m.isRematch" class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800">Rematch</span>
                             <button type="button" @click="swapMatch(idx)" title="Swap Sides" class="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition">
                                 <i class="ph-bold ph-arrows-left-right text-sm"></i>
+                            </button>
+                            <button type="button" @click="removeMatch(idx)" title="Remove Match" class="p-1 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition" x-show="matches.length > 1">
+                                <i class="ph-bold ph-trash text-sm"></i>
                             </button>
                         </div>
                     </div>
@@ -373,7 +385,7 @@ include __DIR__ . '/../includes/header.php';
                     :class="!isValid ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-900 shadow-md'"
                     class="w-full sm:w-auto bg-[#0f2044] text-white font-black py-3.5 px-8 rounded-xl transition flex items-center justify-center gap-2 text-sm">
                 <i class="ph-bold ph-check-circle text-lg"></i>
-                <span>Save & Launch <?= $round === 'r2' ? 'Round 2' : 'Round 1' ?></span>
+                <span>Save & Launch <?= getRoundLabel($roundKey) ?></span>
             </button>
         </div>
     </form>
@@ -425,6 +437,16 @@ function pairingStudio() {
                 this.matches.push({ pA: 0, pB: 0, isRematch: false });
             }
             this.autoShuffle();
+        },
+
+        addMatch() {
+            this.matches.push({ pA: 0, pB: 0, isRematch: false });
+            this.checkConflicts();
+        },
+
+        removeMatch(idx) {
+            this.matches.splice(idx, 1);
+            this.checkConflicts();
         },
 
         autoShuffle() {

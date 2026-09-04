@@ -250,7 +250,12 @@ include __DIR__ . '/../includes/header.php';
                     </span>
 
                     <span class="px-3.5 py-1 rounded-full bg-[#c9a84c]/20 border border-[#c9a84c]/40 text-[#c9a84c] text-xs font-black uppercase tracking-wider backdrop-blur-sm">
-                        <?= $tournament['format'] === 'swiss_knockout' ? 'Swiss + Knockout' : 'Round Robin League' ?>
+                        <?php 
+                        if ($tournament['format'] === 'custom_knockout') echo 'Custom Matchmaking + Knockout';
+                        elseif ($tournament['format'] === 'pools_knockout') echo 'Pools + Knockout';
+                        elseif ($tournament['format'] === 'round_robin') echo 'Round Robin League';
+                        else echo 'Swiss + Knockout';
+                        ?>
                     </span>
 
                     <?php if (!empty($liveMatches)): ?>
@@ -405,7 +410,7 @@ include __DIR__ . '/../includes/header.php';
             </button>
 
             <!-- KNOCKOUT BRACKET TAB -->
-            <?php if ($tournament['format'] === 'swiss_knockout'): ?>
+            <?php if (in_array($tournament['format'], ['swiss_knockout', 'custom_knockout', 'pools_knockout'])): ?>
             <button @click="tab = 'bracket'" 
                     :class="tab === 'bracket' ? 'bg-white text-[#0f2044] shadow-lg font-black' : 'bg-white/10 text-slate-200 hover:bg-white/20 hover:text-white border border-white/10'" 
                     class="px-5 py-3 rounded-2xl font-bold transition-all duration-200 whitespace-nowrap flex items-center gap-2 text-xs uppercase tracking-wider flex-shrink-0 cursor-pointer">
@@ -883,20 +888,32 @@ include __DIR__ . '/../includes/header.php';
             </div>
         <?php else: ?>
             <?php foreach ($listMatchesByRound as $roundKey => $matches): ?>
-                <div>
-                    <div class="flex items-center justify-between mb-6 pb-2 border-b border-slate-200">
+                <div x-data="{ open: true }" class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden mb-8 transition-all">
+                    <button type="button" 
+                            @click="open = !open" 
+                            class="w-full flex items-center justify-between p-5 sm:p-6 bg-slate-50/70 hover:bg-slate-100/80 transition-colors text-left cursor-pointer border-b border-transparent select-none group"
+                            :class="{ 'border-slate-200': open }">
                         <div class="flex items-center gap-3">
-                            <span class="w-8 h-8 rounded-xl bg-[#0f2044] text-[#c9a84c] flex items-center justify-center font-bold text-xs">
+                            <span class="w-8 h-8 rounded-xl bg-[#0f2044] text-[#c9a84c] flex items-center justify-center font-bold text-xs shadow-2xs">
                                 <i class="ph-fill ph-swords"></i>
                             </span>
-                            <h3 class="text-2xl font-black font-display text-[#0f2044]">
+                            <h3 class="text-xl sm:text-2xl font-black font-display text-[#0f2044] group-hover:text-blue-900 transition-colors">
                                 <?= getRoundLabel($roundKey) ?>
                             </h3>
                         </div>
-                        <span class="text-xs font-bold text-slate-400 uppercase tracking-widest"><?= count($matches) ?> Matches</span>
-                    </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-xs font-bold text-slate-500 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs uppercase tracking-wider">
+                                <?= count($matches) ?> Matches
+                            </span>
+                            <div class="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-600 shadow-2xs transition-transform duration-200"
+                                 :class="{ 'rotate-180': open }">
+                                <i class="ph-bold ph-caret-down text-base"></i>
+                            </div>
+                        </div>
+                    </button>
                     
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div x-show="open" x-transition.opacity.duration.200ms class="p-5 sm:p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         <?php foreach ($matches as $m): 
                             $isCompleted = in_array($m['status'], [MATCH_COMPLETED, MATCH_WALKOVER, MATCH_RETIRED]);
                             $isLive = in_array($m['status'], [MATCH_LIVE, 'in_progress']);
@@ -965,6 +982,7 @@ include __DIR__ . '/../includes/header.php';
                             </div>
                         <?php endforeach; ?>
                     </div>
+                </div>
                 </div>
             <?php endforeach; ?>
         <?php endif; ?>
@@ -1107,7 +1125,7 @@ include __DIR__ . '/../includes/header.php';
                     <i class="ph-bold ph-lock-key text-3xl text-[#c9a84c]"></i>
                 </div>
                 <h3 class="text-2xl font-black font-display text-[#0f2044]">Knockout Stage Not Yet Unlocked</h3>
-                <p class="text-slate-500 text-sm mt-1">Stage 2 Single Elimination bracket tree unlocks once the Swiss qualifying rounds conclude.</p>
+                <p class="text-slate-500 text-sm mt-1">Stage 2 Single Elimination bracket tree unlocks once preliminary qualifying rounds conclude.</p>
             </div>
         <?php else: ?>
             <!-- Mobile Swipe Hint -->

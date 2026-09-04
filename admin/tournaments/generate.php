@@ -97,6 +97,12 @@ try {
             Matchmaker::generateRoundRobin($id, $admin['id']);
             flash_set('tournament_view', 'Round Robin league matches generated successfully!', 'success');
             break;
+
+        case 'generate_custom_stage2':
+            $qualifiersCount = isset($_POST['qualifiers_count']) ? (int)$_POST['qualifiers_count'] : 16;
+            Matchmaker::generateCustomStage2FromStandings($id, $admin['id'], $qualifiersCount);
+            flash_set('tournament_view', "Top {$qualifiersCount} qualifiers successfully seeded into Stage 2 Knockouts!", 'success');
+            break;
             
         default:
             json_error('Unknown generation action.');

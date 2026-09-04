@@ -116,14 +116,21 @@ if ($selectedTourney) {
     // 5. Group into Stage 1 and Stage 2 with chronological ordering
     $roundWeights = [
         ROUND_STAGE1_R1       => 1,
+        'r1'                  => 1,
         ROUND_STAGE1_R2       => 2,
+        'r2'                  => 2,
         ROUND_STAGE1_SURVIVAL => 3,
-        ROUND_R16             => 4,
-        ROUND_QF              => 5,
-        ROUND_SF              => 6,
-        ROUND_3RD_PLACE       => 7,
-        '3rd'                 => 7,
-        ROUND_FINAL           => 8,
+        'r3'                  => 3,
+        'r4'                  => 4,
+        'r5'                  => 5,
+        'r6'                  => 6,
+        ROUND_R32             => 10,
+        ROUND_R16             => 11,
+        ROUND_QF              => 12,
+        ROUND_SF              => 13,
+        ROUND_3RD_PLACE       => 14,
+        '3rd'                 => 14,
+        ROUND_FINAL           => 15,
     ];
 
     $stage1Grouped = [];
@@ -132,9 +139,9 @@ if ($selectedTourney) {
 
     foreach ($matches as $m) {
         $rk = $m['round_key'];
-        if (in_array($rk, [ROUND_STAGE1_R1, ROUND_STAGE1_R2, ROUND_STAGE1_SURVIVAL])) {
+        if (in_array($rk, [ROUND_STAGE1_R1, ROUND_STAGE1_R2, ROUND_STAGE1_SURVIVAL]) || preg_match('/^r[1-9][0-9]*$/', $rk) || ($m['stage'] ?? '') === 'stage1') {
             $stage1Grouped[$rk][] = $m;
-        } elseif (in_array($rk, [ROUND_R16, ROUND_QF, ROUND_SF, ROUND_3RD_PLACE, '3rd', ROUND_FINAL])) {
+        } elseif (in_array($rk, [ROUND_R32, ROUND_R16, ROUND_QF, ROUND_SF, ROUND_3RD_PLACE, '3rd', ROUND_FINAL]) || ($m['stage'] ?? '') === 'stage2') {
             $stage2Grouped[$rk][] = $m;
         } else {
             $otherGrouped[$rk][] = $m;

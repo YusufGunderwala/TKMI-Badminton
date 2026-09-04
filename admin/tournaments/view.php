@@ -119,9 +119,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 include __DIR__ . '/../includes/header.php';
 
 // Format Badge UI
-$formatBadgeColor = 'bg-blue-100 text-blue-800';
-$formatIcon = 'ph-strategy';
-$formatText = 'Swiss + Knockout (Dynamic)';
+if ($tournament['format'] === 'custom_knockout') {
+    $formatBadgeColor = 'bg-purple-100 text-purple-800 border border-purple-200';
+    $formatIcon = 'ph-hand-pointing';
+    $formatText = 'Custom Matchmaking + Knockout';
+} elseif ($tournament['format'] === 'pools_knockout') {
+    $formatBadgeColor = 'bg-blue-100 text-blue-800 border border-blue-200';
+    $formatIcon = 'ph-columns';
+    $formatText = 'Pools + Knockout';
+} elseif ($tournament['format'] === 'round_robin') {
+    $formatBadgeColor = 'bg-amber-100 text-amber-800 border border-amber-200';
+    $formatIcon = 'ph-arrows-clockwise';
+    $formatText = 'Round Robin';
+} else {
+    $formatBadgeColor = 'bg-blue-100 text-blue-800 border border-blue-200';
+    $formatIcon = 'ph-strategy';
+    $formatText = 'Swiss + Knockout';
+}
 
 // Helper for status colors
 function getStatusTailwind($status) {
@@ -493,6 +507,118 @@ if ($podium['is_finished']):
             $stmtRounds->execute([$id]);
             $rounds = $stmtRounds->fetchAll();
         ?>
+
+        <?php
+        if ($tournament['format'] === FORMAT_CUSTOM_KNOCKOUT && in_array($tournament['status'], ['live', 'completed', 'rules_locked'])):
+            $prelimStandings = Matchmaker::getStandings($id, 'stage1');
+            $hasStage2Knockouts = (int)db()->query("SELECT COUNT(*) FROM matches WHERE tournament_id = $id AND stage = 'stage2'")->fetchColumn() > 0;
+            $kCutoff = min(16, max(2, count($prelimStandings)));
+        ?>
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] overflow-hidden">
+            <div class="px-6 py-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/50">
+                <div>
+                    <h3 class="font-black text-[#0f2044] flex items-center gap-2 text-base">
+                        <i class="ph-fill ph-trophy text-[#c9a84c] text-xl"></i>
+                        Preliminary Leaderboard &amp; Qualification Standings
+                    </h3>
+                    <p class="text-xs text-slate-500 mt-0.5">Top <?= $kCutoff ?> players qualify for the Stage 2 Knockout Bracket based on Wins and Net Points.</p>
+                </div>
+                <?php if (!$hasStage2Knockouts && !empty($prelimStandings)): ?>
+                    <form action="generate.php" method="POST" onsubmit="return confirm('Conclude preliminary matches and qualify the Top <?= $kCutoff ?> players into Stage 2 Knockouts?');">
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="tournament_id" value="<?= $id ?>">
+                        <input type="hidden" name="action" value="generate_custom_stage2">
+                        <input type="hidden" name="qualifiers_count" value="<?= $kCutoff ?>">
+                        <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-xl text-xs shadow-sm transition flex items-center gap-1.5 cursor-pointer">
+                            <i class="ph-fill ph-trophy text-amber-300"></i>
+                            <span>Qualify Top <?= $kCutoff ?> to Knockouts</span>
+                        </button>
+                    </form>
+                <?php elseif ($hasStage2Knockouts): ?>
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-100 text-emerald-800 text-xs font-bold border border-emerald-200">
+                        <i class="ph-bold ph-check-circle"></i> Knockout Bracket Generated
+                    </span>
+                <?php endif; ?>
+            </div>
+            <div class="p-0 overflow-x-auto">
+                <table class="w-full text-left text-sm whitespace-nowrap">
+                    <thead>
+                        <tr class="text-xs uppercase tracking-widest text-slate-400 border-b border-slate-100 bg-white">
+                            <th class="px-6 py-4 font-bold text-center w-16">Rank</th>
+                            <th class="px-4 py-4 font-bold text-left">Participant</th>
+                            <th class="px-4 py-4 font-bold text-left">Mohallah</th>
+                            <th class="px-4 py-4 font-bold text-center">Played</th>
+                            <th class="px-4 py-4 font-bold text-center text-emerald-600">Wins</th>
+                            <th class="px-4 py-4 font-bold text-center text-red-500">Losses</th>
+                            <th class="px-4 py-4 font-bold text-center text-blue-600">Net Pts</th>
+                            <th class="px-6 py-4 font-bold text-center">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-50">
+                        <?php if (empty($prelimStandings)): ?>
+                            <tr>
+                                <td colspan="8" class="text-center py-8 text-slate-400 text-xs font-bold">
+                                    No match results recorded yet. Standings will populate as preliminary games finish.
+                                </td>
+                            </tr>
+                        <?php else: ?>
+                            <?php foreach ($prelimStandings as $idx => $s): 
+                                $rank = $idx + 1;
+                                $isQualified = ($rank <= $kCutoff);
+                            ?>
+                                <tr class="hover:bg-slate-50/50 transition-colors <?= $isQualified ? 'bg-emerald-50/30' : '' ?>">
+                                    <td class="px-6 py-3.5 text-center font-black">
+                                        <?php if ($rank <= 3): ?>
+                                            <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-amber-100 text-amber-900 font-bold text-xs border border-amber-300">
+                                                <?= $rank ?>
+                                            </span>
+                                        <?php elseif ($isQualified): ?>
+                                            <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-blue-50 text-blue-800 font-bold text-xs border border-blue-200">
+                                                <?= $rank ?>
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="text-slate-400 font-bold text-xs"><?= $rank ?></span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="px-4 py-3.5 font-bold text-slate-800">
+                                        <div class="flex items-center gap-2.5">
+                                            <div class="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-xs border border-slate-200">
+                                                <?= strtoupper(substr($s['display_name'], 0, 1)) ?>
+                                            </div>
+                                            <div>
+                                                <div><?= e($s['display_name']) ?></div>
+                                                <div class="text-[10px] text-slate-400 font-normal"><?= e($s['full_name']) ?> &bull; <?= e($s['its_id']) ?></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-3.5 text-xs text-slate-500 font-medium">
+                                        <?= e($s['mohallah'] ?: 'TKMI') ?>
+                                    </td>
+                                    <td class="px-4 py-3.5 text-center font-bold text-slate-700"><?= $s['played'] ?></td>
+                                    <td class="px-4 py-3.5 text-center font-black text-emerald-600"><?= $s['wins'] ?></td>
+                                    <td class="px-4 py-3.5 text-center font-bold text-red-500"><?= $s['losses'] ?></td>
+                                    <td class="px-4 py-3.5 text-center font-black text-blue-600">
+                                        <?= $s['net_points'] > 0 ? '+'.$s['net_points'] : $s['net_points'] ?>
+                                    </td>
+                                    <td class="px-6 py-3.5 text-center">
+                                        <?php if ($isQualified): ?>
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                                <i class="ph-bold ph-check"></i> Top <?= $kCutoff ?> Qualified
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-500">
+                                                Cutoff
+                                            </span>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <?php endif; ?>
         <div class="bg-white border border-slate-200 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] overflow-hidden">
             <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                 <h3 class="font-black text-[#0f2044] flex items-center gap-2">
@@ -580,7 +706,7 @@ if ($podium['is_finished']):
                         <?= $manifest['participants'] ?> Participants
                     </div>
                     
-                    <?php if (isset($manifest['stage_1'])): 
+                    <?php if (isset($manifest['stage_1']) && $tournament['format'] === FORMAT_SWISS_KNOCKOUT): 
                         // Map Mathematics
                         $n = $manifest['participants'];
                         
@@ -715,6 +841,30 @@ if ($podium['is_finished']):
                         <div class="h-10 w-px bg-slate-300 border-l-2 border-dashed border-slate-300 -my-0.5 relative">
                             <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-2 py-0.5 text-xs font-bold text-slate-500 border border-slate-200 rounded-full whitespace-nowrap z-10 shadow-sm">
                                 <?= $manifest['stage_1']['expected_qualifiers'] ?> Advance
+                            </div>
+                        </div>
+                    <?php elseif (isset($manifest['stage_1']) && $tournament['format'] === FORMAT_CUSTOM_KNOCKOUT): ?>
+                        <!-- Down arrow -->
+                        <div class="h-8 w-px bg-slate-300 border-l-2 border-dashed border-slate-300 -my-0.5"></div>
+                        
+                        <!-- Custom Stage 1 Block -->
+                        <div class="bg-purple-50 border border-purple-200 rounded-3xl p-6 w-full max-w-2xl text-center relative mx-auto">
+                            <h4 class="font-black text-purple-900 mb-3 uppercase tracking-wider text-sm flex justify-center items-center gap-2">
+                                <i class="ph-bold ph-hand-pointing text-purple-600"></i> Stage 1: Preliminary Rounds &amp; Leaderboard
+                            </h4>
+                            <p class="text-xs text-purple-700 font-medium mb-4">
+                                Matches are paired dynamically round-by-round. Every win and point difference counts towards the leaderboard standings.
+                            </p>
+                            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-100 text-purple-900 font-bold text-xs border border-purple-200">
+                                <i class="ph-fill ph-trophy text-[#c9a84c]"></i>
+                                <span>Top <?= $manifest['stage_2']['qualifiers'] ?? 16 ?> advance from Leaderboard into Stage 2 Knockouts</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Down arrow to Stage 2 -->
+                        <div class="h-10 w-px bg-slate-300 border-l-2 border-dashed border-slate-300 -my-0.5 relative">
+                            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-2 py-0.5 text-xs font-bold text-slate-500 border border-slate-200 rounded-full whitespace-nowrap z-10 shadow-sm">
+                                Top <?= $manifest['stage_2']['qualifiers'] ?? 16 ?> Qualify
                             </div>
                         </div>
                     <?php endif; ?>
@@ -1026,6 +1176,140 @@ if ($podium['is_finished']):
                         }
                     }
                 } // End of else for swiss_knockout
+                elseif ($tournament['format'] === FORMAT_CUSTOM_KNOCKOUT) {
+                    $tStatus = $tournament['status'];
+
+                    if ($tStatus === 'draft') {
+                        echo '<div class="bg-purple-50 border border-purple-200 rounded-2xl p-4 mb-5 text-purple-900 text-xs font-bold flex items-center gap-3">';
+                        echo '<i class="ph-fill ph-info text-purple-500 text-2xl flex-shrink-0"></i>';
+                        echo '<div><div class="font-black text-sm">Custom Matchmaking</div><div class="text-purple-700/80 mt-0.5">Enroll participants. Lock enrollment when roster is set.</div></div>';
+                        echo '</div>';
+
+                        echo '<form action="generate.php" method="POST">';
+                        echo csrf_field();
+                        echo '<input type="hidden" name="tournament_id" value="'.$id.'">';
+                        echo '<input type="hidden" name="action" value="lock_enrollment">';
+                        echo '<button type="submit" class="w-full bg-[#0f2044] hover:bg-blue-900 text-white font-bold p-3.5 rounded-2xl shadow-xl transition-all text-sm flex items-center justify-center gap-2">';
+                        echo '<i class="ph-bold ph-lock-key text-lg text-[#c9a84c]"></i>';
+                        echo '<span>Lock Enrollment &amp; Setup Rules</span>';
+                        echo '</button>';
+                        echo '</form>';
+
+                    } elseif ($tStatus === 'structure_ready') {
+                        echo '<div class="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-5 text-blue-900 text-xs font-bold flex items-center gap-3">';
+                        echo '<i class="ph-fill ph-info text-blue-500 text-2xl flex-shrink-0"></i>';
+                        echo '<div><div class="font-black text-sm">Configure Rules</div><div class="text-blue-700/80 mt-0.5">Review scoring rules on the left, then lock them to begin matchmaking.</div></div>';
+                        echo '</div>';
+
+                        echo '<form action="generate.php" method="POST">';
+                        echo csrf_field();
+                        echo '<input type="hidden" name="tournament_id" value="'.$id.'">';
+                        echo '<input type="hidden" name="action" value="lock_rules">';
+                        echo '<button type="submit" class="w-full bg-[#0f2044] hover:bg-blue-900 text-white font-bold p-3.5 rounded-2xl shadow-xl transition-all text-sm flex items-center justify-center gap-2">';
+                        echo '<i class="ph-bold ph-lock-key text-lg text-[#c9a84c]"></i>';
+                        echo '<span>Lock Scoring Rules</span>';
+                        echo '</button>';
+                        echo '</form>';
+
+                    } else {
+                        $existingRounds = db()->query("SELECT DISTINCT round_key FROM matches WHERE tournament_id = $id AND stage = 'stage1' ORDER BY round_key ASC")->fetchAll(PDO::FETCH_COLUMN);
+                        $hasStage2 = (int)db()->query("SELECT COUNT(*) FROM matches WHERE tournament_id = $id AND stage = 'stage2'")->fetchColumn() > 0;
+                        $nextRoundNum = count($existingRounds) + 1;
+                        $nextRoundKey = 'r' . $nextRoundNum;
+
+                        echo '<div class="space-y-4">';
+
+                        if (empty($existingRounds)) {
+                            echo '<div class="bg-purple-50 border border-purple-200 rounded-2xl p-4 text-purple-900 text-xs font-bold flex items-center gap-3">';
+                            echo '<i class="ph-fill ph-sparkle text-purple-600 text-2xl flex-shrink-0"></i>';
+                            echo '<div><div class="font-black text-sm">Ready for Round 1</div><div class="text-purple-700/80 mt-0.5">Start by pairing matches for Round 1 in the Pairing Studio.</div></div>';
+                            echo '</div>';
+
+                            echo '<a href="pairings.php?id='.$id.'&round=r1" class="w-full bg-gradient-to-r from-[#0f2044] to-[#1e3a8a] text-white font-black p-4 rounded-2xl shadow-xl transition-all text-sm flex items-center justify-center gap-2">';
+                            echo '<i class="ph-bold ph-hand-pointing text-xl text-[#c9a84c]"></i>';
+                            echo '<span>Pair Round 1 Matches</span>';
+                            echo '</a>';
+                        } else {
+                            echo '<div class="bg-slate-50 border border-slate-200 rounded-2xl p-4">';
+                            echo '<div class="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-2">Rounds Created So Far</div>';
+                            echo '<div class="flex flex-wrap gap-2 mb-3">';
+                            foreach ($existingRounds as $rk) {
+                                $rDone = Matchmaker::isRoundComplete($id, $rk);
+                                $rCount = (int)db()->query("SELECT COUNT(*) FROM matches WHERE tournament_id = $id AND round_key = '$rk'")->fetchColumn();
+                                $badgeClass = $rDone ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-blue-100 text-blue-800 border-blue-200';
+                                echo '<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold border '.$badgeClass.'">';
+                                echo $rDone ? '<i class="ph-bold ph-check-circle"></i>' : '<i class="ph-bold ph-hourglass"></i>';
+                                echo e(getRoundLabel($rk)) . ' ('.$rCount.' matches)';
+                                echo '</span>';
+                            }
+                            echo '</div>';
+
+                            if (!$hasStage2) {
+                                echo '<a href="pairings.php?id='.$id.'&round='.$nextRoundKey.'" class="w-full block text-center bg-white hover:bg-slate-50 text-slate-800 border-2 border-slate-200 font-bold p-3 rounded-xl transition text-xs flex items-center justify-center gap-2">';
+                                echo '<i class="ph-bold ph-plus-circle text-base text-blue-600"></i>';
+                                echo '<span>Pair Next Round ('.getRoundLabel($nextRoundKey).')</span>';
+                                echo '</a>';
+                            }
+                            echo '</div>';
+
+                            echo '<a href="'.BASE_URL.'/admin/scoring/index.php?tournament_id='.$id.'" class="w-full bg-[#0f2044] hover:bg-blue-900 text-white font-bold p-3.5 rounded-2xl shadow-sm transition-all text-xs flex items-center justify-center gap-2">';
+                            echo '<i class="ph-bold ph-broadcast text-[#c9a84c]"></i>';
+                            echo '<span>Score Matches in Scoring Hub</span>';
+                            echo '</a>';
+
+                            if (!$hasStage2) {
+                                $pCountVal = (int)db()->query("SELECT COUNT(*) FROM tournament_players WHERE tournament_id = $id")->fetchColumn();
+                                $kQual = min(16, max(2, $pCountVal));
+                                echo '<div class="pt-2 border-t border-slate-100">';
+                                echo '<form action="generate.php" method="POST" onsubmit="return confirm(\'Are you sure you want to conclude preliminary rounds and qualify the Top '.$kQual.' players to Stage 2 Knockout?\');">';
+                                echo csrf_field();
+                                echo '<input type="hidden" name="tournament_id" value="'.$id.'">';
+                                echo '<input type="hidden" name="action" value="generate_custom_stage2">';
+                                echo '<input type="hidden" name="qualifiers_count" value="'.$kQual.'">';
+                                echo '<button type="submit" class="w-full bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white font-black p-4 rounded-2xl shadow-xl transition-all text-sm flex items-center justify-center gap-2 cursor-pointer">';
+                                echo '<i class="ph-fill ph-trophy text-lg text-amber-300"></i>';
+                                echo '<span>Qualify Top '.$kQual.' &amp; Generate Knockouts</span>';
+                                echo '</button>';
+                                echo '</form>';
+                                echo '</div>';
+                            } else {
+                                echo '<div class="text-center py-5 bg-emerald-50/80 rounded-2xl border border-emerald-200">';
+                                echo '<div class="w-12 h-12 rounded-xl bg-emerald-500 text-white flex items-center justify-center mx-auto mb-2 shadow-sm"><i class="ph-fill ph-trophy text-2xl"></i></div>';
+                                echo '<h4 class="font-black text-emerald-950 text-base">Stage 2 Knockouts Live</h4>';
+                                echo '<p class="text-xs font-medium text-emerald-700 mt-0.5">Top 16 knockout tree is active!</p>';
+                                echo '</div>';
+                                echo '<a href="'.BASE_URL.'/admin/scoring/index.php?tournament_id='.$id.'" class="group w-full bg-[#0f2044] hover:bg-blue-900 text-white font-black p-3.5 rounded-2xl shadow-md hover:shadow-xl transition-all flex items-center justify-between text-xs">';
+                                echo '<div class="flex items-center gap-2.5"><i class="ph-bold ph-broadcast text-base text-[#c9a84c]"></i><span>Score Stage 2 Matches</span></div>';
+                                echo '<i class="ph-bold ph-arrow-right text-[#c9a84c] group-hover:translate-x-1 transition-transform"></i>';
+                                echo '</a>';
+                            }
+                        }
+                        echo '</div>';
+                    }
+                } elseif ($tournament['format'] === 'round_robin') {
+                    $mCount = (int)db()->query("SELECT COUNT(*) FROM matches WHERE tournament_id = $id")->fetchColumn();
+                    if ($mCount == 0) {
+                        echo '<form action="generate.php" method="POST">';
+                        echo csrf_field();
+                        echo '<input type="hidden" name="tournament_id" value="'.$id.'">';
+                        echo '<input type="hidden" name="action" value="generate_league">';
+                        echo '<button type="submit" class="w-full bg-[#0f2044] hover:bg-blue-900 text-white font-bold p-3.5 rounded-2xl shadow-xl transition-all text-sm flex items-center justify-center gap-2">';
+                        echo '<i class="ph-bold ph-arrows-clockwise text-lg text-[#c9a84c]"></i>';
+                        echo '<span>Generate Round Robin League</span>';
+                        echo '</button>';
+                        echo '</form>';
+                    } else {
+                        echo '<a href="'.BASE_URL.'/admin/scoring/index.php?tournament_id='.$id.'" class="w-full bg-[#0f2044] hover:bg-blue-900 text-white font-bold p-3.5 rounded-2xl shadow-sm transition-all text-xs flex items-center justify-center gap-2">';
+                        echo '<i class="ph-bold ph-broadcast text-[#c9a84c]"></i>';
+                        echo '<span>Score League Matches</span>';
+                        echo '</a>';
+                    }
+                } elseif ($tournament['format'] === 'pools_knockout') {
+                    echo '<a href="pools.php?id='.$id.'" class="w-full bg-[#0f2044] hover:bg-blue-900 text-white font-bold p-3.5 rounded-2xl shadow-sm transition-all text-xs flex items-center justify-center gap-2">';
+                    echo '<i class="ph-bold ph-columns text-[#c9a84c]"></i>';
+                    echo '<span>Manage Pools &amp; Knockout Bracket</span>';
+                    echo '</a>';
+                }
                 ?>
             </div>
         </div>

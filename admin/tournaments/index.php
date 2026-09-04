@@ -107,9 +107,23 @@ include __DIR__ . '/../includes/header.php';
                                 </div>
                             </td>
                             <td class="p-5 text-sm">
-                                <span class="inline-flex items-center gap-1.5 font-bold text-slate-700">
-                                    <i class="ph-bold ph-strategy text-blue-600"></i> Swiss + Knockout
-                                </span>
+                                <?php if ($t['format'] === 'custom_knockout'): ?>
+                                    <span class="inline-flex items-center gap-1.5 font-bold text-purple-700">
+                                        <i class="ph-bold ph-hand-pointing text-purple-600"></i> Custom + Knockout
+                                    </span>
+                                <?php elseif ($t['format'] === 'pools_knockout'): ?>
+                                    <span class="inline-flex items-center gap-1.5 font-bold text-blue-700">
+                                        <i class="ph-bold ph-columns text-blue-600"></i> Pools + Knockout
+                                    </span>
+                                <?php elseif ($t['format'] === 'round_robin'): ?>
+                                    <span class="inline-flex items-center gap-1.5 font-bold text-slate-700">
+                                        <i class="ph-bold ph-arrows-clockwise text-[#c9a84c]"></i> Round Robin
+                                    </span>
+                                <?php else: ?>
+                                    <span class="inline-flex items-center gap-1.5 font-bold text-slate-700">
+                                        <i class="ph-bold ph-strategy text-blue-600"></i> Swiss + Knockout
+                                    </span>
+                                <?php endif; ?>
                             </td>
                             <td class="p-5">
                                 <span class="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider

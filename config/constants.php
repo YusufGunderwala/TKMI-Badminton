@@ -32,8 +32,10 @@ define('MAX_UPLOAD_SIZE',  5 * 1024 * 1024); // 5 MB
 define('ALLOWED_IMAGE_TYPES', ['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 
 // --- Tournament Formats ---
-define('FORMAT_SWISS_KNOCKOUT', 'swiss_knockout');
-define('FORMAT_ROUND_ROBIN',    'round_robin');
+define('FORMAT_SWISS_KNOCKOUT',  'swiss_knockout');
+define('FORMAT_ROUND_ROBIN',     'round_robin');
+define('FORMAT_POOLS_KNOCKOUT',  'pools_knockout');
+define('FORMAT_CUSTOM_KNOCKOUT', 'custom_knockout');
 
 // --- Tournament Statuses ---
 define('STATUS_DRAFT',     'draft');

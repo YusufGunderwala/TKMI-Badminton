@@ -238,16 +238,26 @@ function getParticipantName(array $match): array {
 
 function getRoundLabel(string $roundKey): string {
     $labels = [
-        'r1'         => 'Round 1',
-        'r2'         => 'Round 2',
-        'survival'   => 'Survival Round',
-        'r16'        => 'Round of 16',
-        'qf'         => 'Quarter Finals',
-        'sf'         => 'Semi Finals',
-        '3rd_place'  => '3rd Place Match',
-        'final'      => 'Final',
+        'r1'            => 'Round 1',
+        'r2'            => 'Round 2',
+        'r3'            => 'Round 3',
+        'r4'            => 'Round 4',
+        'r5'            => 'Round 5',
+        'survival'      => 'Survival Round',
+        'group_stage'   => 'Group Stage',
+        'custom_prelim' => 'Preliminary Matches',
+        'r32'           => 'Round of 32',
+        'r16'           => 'Round of 16',
+        'qf'            => 'Quarter Finals',
+        'sf'            => 'Semi Finals',
+        '3rd_place'     => '3rd Place Match',
+        'final'         => 'Final',
     ];
-    return $labels[$roundKey] ?? ucfirst($roundKey);
+    if (isset($labels[$roundKey])) return $labels[$roundKey];
+    if (preg_match('/^r(\d+)$/i', $roundKey, $matches)) {
+        return 'Round ' . $matches[1];
+    }
+    return ucwords(str_replace(['_', '-'], ' ', $roundKey));
 }
 
 // ---- Format Helpers ----------------------------------------

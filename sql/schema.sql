@@ -28,7 +28,7 @@ DROP TYPE IF EXISTS stage_type CASCADE;
 
 CREATE TYPE gender_type      AS ENUM ('Boys', 'Girls', 'Mixed');
 CREATE TYPE match_type_enum  AS ENUM ('singles', 'doubles');
-CREATE TYPE format_type      AS ENUM ('swiss_knockout', 'round_robin', 'pools_knockout');
+CREATE TYPE format_type      AS ENUM ('swiss_knockout', 'round_robin', 'pools_knockout', 'custom_knockout');
 CREATE TYPE tourney_status   AS ENUM ('draft', 'enrollment_locked', 'structure_ready', 'rules_locked', 'ready', 'live', 'completed', 'archived');
 CREATE TYPE match_status     AS ENUM ('scheduled', 'in_progress', 'completed', 'walkover', 'retired', 'cancelled', 'bye');
 CREATE TYPE stage_type       AS ENUM ('stage1', 'stage2');

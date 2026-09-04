@@ -47,6 +47,20 @@ class Scorer {
             }
 
             if ($match['status'] === MATCH_SCHEDULED) {
+                // Ensure match uses the latest rules from round_configs
+                $cfgStmt = $pdo->prepare('SELECT best_of, points_per_game, deuce_enabled, deuce_trigger, deuce_cap FROM round_configs WHERE tournament_id = ? AND round_key = ?');
+                $cfgStmt->execute([$match['tournament_id'], $match['round_key']]);
+                $cfg = $cfgStmt->fetch(PDO::FETCH_ASSOC);
+                if ($cfg) {
+                    $pdo->prepare('UPDATE matches SET best_of = ?, points_per_game = ?, deuce_enabled = ?, deuce_trigger = ?, deuce_cap = ? WHERE id = ?')
+                        ->execute([(int)$cfg['best_of'], (int)$cfg['points_per_game'], $cfg['deuce_enabled'] ? 1 : 0, (int)$cfg['deuce_trigger'], (int)$cfg['deuce_cap'], $matchId]);
+                    $match['best_of'] = (int)$cfg['best_of'];
+                    $match['points_per_game'] = (int)$cfg['points_per_game'];
+                    $match['deuce_enabled'] = (bool)$cfg['deuce_enabled'];
+                    $match['deuce_trigger'] = (int)$cfg['deuce_trigger'];
+                    $match['deuce_cap'] = (int)$cfg['deuce_cap'];
+                }
+
                 $pdo->prepare('UPDATE matches SET status = ?, started_at = NOW() WHERE id = ?')
                     ->execute([MATCH_IN_PROGRESS, $matchId]);
                 $match['status'] = MATCH_IN_PROGRESS;
