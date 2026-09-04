@@ -1057,6 +1057,7 @@ $gamesToWin = ceil($bestOf / 2);
             // Live Cloud Queue & Sync State
             isSyncing: false,
             actionQueue: [],
+            localHistory: [], // Optimistic UI Undo Stack
             isQueueRunning: false,
             lastTapTime: 0,
 
@@ -1144,6 +1145,19 @@ $gamesToWin = ceil($bestOf / 2);
                 if (now - this.lastTapTime < 130) return;
                 this.lastTapTime = now;
 
+                // Save snapshot for optimistic UI Undo
+                this.localHistory.push({
+                    score_a: this.score_a,
+                    score_b: this.score_b,
+                    games_a: this.games_a,
+                    games_b: this.games_b,
+                    isCompleted: this.isCompleted,
+                    showGameTransitionModal: this.showGameTransitionModal,
+                    server: this.server,
+                    serverWinnerSide: this.serverWinnerSide,
+                    completedGames: JSON.parse(JSON.stringify(this.completedGames))
+                });
+
                 // 1. Instant Zero-Latency Optimistic UI Increment & Badminton Server Update
                 this.server = player;
                 this.playSmashSound();
@@ -1225,17 +1239,27 @@ $gamesToWin = ceil($bestOf / 2);
             },
 
             undoLast() {
-                // If game transition modal is open, undo closes it
-                if (this.showGameTransitionModal) {
-                    this.showGameTransitionModal = false;
-                }
-                if (this.isCompleted) {
-                    this.isCompleted = false;
-                }
-
                 const now = Date.now();
                 if (now - this.lastTapTime < 130) return;
                 this.lastTapTime = now;
+                
+                // Optimistically rollback UI if we have history
+                if (this.localHistory && this.localHistory.length > 0) {
+                    const prevState = this.localHistory.pop();
+                    this.score_a = prevState.score_a;
+                    this.score_b = prevState.score_b;
+                    this.games_a = prevState.games_a;
+                    this.games_b = prevState.games_b;
+                    this.isCompleted = prevState.isCompleted;
+                    this.showGameTransitionModal = prevState.showGameTransitionModal;
+                    this.server = prevState.server;
+                    this.serverWinnerSide = prevState.serverWinnerSide;
+                    this.completedGames = prevState.completedGames;
+                } else {
+                    // Fallback if no local history available (e.g. page refresh)
+                    if (this.showGameTransitionModal) this.showGameTransitionModal = false;
+                    if (this.isCompleted) this.isCompleted = false;
+                }
 
                 // Animate tactile undo
                 const elA = document.getElementById('scoreDigitA');
@@ -1328,6 +1352,7 @@ $gamesToWin = ceil($bestOf / 2);
                             this.score_b = data.score_b;
                             this.games_a = data.games_a;
                             this.games_b = data.games_b;
+                            this.localHistory = []; // Invalidate optimistic history on server rejection
                         }
                     }
                 } catch (e) {
