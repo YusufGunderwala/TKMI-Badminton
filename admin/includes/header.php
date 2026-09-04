@@ -36,7 +36,9 @@ $currentPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
                 }
             }
         }
+        window.BASE_URL = <?= json_encode(BASE_URL) ?>;
     </script>
+
     <script defer src="https://unpkg.com/@phosphor-icons/web"></script>
     <script defer src="<?= BASE_URL ?>/assets/vendor/alpine.min.js"></script>
     <script defer src="<?= BASE_URL ?>/assets/vendor/magic-ui/confetti.min.js"></script>

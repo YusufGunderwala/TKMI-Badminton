@@ -832,10 +832,11 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) {}
     }
 
-    // Poll immediately on load, then every 15 seconds
+    // Poll immediately on load, then every 2.5 seconds
     pollMatchStatuses();
-    setInterval(pollMatchStatuses, 15000);
+    setInterval(pollMatchStatuses, 2500);
 });
 </script>
+
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

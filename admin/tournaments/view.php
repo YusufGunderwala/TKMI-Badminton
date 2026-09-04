@@ -78,6 +78,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 WHERE id = ? AND tournament_id = ?
             ');
             
+            $getRoundStmt = $pdo->prepare('SELECT round_key FROM round_configs WHERE id = ? AND tournament_id = ?');
+            $updateMatchesStmt = $pdo->prepare("
+                UPDATE matches 
+                SET best_of = ?, points_per_game = ?, deuce_trigger = ?, deuce_cap = ? 
+                WHERE tournament_id = ? AND round_key = ? AND status IN ('scheduled')
+            ");
+            
             foreach ($_POST['rounds'] as $round_id => $data) {
                 $bestOf = (int)($data['best_of'] ?? 3);
                 $pts = (int)$data['points'];
@@ -89,14 +96,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 if ($dc < $dt) $dc = $dt + 1;
 
                 $updateStmt->execute([$bestOf, $pts, $dt, $dc, $rid, $id]);
+
+                // Immediately sync all scheduled/unstarted matches for this round!
+                $getRoundStmt->execute([$rid, $id]);
+                $roundKey = $getRoundStmt->fetchColumn();
+                if ($roundKey) {
+                    $updateMatchesStmt->execute([$bestOf, $pts, $dt, $dc, $id, $roundKey]);
+                }
             }
             $pdo->commit();
             AppCache::flush();
-            flash_set('tournament_view', 'Scoring rules updated successfully.', 'success');
+            flash_set('tournament_view', 'Scoring rules updated successfully (all scheduled matches synced).', 'success');
             header('Location: view.php?id=' . $id);
             exit;
         } catch (Exception $e) {
-            $error = 'Failed to update scoring rules.';
+            $pdo->rollBack();
+            $error = 'Failed to update scoring rules: ' . $e->getMessage();
         }
     }
 }
@@ -510,7 +525,7 @@ if ($podium['is_finished']):
                                     <td class="px-4 py-4 text-center">
                                         <select name="rounds[<?= $r['id'] ?>][best_of]" 
                                                 class="w-32 mx-auto block bg-slate-50 border border-slate-200 text-slate-800 text-sm font-bold rounded-lg focus:ring-blue-500 focus:border-blue-500 py-2 px-3 cursor-pointer" 
-                                                <?= $tournament['status'] !== 'structure_ready' ? 'disabled' : '' ?>>
+                                                <?= in_array($tournament['status'], ['completed', 'archived']) ? 'disabled' : '' ?>>
                                             <option value="1" <?= $r['best_of'] == 1 ? 'selected' : '' ?>>Best of 1</option>
                                             <option value="3" <?= $r['best_of'] == 3 ? 'selected' : '' ?>>Best of 3</option>
                                             <option value="5" <?= $r['best_of'] == 5 ? 'selected' : '' ?>>Best of 5</option>
@@ -518,25 +533,28 @@ if ($podium['is_finished']):
                                     </td>
                                     <td class="px-4 py-4">
                                         <input type="number" name="rounds[<?= $r['id'] ?>][points]" value="<?= $r['points_per_game'] ?>" 
-                                               class="w-20 mx-auto block bg-slate-50 border border-slate-200 text-slate-800 text-sm font-bold rounded-lg focus:ring-blue-500 focus:border-blue-500 text-center py-2 px-3" min="5" max="40" required <?= $tournament['status'] !== 'structure_ready' ? 'disabled' : '' ?>>
+                                               class="w-20 mx-auto block bg-slate-50 border border-slate-200 text-slate-800 text-sm font-bold rounded-lg focus:ring-blue-500 focus:border-blue-500 text-center py-2 px-3" min="5" max="40" required <?= in_array($tournament['status'], ['completed', 'archived']) ? 'disabled' : '' ?>>
                                     </td>
                                     <td class="px-4 py-4">
                                         <input type="number" name="rounds[<?= $r['id'] ?>][deuce_trigger]" value="<?= $r['deuce_trigger'] ?>" 
-                                               class="w-20 mx-auto block bg-slate-50 border border-slate-200 text-slate-800 text-sm font-bold rounded-lg focus:ring-blue-500 focus:border-blue-500 text-center py-2 px-3" min="5" max="40" required <?= $tournament['status'] !== 'structure_ready' ? 'disabled' : '' ?>>
+                                               class="w-20 mx-auto block bg-slate-50 border border-slate-200 text-slate-800 text-sm font-bold rounded-lg focus:ring-blue-500 focus:border-blue-500 text-center py-2 px-3" min="5" max="40" required <?= in_array($tournament['status'], ['completed', 'archived']) ? 'disabled' : '' ?>>
                                     </td>
                                     <td class="px-4 py-4">
                                         <input type="number" name="rounds[<?= $r['id'] ?>][deuce_cap]" value="<?= $r['deuce_cap'] ?>" 
-                                               class="w-20 mx-auto block bg-slate-50 border border-slate-200 text-slate-800 text-sm font-bold rounded-lg focus:ring-blue-500 focus:border-blue-500 text-center py-2 px-3" min="5" max="40" required <?= $tournament['status'] !== 'structure_ready' ? 'disabled' : '' ?>>
+                                               class="w-20 mx-auto block bg-slate-50 border border-slate-200 text-slate-800 text-sm font-bold rounded-lg focus:ring-blue-500 focus:border-blue-500 text-center py-2 px-3" min="5" max="40" required <?= in_array($tournament['status'], ['completed', 'archived']) ? 'disabled' : '' ?>>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
                     </table>
                     
-                    <?php if ($tournament['status'] === 'structure_ready'): ?>
-                    <div class="px-6 py-5 border-t border-slate-100 bg-slate-50/80 flex justify-end gap-3">
-                        <button type="submit" class="bg-blue-100 hover:bg-blue-200 text-blue-800 font-bold py-2.5 px-6 rounded-xl shadow-sm transition-all flex items-center gap-2">
-                            <i class="ph-bold ph-floppy-disk"></i> Save Rules
+                    <?php if (!in_array($tournament['status'], ['completed', 'archived'])): ?>
+                    <div class="px-6 py-4 border-t border-slate-100 bg-slate-50/80 flex flex-col sm:flex-row items-center justify-between gap-3">
+                        <span class="text-xs text-slate-500 font-medium">
+                            <i class="ph-bold ph-info text-blue-500"></i> Saving rules will automatically sync any unplayed/scheduled matches for those rounds.
+                        </span>
+                        <button type="submit" class="bg-[#0f2044] hover:bg-blue-900 text-white font-bold py-2.5 px-6 rounded-xl shadow-sm transition-all flex items-center gap-2 cursor-pointer">
+                            <i class="ph-bold ph-floppy-disk text-[#c9a84c]"></i> Save Rules
                         </button>
                     </div>
                     <?php endif; ?>

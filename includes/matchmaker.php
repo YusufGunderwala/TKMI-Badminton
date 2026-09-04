@@ -781,9 +781,11 @@ class Matchmaker {
             $colB = $isDoubles ? 'team_b_id' : 'participant_b_id';
             $colWin = $isDoubles ? 'winner_team_id' : 'winner_player_id';
 
+            $config = self::getRoundConfigSnapshot($pdo, $tournamentId, ROUND_STAGE1_R1);
+
             $insertMatch = $pdo->prepare("
-                INSERT INTO matches (tournament_id, round_key, stage, match_number, {$colA}, {$colB}, status)
-                VALUES (?, ?, 'stage1', ?, ?, ?, ?)
+                INSERT INTO matches (tournament_id, round_key, stage, match_number, {$colA}, {$colB}, status, best_of, points_per_game, deuce_enabled, deuce_trigger, deuce_cap)
+                VALUES (?, ?, 'stage1', ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
 
             $matchNumber = 1;
@@ -794,16 +796,20 @@ class Matchmaker {
                     throw new Exception("Invalid match pairing detected ($pA vs $pB).");
                 }
                 $insertMatch->execute([
-                    $tournamentId, ROUND_STAGE1_R1, $matchNumber++, $pA, $pB, MATCH_SCHEDULED
+                    $tournamentId, ROUND_STAGE1_R1, $matchNumber++, $pA, $pB, MATCH_SCHEDULED,
+                    $config['best_of'], $config['points_per_game'], $config['deuce_enabled'] ? 1 : 0, $config['deuce_trigger'], $config['deuce_cap']
                 ]);
             }
 
             if ($byePlayerId) {
                 self::updateParticipantRecord($pdo, $tournamentId, $byePlayerId, true, $isDoubles);
                 $pdo->prepare("
-                    INSERT INTO matches (tournament_id, round_key, stage, match_number, {$colA}, {$colB}, {$colWin}, status)
-                    VALUES (?, ?, 'stage1', ?, ?, NULL, ?, ?)
-                ")->execute([$tournamentId, ROUND_STAGE1_R1, $matchNumber++, $byePlayerId, $byePlayerId, MATCH_BYE]);
+                    INSERT INTO matches (tournament_id, round_key, stage, match_number, {$colA}, {$colB}, {$colWin}, status, best_of, points_per_game, deuce_enabled, deuce_trigger, deuce_cap)
+                    VALUES (?, ?, 'stage1', ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?)
+                ")->execute([
+                    $tournamentId, ROUND_STAGE1_R1, $matchNumber++, $byePlayerId, $byePlayerId, MATCH_BYE,
+                    $config['best_of'], $config['points_per_game'], $config['deuce_enabled'] ? 1 : 0, $config['deuce_trigger'], $config['deuce_cap']
+                ]);
             }
 
             $pdo->prepare('UPDATE tournaments SET status = ? WHERE id = ?')->execute(['live', $tournamentId]);
@@ -839,9 +845,11 @@ class Matchmaker {
             $colB = $isDoubles ? 'team_b_id' : 'participant_b_id';
             $colWin = $isDoubles ? 'winner_team_id' : 'winner_player_id';
 
+            $config = self::getRoundConfigSnapshot($pdo, $tournamentId, ROUND_STAGE1_R2);
+
             $insertMatch = $pdo->prepare("
-                INSERT INTO matches (tournament_id, round_key, stage, match_number, {$colA}, {$colB}, status)
-                VALUES (?, ?, 'stage1', ?, ?, ?, ?)
+                INSERT INTO matches (tournament_id, round_key, stage, match_number, {$colA}, {$colB}, status, best_of, points_per_game, deuce_enabled, deuce_trigger, deuce_cap)
+                VALUES (?, ?, 'stage1', ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
 
             $matchNumber = 1;
@@ -852,16 +860,20 @@ class Matchmaker {
                     throw new Exception("Invalid match pairing detected ($pA vs $pB).");
                 }
                 $insertMatch->execute([
-                    $tournamentId, ROUND_STAGE1_R2, $matchNumber++, $pA, $pB, MATCH_SCHEDULED
+                    $tournamentId, ROUND_STAGE1_R2, $matchNumber++, $pA, $pB, MATCH_SCHEDULED,
+                    $config['best_of'], $config['points_per_game'], $config['deuce_enabled'] ? 1 : 0, $config['deuce_trigger'], $config['deuce_cap']
                 ]);
             }
 
             if ($byePlayerId) {
                 self::updateParticipantRecord($pdo, $tournamentId, $byePlayerId, true, $isDoubles);
                 $pdo->prepare("
-                    INSERT INTO matches (tournament_id, round_key, stage, match_number, {$colA}, {$colB}, {$colWin}, status)
-                    VALUES (?, ?, 'stage1', ?, ?, NULL, ?, ?)
-                ")->execute([$tournamentId, ROUND_STAGE1_R2, $matchNumber++, $byePlayerId, $byePlayerId, MATCH_BYE]);
+                    INSERT INTO matches (tournament_id, round_key, stage, match_number, {$colA}, {$colB}, {$colWin}, status, best_of, points_per_game, deuce_enabled, deuce_trigger, deuce_cap)
+                    VALUES (?, ?, 'stage1', ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?)
+                ")->execute([
+                    $tournamentId, ROUND_STAGE1_R2, $matchNumber++, $byePlayerId, $byePlayerId, MATCH_BYE,
+                    $config['best_of'], $config['points_per_game'], $config['deuce_enabled'] ? 1 : 0, $config['deuce_trigger'], $config['deuce_cap']
+                ]);
             }
 
             $pdo->commit();
@@ -967,16 +979,19 @@ class Matchmaker {
             $colA = $isDoubles ? 'team_a_id' : 'participant_a_id';
             $colB = $isDoubles ? 'team_b_id' : 'participant_b_id';
             
+            $config = self::getRoundConfigSnapshot($pdo, $tournamentId, 'round_robin');
+
             $insertMatch = $pdo->prepare("
-                INSERT INTO matches (tournament_id, round_key, stage, match_number, {$colA}, {$colB}, status)
-                VALUES (?, ?, 'stage1', ?, ?, ?, ?)
+                INSERT INTO matches (tournament_id, round_key, stage, match_number, {$colA}, {$colB}, status, best_of, points_per_game, deuce_enabled, deuce_trigger, deuce_cap)
+                VALUES (?, ?, 'stage1', ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
 
             $matchNum = 1;
             for ($i = 0; $i < $n; $i++) {
                 for ($j = $i + 1; $j < $n; $j++) {
                     $insertMatch->execute([
-                        $tournamentId, 'round_robin', $matchNum++, $participants[$i], $participants[$j], MATCH_SCHEDULED
+                        $tournamentId, 'round_robin', $matchNum++, $participants[$i], $participants[$j], MATCH_SCHEDULED,
+                        $config['best_of'], $config['points_per_game'], $config['deuce_enabled'] ? 1 : 0, $config['deuce_trigger'], $config['deuce_cap']
                     ]);
                 }
             }

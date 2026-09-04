@@ -1239,7 +1239,7 @@ function tournamentPublicManager(defaultTab, tournamentId) {
         tab: defaultTab,
         
         init() {
-            // Connect to real-time Server-Sent Events (SSE) stream
+            // 1. Connect to real-time Server-Sent Events (SSE) stream
             if (typeof EventSource !== 'undefined') {
                 try {
                     const evtSource = new EventSource('<?= BASE_URL ?>/sse/live.php?tournament_id=' + tournamentId);
@@ -1263,6 +1263,18 @@ function tournamentPublicManager(defaultTab, tournamentId) {
                     console.log('SSE connection skipped:', err);
                 }
             }
+
+            // 2. High-speed HTTP fallback poller (every 2.5s) to guarantee zero lag under all network conditions
+            setInterval(async () => {
+                try {
+                    const res = await fetch('<?= BASE_URL ?>/api/matches.php?tournament_id=' + tournamentId, { cache: 'no-store' });
+                    if (!res.ok) return;
+                    const data = await res.json();
+                    if (data && data.success && data.matches) {
+                        this.updateLiveScores(data.matches);
+                    }
+                } catch(e) {}
+            }, 2500);
         },
 
         updateLiveScores(liveMatches) {

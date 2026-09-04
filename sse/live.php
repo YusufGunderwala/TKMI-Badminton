@@ -33,22 +33,30 @@ while (true) {
     }
 
     try {
-        // 2. Ultra-lightweight check: Has score event or match status changed?
+        // 2. Ultra-lightweight check: Has score, games, event, or status changed?
         $currentMax = (int)db_retry(function($db) use ($tournamentId) {
             if ($tournamentId) {
-                $stmt = $db->prepare('SELECT COALESCE(MAX(se.id), 0) FROM score_events se JOIN matches m ON se.match_id = m.id WHERE m.tournament_id = ?');
+                $stmt = $db->prepare('
+                    SELECT COALESCE(MAX(se.id), 0) + 
+                           COALESCE(SUM(m.score_a * 100 + m.score_b + m.games_a * 1000 + m.games_b * 10000), 0) +
+                           COALESCE(COUNT(CASE WHEN m.status = \'in_progress\' THEN 1 END) * 77, 0) +
+                           COALESCE(COUNT(CASE WHEN m.status IN (\'completed\',\'walkover\',\'retired\') THEN 1 END) * 999, 0)
+                    FROM matches m 
+                    LEFT JOIN score_events se ON se.match_id = m.id 
+                    WHERE m.tournament_id = ?
+                ');
                 $stmt->execute([$tournamentId]);
-                $maxSe = (int)$stmt->fetchColumn();
-
-                $stmt2 = $db->prepare("SELECT COALESCE(MAX(EXTRACT(EPOCH FROM COALESCE(ended_at, started_at, NOW())))::int, 0) FROM matches WHERE tournament_id = ?");
-                $stmt2->execute([$tournamentId]);
-                $maxMatch = (int)$stmt2->fetchColumn();
-
-                return $maxSe + $maxMatch;
+                return (int)$stmt->fetchColumn();
             } else {
-                $maxSe = (int)$db->query('SELECT COALESCE(MAX(id), 0) FROM score_events')->fetchColumn();
-                $maxMatch = (int)$db->query("SELECT COALESCE(MAX(EXTRACT(EPOCH FROM COALESCE(ended_at, started_at, NOW())))::int, 0) FROM matches")->fetchColumn();
-                return $maxSe + $maxMatch;
+                $stmt = $db->query('
+                    SELECT COALESCE(MAX(se.id), 0) + 
+                           COALESCE(SUM(m.score_a * 100 + m.score_b + m.games_a * 1000 + m.games_b * 10000), 0) +
+                           COALESCE(COUNT(CASE WHEN m.status = \'in_progress\' THEN 1 END) * 77, 0) +
+                           COALESCE(COUNT(CASE WHEN m.status IN (\'completed\',\'walkover\',\'retired\') THEN 1 END) * 999, 0)
+                    FROM matches m 
+                    LEFT JOIN score_events se ON se.match_id = m.id
+                ');
+                return (int)$stmt->fetchColumn();
             }
         });
 
@@ -161,6 +169,7 @@ while (true) {
         flush();
     }
 
-    // Wait 500ms before checking again (low CPU usage, fast real-time response)
-    usleep(500000); 
+    // Wait 250ms before checking again (low CPU usage, fast real-time response)
+    usleep(250000); 
 }
+

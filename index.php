@@ -132,17 +132,17 @@ include __DIR__ . '/includes/header.php';
                             
                             <div class="bg-slate-950/90 rounded-xl p-5 border border-slate-800 flex items-center justify-between gap-4 shadow-sm relative overflow-hidden">
                                 <div class="flex-1 text-right min-w-0">
-                                    <div class="font-black text-white text-base truncate"><?= e($nameA ?: 'Player A') ?></div>
-                                    <div class="text-xs text-cyan-300 font-bold mt-0.5">Games: <?= $cur['games_a'] ?></div>
+                                    <div class="font-black text-white text-base truncate" id="hero-name-a"><?= e($nameA ?: 'Player A') ?></div>
+                                    <div class="text-xs text-cyan-300 font-bold mt-0.5" id="hero-games-a">Games: <?= $cur['games_a'] ?></div>
                                 </div>
 
-                                <div class="bg-[#080e1e] text-[#c9a84c] px-4 py-2 rounded-lg font-black font-display text-2xl tracking-widest border border-slate-800 shadow-inner bg-racket-strings">
+                                <div class="bg-[#080e1e] text-[#c9a84c] px-4 py-2 rounded-lg font-black font-display text-2xl tracking-widest border border-slate-800 shadow-inner bg-racket-strings" id="hero-match-score">
                                     <?= $cur['score_a'] ?> - <?= $cur['score_b'] ?>
                                 </div>
 
                                 <div class="flex-1 text-left min-w-0">
-                                    <div class="font-black text-white text-base truncate"><?= e($nameB ?: 'Player B') ?></div>
-                                    <div class="text-xs text-amber-300 font-bold mt-0.5">Games: <?= $cur['games_b'] ?></div>
+                                    <div class="font-black text-white text-base truncate" id="hero-name-b"><?= e($nameB ?: 'Player B') ?></div>
+                                    <div class="text-xs text-amber-300 font-bold mt-0.5" id="hero-games-b">Games: <?= $cur['games_b'] ?></div>
                                 </div>
                             </div>
 
@@ -378,9 +378,8 @@ include __DIR__ . '/includes/header.php';
     </div>
 </div>
 
-<?php if (!empty($liveMatches)): ?>
-<!-- Establish SSE Connection for Live Updates -->
+<!-- Establish SSE Connection & Fast Poller for Live Updates -->
 <script src="<?= BASE_URL ?>/assets/js/sse-client.js"></script>
-<?php endif; ?>
+
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>

@@ -48,6 +48,30 @@ $gamesStmt = $pdo->prepare('SELECT game_number, score_a, score_b, winner_side FR
 $gamesStmt->execute([$matchId]);
 $completedGames = $gamesStmt->fetchAll(PDO::FETCH_ASSOC);
 
+// If match is unstarted (scheduled, or 0-0 with no completed games), sync with round_configs
+if ($match['status'] === MATCH_SCHEDULED || ((int)$match['score_a'] === 0 && (int)$match['score_b'] === 0 && (int)$match['games_a'] === 0 && (int)$match['games_b'] === 0 && empty($completedGames))) {
+    $cfgStmt = $pdo->prepare('SELECT best_of, points_per_game, deuce_enabled, deuce_trigger, deuce_cap FROM round_configs WHERE tournament_id = ? AND round_key = ?');
+    $cfgStmt->execute([$match['tournament_id'], $match['round_key']]);
+    $cfg = $cfgStmt->fetch(PDO::FETCH_ASSOC);
+    if ($cfg) {
+        $needUpdate = (
+            (int)$match['best_of'] !== (int)$cfg['best_of'] ||
+            (int)$match['points_per_game'] !== (int)$cfg['points_per_game'] ||
+            (int)$match['deuce_trigger'] !== (int)$cfg['deuce_trigger'] ||
+            (int)$match['deuce_cap'] !== (int)$cfg['deuce_cap']
+        );
+        if ($needUpdate) {
+            $pdo->prepare('UPDATE matches SET best_of = ?, points_per_game = ?, deuce_enabled = ?, deuce_trigger = ?, deuce_cap = ? WHERE id = ?')
+                ->execute([(int)$cfg['best_of'], (int)$cfg['points_per_game'], $cfg['deuce_enabled'] ? 1 : 0, (int)$cfg['deuce_trigger'], (int)$cfg['deuce_cap'], $matchId]);
+            $match['best_of'] = (int)$cfg['best_of'];
+            $match['points_per_game'] = (int)$cfg['points_per_game'];
+            $match['deuce_enabled'] = (bool)$cfg['deuce_enabled'];
+            $match['deuce_trigger'] = (int)$cfg['deuce_trigger'];
+            $match['deuce_cap'] = (int)$cfg['deuce_cap'];
+        }
+    }
+}
+
 $isDoubles = !empty($match['team_a_id']);
 $hasParticipantA = $isDoubles ? !empty($match['team_a_id']) : !empty($match['participant_a_id']);
 $hasParticipantB = $isDoubles ? !empty($match['team_b_id']) : !empty($match['participant_b_id']);

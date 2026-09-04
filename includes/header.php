@@ -41,7 +41,9 @@
         }
       }
     }
+    window.BASE_URL = <?= json_encode(BASE_URL) ?>;
   </script>
+
 
   <!-- Phosphor Icons -->
   <script defer src="https://unpkg.com/@phosphor-icons/web"></script>
