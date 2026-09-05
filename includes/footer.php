@@ -60,7 +60,9 @@ $footerSponsors = function_exists('getActiveSponsors') ? getActiveSponsors() : [
                 <a href="<?= BASE_URL ?>/" class="hover:text-white transition">Home</a>
                 <a href="<?= BASE_URL ?>/public/tournaments.php" class="hover:text-white transition">Tournaments</a>
                 <a href="<?= BASE_URL ?>/#rules-section" class="hover:text-white transition">Tournament Rules</a>
-                <a href="<?= BASE_URL ?>/admin/login.php" class="hover:text-[#c9a84c] transition">Admin Portal</a>
+                <?php if (function_exists('isAdminLoggedIn') && isAdminLoggedIn()): ?>
+                    <a href="<?= BASE_URL ?>/admin/dashboard.php" class="hover:text-[#c9a84c] transition font-bold">Admin Dashboard</a>
+                <?php endif; ?>
             </div>
 
         </div>

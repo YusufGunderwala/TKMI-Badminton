@@ -99,11 +99,13 @@
         </a>
       </div>
 
-      <!-- Action Button -->
+      <!-- Action Button (Admin Dashboard - only visible if already logged in) -->
       <div class="flex items-center gap-2 sm:gap-3 shrink-0">
-        <a href="<?= BASE_URL ?>/admin/login.php" class="hidden sm:flex gold-shimmer-btn text-xs font-black uppercase tracking-wider px-4 sm:px-5 py-2 rounded-full shadow-md transition-all items-center gap-1.5 hover-lift">
-          <i class="ph-bold ph-shield-check text-sm"></i> <span>Admin Portal</span>
-        </a>
+        <?php if (function_exists('isAdminLoggedIn') && isAdminLoggedIn()): ?>
+          <a href="<?= BASE_URL ?>/admin/dashboard.php" class="hidden sm:flex gold-shimmer-btn text-xs font-black uppercase tracking-wider px-4 sm:px-5 py-2 rounded-full shadow-md transition-all items-center gap-1.5 hover-lift">
+            <i class="ph-bold ph-shield-check text-sm"></i> <span>Dashboard</span>
+          </a>
+        <?php endif; ?>
 
         <!-- Mobile Menu Toggle -->
         <div class="md:hidden" x-data="{ open: false }">
@@ -117,7 +119,9 @@
             <a href="<?= BASE_URL ?>/" class="block text-white py-2.5 px-4 rounded-xl hover:bg-white/10 font-bold text-sm flex items-center gap-3"><i class="ph-bold ph-house text-lg text-[#c9a84c]"></i> Home</a>
             <a href="<?= BASE_URL ?>/public/tournaments.php" class="block text-white py-2.5 px-4 rounded-xl hover:bg-white/10 font-bold text-sm flex items-center gap-3"><i class="ph-bold ph-medal text-lg text-[#c9a84c]"></i> Tournaments</a>
             <a href="<?= BASE_URL ?>/#rules-section" class="block text-white py-2.5 px-4 rounded-xl hover:bg-white/10 font-bold text-sm flex items-center gap-3"><i class="ph-bold ph-book-open-text text-lg text-[#c9a84c]"></i> Format & Rules</a>
-            <a href="<?= BASE_URL ?>/admin/login.php" class="block mt-3 text-center bg-[#c9a84c] text-[#0f2044] font-black py-2.5 rounded-xl text-sm"><i class="ph-bold ph-lock-key"></i> Admin Login</a>
+            <?php if (function_exists('isAdminLoggedIn') && isAdminLoggedIn()): ?>
+              <a href="<?= BASE_URL ?>/admin/dashboard.php" class="block mt-3 text-center bg-[#c9a84c] text-[#0f2044] font-black py-2.5 rounded-xl text-sm"><i class="ph-bold ph-gauge"></i> Admin Dashboard</a>
+            <?php endif; ?>
           </div>
         </div>
       </div>

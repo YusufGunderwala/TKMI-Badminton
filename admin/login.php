@@ -15,9 +15,21 @@ if (isAdminLoggedIn()) {
 
 $error = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+// Rate Limiting / Brute-Force Lockout Protection
+sessionStart();
+$ipKey = 'login_attempts_' . md5($_SERVER['REMOTE_ADDR'] ?? 'local');
+$lockoutTime = 15 * 60; // 15 minutes lockout
+$maxAttempts = 5;
+
+$attempts = $_SESSION[$ipKey] ?? ['count' => 0, 'first_attempt' => time(), 'locked_until' => 0];
+
+// Check if currently locked out
+if (!empty($attempts['locked_until']) && time() < $attempts['locked_until']) {
+    $remainingMinutes = ceil(($attempts['locked_until'] - time()) / 60);
+    $error = "Too many failed attempts. Access temporarily restricted for {$remainingMinutes} minute(s).";
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verify_csrf()) {
-        $error = 'Invalid request. Please try again.';
+        $error = 'Invalid request token. Please refresh and try again.';
     } else {
         $username = trim($_POST['username'] ?? '');
         $password = $_POST['password'] ?? '';
@@ -27,12 +39,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $admin = attemptLogin($username, $password);
             if ($admin) {
+                // Reset failed attempts on success
+                unset($_SESSION[$ipKey]);
                 loginAdmin($admin);
                 $next = $_GET['next'] ?? (BASE_URL . '/admin/dashboard.php');
                 header('Location: ' . $next);
                 exit;
             } else {
-                $error = 'Invalid username or password. Please try again.';
+                // Increment failed attempts
+                $attempts['count']++;
+                if ($attempts['count'] >= $maxAttempts) {
+                    $attempts['locked_until'] = time() + $lockoutTime;
+                    $_SESSION[$ipKey] = $attempts;
+                    $error = "Too many failed attempts. Access temporarily locked for 15 minutes.";
+                } else {
+                    $_SESSION[$ipKey] = $attempts;
+                    $remaining = $maxAttempts - $attempts['count'];
+                    $error = "Invalid username or password. ({$remaining} attempt(s) remaining)";
+                }
             }
         }
     }
