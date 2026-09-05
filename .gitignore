@@ -26,7 +26,8 @@ scratch_*.php
 *.pptx
 
 # Local Cache & Uploads (populated at runtime)
-cache/
+cache/*
+!cache/.gitkeep
 
 # Env secrets
 .env

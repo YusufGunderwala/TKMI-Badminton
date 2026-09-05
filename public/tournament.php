@@ -27,7 +27,7 @@ $pdo = db();
 $sponsors = getActiveSponsors();
 
 // 2. Fetch Standings & Player Records (Micro-cached for ultra-fast performance)
-$standings = AppCache::remember('standings_' . $id, 2, function() use ($pdo, $id) {
+$standings = AppCache::remember('standings_' . $id, 20, function() use ($pdo, $id) {
     $stmt = $pdo->prepare('
         SELECT 
             p.id, p.full_name, p.display_name, p.mohallah, p.its_id, p.photo_path, p.gender,
@@ -98,7 +98,7 @@ foreach ($standings as $index => $s) {
 }
 
 // 3. Fetch All Matches with Competitor Meta
-$allMatches = AppCache::remember('matches_' . $id, 2, function() use ($pdo, $id) {
+$allMatches = AppCache::remember('matches_' . $id, 20, function() use ($pdo, $id) {
     $stmt = $pdo->prepare('
         SELECT m.*, 
                pa.full_name as pa_full, pa.display_name as pa_name, pa.mohallah as pa_mohallah, pa.photo_path as pa_photo, pa.its_id as pa_its,
@@ -121,7 +121,7 @@ $allMatches = AppCache::remember('matches_' . $id, 2, function() use ($pdo, $id)
 // 4. Fetch Game / Set Breakdown for Matches
 $matchGames = [];
 if (!empty($allMatches)) {
-    $allGames = AppCache::remember('games_' . $id, 2, function() use ($pdo, $id) {
+    $allGames = AppCache::remember('games_' . $id, 20, function() use ($pdo, $id) {
         $stmt = $pdo->prepare('SELECT * FROM games WHERE match_id IN (SELECT id FROM matches WHERE tournament_id = ?) ORDER BY match_id, game_number ASC');
         $stmt->execute([$id]);
         return $stmt->fetchAll();
@@ -1731,14 +1731,16 @@ function tournamentPublicManager(defaultTab, tournamentId) {
                     const momValBEl = document.getElementById('momentum-val-b-' + matchId);
 
                     if (scoreAEl) {
-                        if (scoreAEl.innerText != scoreA) {
+                        const curScoreA = parseInt(scoreAEl.innerText.trim()) || 0;
+                        if (curScoreA !== scoreA) {
                             scoreAEl.innerText = scoreA;
                             scoreAEl.classList.add('scale-110', 'text-amber-600');
                             setTimeout(() => scoreAEl.classList.remove('scale-110', 'text-amber-600'), 400);
                         }
                     }
                     if (scoreBEl) {
-                        if (scoreBEl.innerText != scoreB) {
+                        const curScoreB = parseInt(scoreBEl.innerText.trim()) || 0;
+                        if (curScoreB !== scoreB) {
                             scoreBEl.innerText = scoreB;
                             scoreBEl.classList.add('scale-110', 'text-amber-600');
                             setTimeout(() => scoreBEl.classList.remove('scale-110', 'text-amber-600'), 400);

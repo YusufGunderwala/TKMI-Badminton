@@ -589,6 +589,17 @@ class Scorer {
             $games = $stmtG->fetchAll(PDO::FETCH_ASSOC);
         } catch (Exception $e) {}
 
+        // Instant snapshot update & cache flush for zero-lag real-time broadcast
+        try {
+            $tId = (int)($match['tournament_id'] ?? 0);
+            if ($tId > 0) {
+                AppCache::generateLiveSnapshot($tId);
+            }
+            AppCache::flush();
+        } catch (Throwable $e) {
+            error_log('Snapshot Generation Notice: ' . $e->getMessage());
+        }
+
         return [
             'success'      => true,
             'score_a'      => (int)$match['score_a'],

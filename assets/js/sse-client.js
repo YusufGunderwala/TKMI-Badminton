@@ -162,15 +162,21 @@ document.addEventListener('DOMContentLoaded', () => {
             const scoreAVal = match.score_a ?? match.game_score_a ?? 0;
             const scoreBVal = match.score_b ?? match.game_score_b ?? 0;
 
-            if (sA && sA.innerText != scoreAVal) {
-                sA.innerText = scoreAVal;
-                sA.classList.add('scale-125', 'text-amber-400');
-                setTimeout(() => sA.classList.remove('scale-125', 'text-amber-400'), 400);
+            if (sA) {
+                const curValA = parseInt(sA.innerText.trim()) || 0;
+                if (curValA !== scoreAVal) {
+                    sA.innerText = scoreAVal;
+                    sA.classList.add('scale-125', 'text-amber-400');
+                    setTimeout(() => sA.classList.remove('scale-125', 'text-amber-400'), 400);
+                }
             }
-            if (sB && sB.innerText != scoreBVal) {
-                sB.innerText = scoreBVal;
-                sB.classList.add('scale-125', 'text-amber-400');
-                setTimeout(() => sB.classList.remove('scale-125', 'text-amber-400'), 400);
+            if (sB) {
+                const curValB = parseInt(sB.innerText.trim()) || 0;
+                if (curValB !== scoreBVal) {
+                    sB.innerText = scoreBVal;
+                    sB.classList.add('scale-125', 'text-amber-400');
+                    setTimeout(() => sB.classList.remove('scale-125', 'text-amber-400'), 400);
+                }
             }
 
             // Update games won dots in place
