@@ -440,19 +440,34 @@ include __DIR__ . '/../includes/header.php';
                         $pA = $playerRanks[$m['participant_a_id']] ?? null;
                         $pB = $playerRanks[$m['participant_b_id']] ?? null;
                         $matchId = $m['id'];
-                        $curMomA = 50;
-                        $curMomB = 50;
+                        $mBestOf = (int)($m['best_of'] ?? 3);
+                        $mCurrentGame = ((int)($m['games_a'] ?? 0) + (int)($m['games_b'] ?? 0)) + 1;
+                        $probs = calculateWinProbability(
+                            (int)$m['score_a'],
+                            (int)$m['score_b'],
+                            (int)$m['games_a'],
+                            (int)$m['games_b'],
+                            (int)($m['points_per_game'] ?? 11),
+                            $mBestOf
+                        );
+                        $curMomA = $probs['a'];
+                        $curMomB = $probs['b'];
                     ?>
                         <div class="bg-white rounded-3xl p-6 sm:p-7 border-2 border-red-400 ring-4 ring-red-50 shadow-2xl relative overflow-hidden flex flex-col justify-between group bg-badminton-court"
                              id="live-match-card-<?= $matchId ?>">
                             
                             <!-- Top Live Badge & Match Header -->
-                            <div class="flex items-center justify-between mb-5 border-b border-slate-100 pb-3">
-                                <div class="flex items-center gap-2">
+                            <div class="flex items-center justify-between mb-5 border-b border-slate-100 pb-3 flex-wrap gap-2">
+                                <div class="flex items-center gap-2 flex-wrap">
                                     <span id="live-status-badge-<?= $matchId ?>" class="px-3 py-1 rounded-full bg-red-500 text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm animate-pulse transition-all duration-500">
                                         <span class="w-1.5 h-1.5 rounded-full bg-white"></span> LIVE COURT
                                     </span>
-                                    <span class="text-xs font-bold text-slate-400">Match #<?= $m['match_number'] ?> &bull; <?= getRoundLabel($m['round_key']) ?></span>
+                                    <span class="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200" id="live-match-header-<?= $matchId ?>">
+                                        Match #<?= $m['match_number'] ?> &bull; <?= getRoundLabel($m['round_key']) ?>
+                                    </span>
+                                    <span class="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
+                                        Best of <?= $mBestOf ?> Sets
+                                    </span>
                                     <?php
                                     $isCurDeuce = !empty($m['deuce_enabled']) && (int)$m['score_a'] >= (int)$m['deuce_trigger'] && (int)$m['score_b'] >= (int)$m['deuce_trigger'];
                                     ?>
@@ -474,8 +489,8 @@ include __DIR__ . '/../includes/header.php';
                                             <img src="<?= $spCornerUrl ?>" alt="Sponsor" class="h-3.5 max-w-[48px] object-contain">
                                         </div>
                                     <?php endif; ?>
-                                    <div id="live-game-num-<?= $matchId ?>" class="text-xs font-mono font-black text-red-600 bg-red-50 px-2.5 py-1 rounded-lg">
-                                        Game <?= ((int)($m['games_a'] ?? 0) + (int)($m['games_b'] ?? 0)) + 1 ?>
+                                    <div id="live-game-num-<?= $matchId ?>" class="text-xs font-mono font-black text-red-600 bg-red-50 border border-red-200 px-3 py-1 rounded-lg shadow-2xs">
+                                        Set <?= $mCurrentGame ?> of <?= $mBestOf ?>
                                     </div>
                                 </div>
                             </div>
@@ -512,11 +527,14 @@ include __DIR__ . '/../includes/header.php';
                                         </div>
                                         
                                         <div class="min-w-0">
-                                            <div class="flex items-center gap-2">
+                                            <div class="flex items-center gap-2 flex-wrap">
                                                 <div class="font-black text-base text-slate-900 truncate"><?= e($m['display_a']) ?></div>
+                                                <span id="live-games-badge-a-<?= $matchId ?>" class="px-2 py-0.5 rounded-full text-[10px] font-black <?= ((int)$m['games_a'] > 0) ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-slate-100 text-slate-500 border border-slate-200' ?>">
+                                                    <span id="live-games-won-count-a-<?= $matchId ?>"><?= (int)$m['games_a'] ?></span> Set<?= (int)$m['games_a'] === 1 ? '' : 's' ?> Won
+                                                </span>
                                                 <?php if ($pA): ?>
                                                     <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-[#c9a84c]/20 text-[#997d2e] border border-[#c9a84c]/30 flex-shrink-0">
-                                                        Rank #<?= $pA['rank'] ?> (<?= $pA['wins'] ?>W-<?= $pA['losses'] ?>L)
+                                                        Rank #<?= $pA['rank'] ?>
                                                     </span>
                                                 <?php endif; ?>
                                             </div>
@@ -562,11 +580,14 @@ include __DIR__ . '/../includes/header.php';
                                         </div>
 
                                         <div class="min-w-0">
-                                            <div class="flex items-center gap-2">
+                                            <div class="flex items-center gap-2 flex-wrap">
                                                 <div class="font-black text-base text-slate-900 truncate"><?= e($m['display_b']) ?></div>
+                                                <span id="live-games-badge-b-<?= $matchId ?>" class="px-2 py-0.5 rounded-full text-[10px] font-black <?= ((int)$m['games_b'] > 0) ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-slate-100 text-slate-500 border border-slate-200' ?>">
+                                                    <span id="live-games-won-count-b-<?= $matchId ?>"><?= (int)$m['games_b'] ?></span> Set<?= (int)$m['games_b'] === 1 ? '' : 's' ?> Won
+                                                </span>
                                                 <?php if ($pB): ?>
                                                     <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-[#c9a84c]/20 text-[#997d2e] border border-[#c9a84c]/30 flex-shrink-0">
-                                                        Rank #<?= $pB['rank'] ?> (<?= $pB['wins'] ?>W-<?= $pB['losses'] ?>L)
+                                                        Rank #<?= $pB['rank'] ?>
                                                     </span>
                                                 <?php endif; ?>
                                             </div>
@@ -585,49 +606,67 @@ include __DIR__ . '/../includes/header.php';
                             <!-- ============================================================ -->
                             <!-- LIVE AI WIN PROBABILITY & MOMENTUM METER                    -->
                             <!-- ============================================================ -->
-                            <div class="mt-4 pt-3 pb-2 border-t border-slate-100">
+                            <div class="mt-4 pt-3 pb-2 border-t border-slate-100" id="live-mom-container-<?= $matchId ?>">
                                 <div class="flex items-center justify-between text-[11px] font-black mb-1.5">
                                     <span class="text-blue-700 flex items-center gap-1">
                                         <i class="ph-fill ph-lightning text-[#c9a84c]"></i>
-                                        <span><?= e($m['display_a']) ?></span>: <strong id="mom-val-a-<?= $matchId ?>"><?= $curMomA ?>%</strong>
+                                        <span><?= e($m['display_a']) ?></span>: <strong id="momentum-val-a-<?= $matchId ?>"><?= $curMomA ?>%</strong>
                                     </span>
                                     <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">AI Win Predictor</span>
                                     <span class="text-indigo-800 flex items-center gap-1">
-                                        <strong id="mom-val-b-<?= $matchId ?>"><?= $curMomB ?>%</strong>: <span><?= e($m['display_b']) ?></span>
+                                        <strong id="momentum-val-b-<?= $matchId ?>"><?= $curMomB ?>%</strong>: <span><?= e($m['display_b']) ?></span>
                                     </span>
                                 </div>
 
                                 <!-- Dynamic Neon Momentum Bar -->
                                 <div class="w-full h-2.5 rounded-full bg-slate-200 overflow-hidden flex shadow-inner">
-                                    <div id="mom-bar-a-<?= $matchId ?>" 
+                                    <div id="momentum-bar-a-<?= $matchId ?>" 
                                          class="h-full bg-gradient-to-r from-blue-600 to-cyan-500 transition-all duration-700" 
                                          style="width: <?= $curMomA ?>%"></div>
-                                    <div id="mom-bar-b-<?= $matchId ?>" 
+                                    <div id="momentum-bar-b-<?= $matchId ?>" 
                                          class="h-full bg-gradient-to-r from-indigo-500 to-purple-600 transition-all duration-700" 
                                          style="width: <?= $curMomB ?>%"></div>
                                 </div>
                             </div>
 
-                            <!-- Set / Games Score History -->
-                            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-500">
-                                <div class="flex items-center gap-2">
-                                    <span class="text-[10px] uppercase tracking-wider text-slate-400">Games Won:</span>
-                                    <span class="font-black text-slate-800">
-                                        <span id="live-games-a-<?= $matchId ?>"><?= $m['games_a'] ?></span> 
-                                        - 
-                                        <span id="live-games-b-<?= $matchId ?>"><?= $m['games_b'] ?></span>
-                                    </span>
+                            <!-- ============================================================ -->
+                            <!-- SETS SCORE & COMPLETED SETS BREAKDOWN                        -->
+                            <!-- ============================================================ -->
+                            <div id="live-games-history-<?= $matchId ?>" class="mt-4 pt-3 border-t border-slate-100 space-y-2">
+                                <div class="flex items-center justify-between text-xs font-bold text-slate-500">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-[10px] uppercase tracking-wider text-slate-400">Sets Score:</span>
+                                        <span class="font-black text-slate-900 bg-slate-100 px-2.5 py-0.5 rounded-md border border-slate-200 font-mono">
+                                            <span id="live-games-a-<?= $matchId ?>"><?= (int)$m['games_a'] ?></span> 
+                                            - 
+                                            <span id="live-games-b-<?= $matchId ?>"><?= (int)$m['games_b'] ?></span>
+                                        </span>
+                                        <span class="text-[10px] text-slate-400 font-medium">
+                                            (Target: <?= ceil($mBestOf / 2) ?> to win)
+                                        </span>
+                                    </div>
                                 </div>
 
-                                <?php if (!empty($m['games'])): ?>
-                                    <div class="flex items-center gap-1.5 font-mono text-[11px]">
-                                        <?php foreach ($m['games'] as $g): ?>
-                                            <span class="px-2 py-0.5 rounded bg-slate-100 border text-slate-600 font-bold">
-                                                G<?= $g['game_number'] ?>: <?= $g['score_a'] ?>-<?= $g['score_b'] ?>
-                                            </span>
-                                        <?php endforeach; ?>
+                                <!-- Completed Sets Pills with Winner Display -->
+                                <div id="live-completed-sets-<?= $matchId ?>" class="<?= empty($m['games']) ? 'hidden' : 'flex' ?> flex-wrap items-center gap-2 pt-1">
+                                    <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">Previous Sets:</span>
+                                    <div id="live-completed-sets-list-<?= $matchId ?>" class="flex flex-wrap items-center gap-2">
+                                        <?php if (!empty($m['games'])): ?>
+                                            <?php foreach ($m['games'] as $g): 
+                                                $wSide = $g['winner_side'] ?? (($g['score_a'] > $g['score_b']) ? 'A' : 'B');
+                                                $wName = ($wSide === 'A') ? $m['display_a'] : $m['display_b'];
+                                            ?>
+                                                <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-50 border border-slate-200 text-xs shadow-2xs">
+                                                    <span class="font-bold text-slate-500">Set <?= $g['game_number'] ?>:</span>
+                                                    <span class="font-mono font-black text-slate-800"><?= $g['score_a'] ?> - <?= $g['score_b'] ?></span>
+                                                    <span class="inline-flex items-center gap-1 font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200 text-[10px]">
+                                                        <i class="ph-fill ph-trophy text-amber-500 text-xs"></i> <?= e($wName) ?>
+                                                    </span>
+                                                </div>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
                                     </div>
-                                <?php endif; ?>
+                                </div>
                             </div>
 
                         </div>
@@ -1288,6 +1327,38 @@ function tournamentPublicManager(defaultTab, tournamentId) {
             }, 2500);
         },
 
+        calculateWinProbJS(scoreA, scoreB, gamesA, gamesB, targetPoints = 11, bestOf = 3, isCompleted = false, winnerSide = null) {
+            if (isCompleted) {
+                if (winnerSide === 'A' || gamesA > gamesB || (gamesA === gamesB && scoreA > scoreB)) {
+                    return { a: 100, b: 0 };
+                } else {
+                    return { a: 0, b: 100 };
+                }
+            }
+            const gamesNeeded = Math.ceil(bestOf / 2);
+            const gamesRemA = Math.max(0, gamesNeeded - gamesA);
+            const gamesRemB = Math.max(0, gamesNeeded - gamesB);
+            if (gamesRemA <= 0) return { a: 100, b: 0 };
+            if (gamesRemB <= 0) return { a: 0, b: 100 };
+
+            const target = Math.max(targetPoints, Math.max(scoreA, scoreB) + 1);
+            const remPointsA = Math.max(0.5, target - scoreA);
+            const remPointsB = Math.max(0.5, target - scoreB);
+            const pGameA = remPointsB / (remPointsA + remPointsB);
+
+            let pMatchA = pGameA;
+            if (bestOf >= 3) {
+                if (gamesA > gamesB) {
+                    pMatchA = pGameA + (1.0 - pGameA) * 0.45;
+                } else if (gamesB > gamesA) {
+                    pMatchA = pGameA * 0.55;
+                }
+            }
+            let pctA = Math.round(pMatchA * 100);
+            pctA = Math.max(5, Math.min(95, pctA));
+            return { a: pctA, b: 100 - pctA };
+        },
+
         updateLiveScores(liveMatches) {
             const liveGrid = document.getElementById('tournament-live-grid');
             const liveSection = document.getElementById('tournament-live-section');
@@ -1304,43 +1375,112 @@ function tournamentPublicManager(defaultTab, tournamentId) {
                 const matchId = m.id;
                 let cardEl = document.getElementById('live-match-card-' + matchId);
 
+                const scoreA = (m.score_a !== undefined) ? parseInt(m.score_a) : parseInt(m.game_score_a ?? 0);
+                const scoreB = (m.score_b !== undefined) ? parseInt(m.score_b) : parseInt(m.game_score_b ?? 0);
+                const gamesA = (m.games_a !== undefined) ? parseInt(m.games_a) : parseInt(m.player_a_games_won ?? 0);
+                const gamesB = (m.games_b !== undefined) ? parseInt(m.games_b) : parseInt(m.player_b_games_won ?? 0);
+                const bestOf = parseInt(m.best_of || 3);
+                const targetPoints = parseInt(m.points_per_game || 11);
+                const curGame = m.current_game_number || ((gamesA + gamesB) + 1);
+
+                // Calculate or take momentum
+                let momA = (m.momentum_a !== undefined) ? m.momentum_a : null;
+                let momB = (m.momentum_b !== undefined) ? m.momentum_b : null;
+                if (momA === null || momB === null) {
+                    const probs = this.calculateWinProbJS(scoreA, scoreB, gamesA, gamesB, targetPoints, bestOf, m.is_completed, m.winner_side);
+                    momA = probs.a;
+                    momB = probs.b;
+                }
+
                 // If card does not exist in DOM yet (e.g. match started after page loaded), build and append it
                 if (!cardEl && liveGrid && (m.status === 'in_progress' || m.status === 'live')) {
                     const tempDiv = document.createElement('div');
                     tempDiv.innerHTML = `
                         <div class="bg-white rounded-3xl p-6 sm:p-7 border-2 border-red-400 ring-4 ring-red-50 shadow-2xl relative overflow-hidden flex flex-col justify-between group bg-badminton-court transition-all duration-500"
                              id="live-match-card-${matchId}">
-                            <div class="flex items-center justify-between mb-5 border-b border-slate-100 pb-3">
-                                <div class="flex items-center gap-2">
+                            
+                            <!-- Top Live Badge & Match Header -->
+                            <div class="flex items-center justify-between mb-5 border-b border-slate-100 pb-3 flex-wrap gap-2">
+                                <div class="flex items-center gap-2 flex-wrap">
                                     <span id="live-status-badge-${matchId}" class="px-3 py-1 rounded-full bg-red-500 text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm animate-pulse transition-all duration-500">
                                         <span class="w-1.5 h-1.5 rounded-full bg-white"></span> LIVE COURT
                                     </span>
-                                    <span class="text-xs font-bold text-slate-400">Match #${m.match_number || matchId}</span>
+                                    <span class="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200" id="live-match-header-${matchId}">
+                                        Match #${m.match_number || matchId} &bull; ${m.round_label || 'Match'}
+                                    </span>
+                                    <span class="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
+                                        Best of ${bestOf} Sets
+                                    </span>
                                     <span id="deuce-badge-${matchId}" class="hidden px-2.5 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-black uppercase tracking-wider shadow-sm animate-bounce">
                                         🔥 DEUCE
                                     </span>
                                 </div>
-                                <div id="live-game-num-${matchId}" class="text-xs font-mono font-black text-red-600 bg-red-50 px-2.5 py-1 rounded-lg">
-                                    Game ${(m.games_a || 0) + (m.games_b || 0) + 1}
+                                <div id="live-game-num-${matchId}" class="text-xs font-mono font-black text-red-600 bg-red-50 border border-red-200 px-3 py-1 rounded-lg shadow-2xs">
+                                    Set ${curGame} of ${bestOf}
                                 </div>
                             </div>
+
+                            <!-- Competitors Arena with Live Scores and Net Divider -->
                             <div class="space-y-3 my-2">
+                                <!-- Competitor A -->
                                 <div class="p-4 rounded-2xl bg-slate-50/90 border border-slate-200 flex items-center justify-between transition-colors shadow-xs">
-                                    <div class="font-black text-base text-slate-900 truncate">${m.display_a || m.player_a || 'Player A'}</div>
-                                    <div id="live-score-a-${matchId}" class="text-3xl font-black font-display text-slate-900 bg-white border border-slate-200 px-4 py-2 rounded-xl shadow-xs min-w-[52px] text-center transition-all duration-300 bg-racket-strings">${m.score_a || 0}</div>
+                                    <div class="flex items-center gap-3.5 min-w-0 pr-2">
+                                        <div class="font-black text-base text-slate-900 truncate">${m.display_a || m.player_a || 'Player A'}</div>
+                                        <span id="live-games-badge-a-${matchId}" class="px-2 py-0.5 rounded-full text-[10px] font-black ${gamesA > 0 ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-slate-100 text-slate-500 border border-slate-200'}">
+                                            <span id="live-games-won-count-a-${matchId}">${gamesA}</span> Set${gamesA === 1 ? '' : 's'} Won
+                                        </span>
+                                    </div>
+                                    <div id="live-score-a-${matchId}" class="text-3xl font-black font-display text-slate-900 bg-white border border-slate-200 px-4 py-2 rounded-xl shadow-xs min-w-[52px] text-center transition-all duration-300 bg-racket-strings">${scoreA}</div>
                                 </div>
+
                                 <div class="badminton-net-divider-h rounded-full my-1 opacity-75"></div>
+
+                                <!-- Competitor B -->
                                 <div class="p-4 rounded-2xl bg-slate-50/90 border border-slate-200 flex items-center justify-between transition-colors shadow-xs">
-                                    <div class="font-black text-base text-slate-900 truncate">${m.display_b || m.player_b || 'Player B'}</div>
-                                    <div id="live-score-b-${matchId}" class="text-3xl font-black font-display text-slate-900 bg-white border border-slate-200 px-4 py-2 rounded-xl shadow-xs min-w-[52px] text-center transition-all duration-300 bg-racket-strings">${m.score_b || 0}</div>
+                                    <div class="flex items-center gap-3.5 min-w-0 pr-2">
+                                        <div class="font-black text-base text-slate-900 truncate">${m.display_b || m.player_b || 'Player B'}</div>
+                                        <span id="live-games-badge-b-${matchId}" class="px-2 py-0.5 rounded-full text-[10px] font-black ${gamesB > 0 ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-slate-100 text-slate-500 border border-slate-200'}">
+                                            <span id="live-games-won-count-b-${matchId}">${gamesB}</span> Set${gamesB === 1 ? '' : 's'} Won
+                                        </span>
+                                    </div>
+                                    <div id="live-score-b-${matchId}" class="text-3xl font-black font-display text-slate-900 bg-white border border-slate-200 px-4 py-2 rounded-xl shadow-xs min-w-[52px] text-center transition-all duration-300 bg-racket-strings">${scoreB}</div>
                                 </div>
                             </div>
-                            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-500">
-                                <div class="flex items-center gap-2">
-                                    <span class="text-[10px] uppercase tracking-wider text-slate-400">Games Won:</span>
-                                    <span class="font-black text-slate-800">
-                                        <span id="live-games-a-${matchId}">${m.games_a || 0}</span> - <span id="live-games-b-${matchId}">${m.games_b || 0}</span>
+
+                            <!-- Live AI Win Predictor -->
+                            <div class="mt-4 pt-3 pb-2 border-t border-slate-100" id="live-mom-container-${matchId}">
+                                <div class="flex items-center justify-between text-[11px] font-black mb-1.5">
+                                    <span class="text-blue-700 flex items-center gap-1">
+                                        <i class="ph-fill ph-lightning text-[#c9a84c]"></i>
+                                        <span>${m.display_a || m.player_a || 'Player A'}</span>: <strong id="momentum-val-a-${matchId}">${momA}%</strong>
                                     </span>
+                                    <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">AI Win Predictor</span>
+                                    <span class="text-indigo-800 flex items-center gap-1">
+                                        <strong id="momentum-val-b-${matchId}">${momB}%</strong>: <span>${m.display_b || m.player_b || 'Player B'}</span>
+                                    </span>
+                                </div>
+                                <div class="w-full h-2.5 rounded-full bg-slate-200 overflow-hidden flex shadow-inner">
+                                    <div id="momentum-bar-a-${matchId}" class="h-full bg-gradient-to-r from-blue-600 to-cyan-500 transition-all duration-700" style="width: ${momA}%"></div>
+                                    <div id="momentum-bar-b-${matchId}" class="h-full bg-gradient-to-r from-indigo-500 to-purple-600 transition-all duration-700" style="width: ${momB}%"></div>
+                                </div>
+                            </div>
+
+                            <!-- Sets Score & Completed Sets Breakdown -->
+                            <div id="live-games-history-${matchId}" class="mt-4 pt-3 border-t border-slate-100 space-y-2">
+                                <div class="flex items-center justify-between text-xs font-bold text-slate-500">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-[10px] uppercase tracking-wider text-slate-400">Sets Score:</span>
+                                        <span class="font-black text-slate-900 bg-slate-100 px-2.5 py-0.5 rounded-md border border-slate-200 font-mono">
+                                            <span id="live-games-a-${matchId}">${gamesA}</span> - <span id="live-games-b-${matchId}">${gamesB}</span>
+                                        </span>
+                                        <span class="text-[10px] text-slate-400 font-medium">
+                                            (Target: ${Math.ceil(bestOf / 2)} to win)
+                                        </span>
+                                    </div>
+                                </div>
+                                <div id="live-completed-sets-${matchId}" class="hidden flex-wrap items-center gap-2 pt-1">
+                                    <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">Previous Sets:</span>
+                                    <div id="live-completed-sets-list-${matchId}" class="flex flex-wrap items-center gap-2"></div>
                                 </div>
                             </div>
                         </div>
@@ -1349,10 +1489,15 @@ function tournamentPublicManager(defaultTab, tournamentId) {
                     liveGrid.appendChild(cardEl);
                 }
 
+                // Update scores in place
                 const scoreAEl = document.getElementById('live-score-a-' + matchId);
                 const scoreBEl = document.getElementById('live-score-b-' + matchId);
                 const gameAEl = document.getElementById('live-games-a-' + matchId);
                 const gameBEl = document.getElementById('live-games-b-' + matchId);
+                const countAEl = document.getElementById('live-games-won-count-a-' + matchId);
+                const countBEl = document.getElementById('live-games-won-count-b-' + matchId);
+                const badgeAEl = document.getElementById('live-games-badge-a-' + matchId);
+                const badgeBEl = document.getElementById('live-games-badge-b-' + matchId);
                 const serverAEl = document.getElementById('server-indicator-a-' + matchId);
                 const serverBEl = document.getElementById('server-indicator-b-' + matchId);
                 const gameNumEl = document.getElementById('live-game-num-' + matchId);
@@ -1361,21 +1506,39 @@ function tournamentPublicManager(defaultTab, tournamentId) {
                 const momValAEl = document.getElementById('momentum-val-a-' + matchId);
                 const momValBEl = document.getElementById('momentum-val-b-' + matchId);
 
-                const scoreA = (m.score_a !== undefined) ? m.score_a : (m.game_score_a ?? 0);
-                const scoreB = (m.score_b !== undefined) ? m.score_b : (m.game_score_b ?? 0);
-                const gamesA = (m.games_a !== undefined) ? m.games_a : (m.player_a_games_won ?? 0);
-                const gamesB = (m.games_b !== undefined) ? m.games_b : (m.player_b_games_won ?? 0);
-
                 if (scoreAEl) scoreAEl.innerText = scoreA;
                 if (scoreBEl) scoreBEl.innerText = scoreB;
                 if (gameAEl) gameAEl.innerText = gamesA;
                 if (gameBEl) gameBEl.innerText = gamesB;
-                if (gameNumEl) gameNumEl.innerText = 'Game ' + (m.current_game_number || m.current_game || 1);
+                if (countAEl) countAEl.innerText = gamesA;
+                if (countBEl) countBEl.innerText = gamesB;
 
+                if (badgeAEl) {
+                    badgeAEl.className = gamesA > 0 
+                        ? 'px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-800 border border-amber-300' 
+                        : 'px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-500 border border-slate-200';
+                }
+                if (badgeBEl) {
+                    badgeBEl.className = gamesB > 0 
+                        ? 'px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-800 border border-amber-300' 
+                        : 'px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-500 border border-slate-200';
+                }
+
+                if (gameNumEl) {
+                    if (m.is_completed) {
+                        gameNumEl.innerText = 'Match Finished';
+                        gameNumEl.className = 'text-xs font-mono font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-lg';
+                    } else {
+                        gameNumEl.innerText = 'Set ' + curGame + ' of ' + bestOf;
+                        gameNumEl.className = 'text-xs font-mono font-black text-red-600 bg-red-50 border border-red-200 px-3 py-1 rounded-lg shadow-2xs';
+                    }
+                }
+
+                // Deuce indicator
                 const deuceEl = document.getElementById('deuce-badge-' + matchId);
                 if (deuceEl) {
                     const isDeuce = m.deuce_enabled && parseInt(scoreA) >= parseInt(m.deuce_trigger) && parseInt(scoreB) >= parseInt(m.deuce_trigger);
-                    if (isDeuce) {
+                    if (isDeuce && !m.is_completed) {
                         deuceEl.classList.remove('hidden');
                     } else {
                         deuceEl.classList.add('hidden');
@@ -1383,7 +1546,7 @@ function tournamentPublicManager(defaultTab, tournamentId) {
                 }
 
                 if (serverAEl) {
-                    if (m.current_server === 'player_a') {
+                    if (m.current_server === 'player_a' && !m.is_completed) {
                         serverAEl.classList.remove('hidden');
                     } else {
                         serverAEl.classList.add('hidden');
@@ -1391,22 +1554,51 @@ function tournamentPublicManager(defaultTab, tournamentId) {
                 }
 
                 if (serverBEl) {
-                    if (m.current_server === 'player_b') {
+                    if (m.current_server === 'player_b' && !m.is_completed) {
                         serverBEl.classList.remove('hidden');
                     } else {
                         serverBEl.classList.add('hidden');
                     }
                 }
 
+                // AI Win Predictor Update
                 if (momValAEl && momValBEl) {
-                    momValAEl.innerText = m.momentum_a + '%';
-                    momValBEl.innerText = m.momentum_b + '%';
-                    if (momBarAEl) momBarAEl.style.width = m.momentum_a + '%';
-                    if (momBarBEl) momBarBEl.style.width = m.momentum_b + '%';
+                    momValAEl.innerText = momA + '%';
+                    momValBEl.innerText = momB + '%';
+                    if (momBarAEl) momBarAEl.style.width = momA + '%';
+                    if (momBarBEl) momBarBEl.style.width = momB + '%';
+                }
+
+                // Completed Sets Breakdown Update
+                const setsContainer = document.getElementById('live-completed-sets-' + matchId);
+                const setsList = document.getElementById('live-completed-sets-list-' + matchId);
+                if (setsContainer && setsList) {
+                    if (m.games && m.games.length > 0) {
+                        setsContainer.classList.remove('hidden');
+                        setsContainer.classList.add('flex');
+                        setsList.innerHTML = m.games.map(g => {
+                            const wSide = g.winner_side || (g.score_a > g.score_b ? 'A' : (g.score_b > g.score_a ? 'B' : null));
+                            const wName = g.winner_name || (wSide === 'A' ? (m.display_a || m.player_a) : (wSide === 'B' ? (m.display_b || m.player_b) : ''));
+                            return `
+                                <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-50 border border-slate-200 text-xs shadow-2xs">
+                                    <span class="font-bold text-slate-500">Set ${g.game_number}:</span>
+                                    <span class="font-mono font-black text-slate-800">${g.score_a} - ${g.score_b}</span>
+                                    ${wName ? `
+                                        <span class="inline-flex items-center gap-1 font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200 text-[10px]">
+                                            <i class="ph-fill ph-trophy text-amber-500 text-xs"></i> ${this.escapeHtml(wName)}
+                                        </span>
+                                    ` : ''}
+                                </div>
+                            `;
+                        }).join('');
+                    } else {
+                        setsContainer.classList.add('hidden');
+                        setsContainer.classList.remove('flex');
+                        setsList.innerHTML = '';
+                    }
                 }
 
                 if (m.is_completed) {
-                    if (gameNumEl) gameNumEl.innerText = 'Final';
                     if (deuceEl) deuceEl.classList.add('hidden');
                     if (serverAEl) serverAEl.classList.add('hidden');
                     if (serverBEl) serverBEl.classList.add('hidden');

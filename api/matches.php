@@ -86,13 +86,33 @@ try {
         }
 
         $games = $gamesMap[$m['id']] ?? [];
+        foreach ($games as &$g) {
+            if (empty($g['winner_side'])) {
+                $g['winner_side'] = ($g['score_a'] > $g['score_b']) ? 'A' : (($g['score_b'] > $g['score_a']) ? 'B' : null);
+            }
+            $g['winner_name'] = ($g['winner_side'] === 'A') ? $displayA : (($g['winner_side'] === 'B') ? $displayB : null);
+        }
+        unset($g);
         $scoreBreakdown = implode(', ', array_map(fn($g) => $g['score_a'] . '-' . $g['score_b'], $games));
+
+        $probs = calculateWinProbability(
+            (int)$m['score_a'],
+            (int)$m['score_b'],
+            (int)$m['games_a'],
+            (int)$m['games_b'],
+            (int)($m['points_per_game'] ?? 11),
+            (int)($m['best_of'] ?? 3),
+            $isCompleted,
+            $winnerSide
+        );
 
         $item = [
             'id'                  => (int)$m['id'],
             'tournament_id'       => (int)$m['tournament_id'],
             'tournament_name'     => $m['tournament_name'] ?? '',
+            'match_number'        => (int)($m['match_number'] ?? 0),
             'round_key'           => $m['round_key'],
+            'round_label'         => getRoundLabel($m['round_key'] ?? ''),
             'status'              => $m['status'],
             'is_completed'        => $isCompleted,
             'score_a'             => (int)$m['score_a'],
@@ -107,13 +127,17 @@ try {
             'display_b'           => $displayB,
             'player_a'            => $m['player_a'] ?? '',
             'player_b'            => $m['player_b'] ?? '',
-            'best_of'             => (int)$m['best_of'],
-            'points_per_game'     => (int)$m['points_per_game'],
+            'best_of'             => (int)($m['best_of'] ?? 3),
+            'points_per_game'     => (int)($m['points_per_game'] ?? 11),
             'deuce_enabled'       => (bool)$m['deuce_enabled'],
             'deuce_trigger'       => (int)$m['deuce_trigger'],
             'deuce_cap'           => (int)$m['deuce_cap'],
             'winner_side'         => $winnerSide,
+            'winner_name'         => ($winnerSide === 'A') ? $displayA : (($winnerSide === 'B') ? $displayB : null),
+            'games'               => $games,
             'score_breakdown'     => $scoreBreakdown,
+            'momentum_a'          => $probs['a'],
+            'momentum_b'          => $probs['b'],
             'walkover_reason'     => $m['walkover_reason'] ?? null,
             'current_game_number' => ((int)$m['games_a'] + (int)$m['games_b']) + 1,
         ];

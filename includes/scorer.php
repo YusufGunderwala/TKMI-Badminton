@@ -582,6 +582,13 @@ class Scorer {
     }
     
     private static function getStateResponse(array $match): array {
+        $games = [];
+        try {
+            $stmtG = db()->prepare("SELECT game_number, score_a, score_b, winner_side FROM games WHERE match_id = ? ORDER BY game_number ASC");
+            $stmtG->execute([$match['id']]);
+            $games = $stmtG->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {}
+
         return [
             'success'      => true,
             'score_a'      => (int)$match['score_a'],
@@ -589,6 +596,7 @@ class Scorer {
             'games_a'      => (int)$match['games_a'],
             'games_b'      => (int)$match['games_b'],
             'status'       => $match['status'],
+            'games'        => $games,
             'is_completed' => in_array($match['status'], [MATCH_COMPLETED, MATCH_WALKOVER, MATCH_RETIRED]),
             'redirect_url' => in_array($match['status'], [MATCH_COMPLETED, MATCH_WALKOVER, MATCH_RETIRED]) ? BASE_URL . '/admin/scoring/index.php?tournament_id=' . $match['tournament_id'] : null
         ];

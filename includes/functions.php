@@ -166,7 +166,50 @@ function getLiveMatches(?int $tournamentId = null): array {
     $params = [MATCH_LIVE];
     if ($tournamentId) $params[] = $tournamentId;
     $stmt->execute($params);
-    return $stmt->fetchAll();
+    $matches = $stmt->fetchAll();
+
+    if (!empty($matches)) {
+        $mIds = array_column($matches, 'id');
+        $in = implode(',', array_map('intval', $mIds));
+        $gRows = db()->query("SELECT match_id, game_number, score_a, score_b, winner_side FROM games WHERE match_id IN ($in) ORDER BY match_id, game_number ASC")->fetchAll();
+        $gMap = [];
+        foreach ($gRows as $gr) {
+            $gMap[$gr['match_id']][] = $gr;
+        }
+
+        foreach ($matches as &$m) {
+            $isDoubles = !empty($m['team_a_id']);
+            $dispA = $isDoubles ? ($m['ta_name'] ?: 'Team A') : ($m['pa_name'] ?: 'Player A');
+            $dispB = $isDoubles ? ($m['tb_name'] ?: 'Team B') : ($m['pb_name'] ?: 'Player B');
+            $m['display_a'] = $dispA;
+            $m['display_b'] = $dispB;
+            $m['round_label'] = getRoundLabel($m['round_key'] ?? '');
+
+            $mGames = $gMap[$m['id']] ?? [];
+            foreach ($mGames as &$g) {
+                if (empty($g['winner_side'])) {
+                    $g['winner_side'] = ($g['score_a'] > $g['score_b']) ? 'A' : (($g['score_b'] > $g['score_a']) ? 'B' : null);
+                }
+                $g['winner_name'] = ($g['winner_side'] === 'A') ? $dispA : (($g['winner_side'] === 'B') ? $dispB : null);
+            }
+            unset($g);
+            $m['games'] = $mGames;
+
+            $probs = calculateWinProbability(
+                (int)$m['score_a'],
+                (int)$m['score_b'],
+                (int)$m['games_a'],
+                (int)$m['games_b'],
+                (int)($m['points_per_game'] ?? 11),
+                (int)($m['best_of'] ?? 3)
+            );
+            $m['momentum_a'] = $probs['a'];
+            $m['momentum_b'] = $probs['b'];
+        }
+        unset($m);
+    }
+
+    return $matches;
 }
 
 function getUpcomingMatches(?int $tournamentId = null, int $limit = 5): array {
@@ -261,6 +304,51 @@ function getRoundLabel(string $roundKey): string {
         return 'Round ' . $matches[1];
     }
     return ucwords(str_replace(['_', '-'], ' ', $roundKey));
+}
+
+// ---- Match Win Predictor / Momentum -----------------------
+
+function calculateWinProbability(int $scoreA, int $scoreB, int $gamesA, int $gamesB, int $targetPoints = 11, int $bestOf = 3, bool $isCompleted = false, ?string $winnerSide = null): array {
+    if ($isCompleted) {
+        if ($winnerSide === 'A' || $gamesA > $gamesB || ($gamesA === $gamesB && $scoreA > $scoreB)) {
+            return ['a' => 100, 'b' => 0];
+        } else {
+            return ['a' => 0, 'b' => 100];
+        }
+    }
+
+    $gamesNeeded = (int)ceil($bestOf / 2);
+    $gamesRemA = max(0, $gamesNeeded - $gamesA);
+    $gamesRemB = max(0, $gamesNeeded - $gamesB);
+
+    if ($gamesRemA <= 0) return ['a' => 100, 'b' => 0];
+    if ($gamesRemB <= 0) return ['a' => 0, 'b' => 100];
+
+    // Current game probability based on points needed to target
+    $target = max($targetPoints, max($scoreA, $scoreB) + 1);
+    $remPointsA = max(0.5, (float)($target - $scoreA));
+    $remPointsB = max(0.5, (float)($target - $scoreB));
+
+    // Inverse ratio: fewer points needed means much higher win chance
+    $pGameA = $remPointsB / ($remPointsA + $remPointsB);
+
+    // Factor in games/sets already won
+    $pMatchA = $pGameA;
+    if ($bestOf >= 3) {
+        if ($gamesA > $gamesB) {
+            // A already holds a set advantage
+            $pMatchA = $pGameA + (1.0 - $pGameA) * 0.45;
+        } elseif ($gamesB > $gamesA) {
+            // B holds a set advantage
+            $pMatchA = $pGameA * 0.55;
+        }
+    }
+
+    $pctA = (int)round($pMatchA * 100);
+    $pctA = max(5, min(95, $pctA));
+    $pctB = 100 - $pctA;
+
+    return ['a' => $pctA, 'b' => $pctB];
 }
 
 // ---- Format Helpers ----------------------------------------

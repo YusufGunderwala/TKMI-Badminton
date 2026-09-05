@@ -78,6 +78,13 @@ if (!empty($match['winner_player_id'])) {
 $csrf = csrf_token();
 $bestOf = (int)$match['best_of'];
 $gamesToWin = ceil($bestOf / 2);
+
+$initialCompletedGames = [];
+try {
+    $gStmt = $pdo->prepare("SELECT game_number, score_a, score_b, winner_side FROM games WHERE match_id = ? ORDER BY game_number ASC");
+    $gStmt->execute([$matchId]);
+    $initialCompletedGames = $gStmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) {}
 ?>
 <!DOCTYPE html>
 <html lang="en" class="h-full select-none">
@@ -936,6 +943,7 @@ $gamesToWin = ceil($bestOf / 2);
             score_b: <?= (int)$match['score_b'] ?>,
             games_a: <?= (int)$match['games_a'] ?>,
             games_b: <?= (int)$match['games_b'] ?>,
+            completedGames: <?= json_encode($initialCompletedGames) ?>,
             isCompleted: <?= in_array($match['status'], [MATCH_COMPLETED, MATCH_WALKOVER, MATCH_RETIRED]) ? 'true' : 'false' ?>,
             serverWinnerSide: '<?= $serverWinnerSide ?>',
             server: 'A',
@@ -1341,6 +1349,7 @@ $gamesToWin = ceil($bestOf / 2);
                         }
                         this.transitionGamesA = this.games_a;
                         this.transitionGamesB = this.games_b;
+                        if (data.games) this.completedGames = data.games;
 
                         // Reconcile points if queue is empty and modal is closed
                         if (this.actionQueue.length === 0 && !this.showGameTransitionModal) {

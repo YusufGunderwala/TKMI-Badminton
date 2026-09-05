@@ -172,6 +172,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 dotsContainerB.innerHTML = buildGameDots(match.games_b || 0, gamesToWin);
             }
 
+            // Update completed sets breakdown in place
+            const cardGamesEl = document.getElementById('live-card-games-' + match.id);
+            const cardGamesListEl = document.getElementById('live-card-games-list-' + match.id);
+            if (cardGamesEl && cardGamesListEl) {
+                if (match.games && match.games.length > 0) {
+                    cardGamesEl.classList.remove('hidden');
+                    cardGamesEl.classList.add('flex');
+                    cardGamesListEl.innerHTML = match.games.map(g => {
+                        const wSide = g.winner_side || (g.score_a > g.score_b ? 'A' : (g.score_b > g.score_a ? 'B' : null));
+                        const wName = g.winner_name || (wSide === 'A' ? (match.display_a || match.player_a) : (wSide === 'B' ? (match.display_b || match.player_b) : ''));
+                        return `
+                            <span class="inline-flex items-center gap-1 bg-white px-2 py-0.5 rounded-md border border-slate-200 text-slate-700 font-mono text-[10px] font-bold shadow-2xs">
+                                <span>Set ${g.game_number}: ${g.score_a}-${g.score_b}</span>
+                                ${wName ? `<span class="text-emerald-700 font-black">(${escapeHtml(wName)})</span>` : ''}
+                            </span>
+                        `;
+                    }).join('');
+                } else {
+                    cardGamesEl.classList.add('hidden');
+                    cardGamesEl.classList.remove('flex');
+                    cardGamesListEl.innerHTML = '';
+                }
+            }
+
             // Check completion / Winner celebration banner
             const isCompleted = match.status === 'completed' || match.status === 'walkover' || match.status === 'retired' || match.is_completed;
             const headerEl = document.getElementById('live-card-header-' + match.id);
@@ -267,9 +291,26 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
                 
+                <!-- Completed Sets Breakdown -->
+                <div id="live-card-games-${match.id}" class="${(match.games && match.games.length > 0) ? 'flex' : 'hidden'} bg-slate-50 border-t border-slate-100 px-4 py-2 flex-wrap items-center gap-1.5 text-[11px]">
+                    <span class="text-[10px] font-black uppercase tracking-wider text-slate-400 mr-1">Previous Sets:</span>
+                    <div class="flex flex-wrap items-center gap-1.5" id="live-card-games-list-${match.id}">
+                        ${(match.games || []).map(g => {
+                            const wSide = g.winner_side || (g.score_a > g.score_b ? 'A' : (g.score_b > g.score_a ? 'B' : null));
+                            const wName = g.winner_name || (wSide === 'A' ? (match.display_a || match.player_a) : (wSide === 'B' ? (match.display_b || match.player_b) : ''));
+                            return `
+                                <span class="inline-flex items-center gap-1 bg-white px-2 py-0.5 rounded-md border border-slate-200 text-slate-700 font-mono text-[10px] font-bold shadow-2xs">
+                                    <span>Set ${g.game_number}: ${g.score_a}-${g.score_b}</span>
+                                    ${wName ? `<span class="text-emerald-700 font-black">(${escapeHtml(wName)})</span>` : ''}
+                                </span>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+
                 <div class="bg-slate-50 border-t border-slate-100 px-4 py-2 flex items-center justify-between text-[11px] font-bold text-slate-500">
-                    <span class="uppercase tracking-wider">Race to ${match.points_per_game || 11} Pts</span>
-                    <span class="text-blue-600 font-bold">Best of ${match.best_of || 3}</span>
+                    <span class="uppercase tracking-wider">Race to ${match.points_per_game || 11} Pts ${match.round_label ? `&bull; ${escapeHtml(match.round_label)}` : ''}</span>
+                    <span class="text-blue-600 font-bold">Best of ${match.best_of || 3} Sets</span>
                 </div>
             </div>
         `;

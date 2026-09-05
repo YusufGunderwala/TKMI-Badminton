@@ -117,10 +117,10 @@ while (true) {
                 $lm['player_b_games_won'] = (int)$lm['games_b'];
                 $lm['current_game_number'] = ((int)($lm['games_a'] ?? 0) + (int)($lm['games_b'] ?? 0)) + 1;
                 $lm['current_game'] = $lm['current_game_number'];
-                $lm['momentum_a'] = 50;
-                $lm['momentum_b'] = 50;
                 $lm['deuce_enabled'] = (bool)$lm['deuce_enabled'];
                 $lm['is_completed'] = in_array($lm['status'], ['completed', 'walkover', 'retired']);
+                $lm['match_number'] = (int)($lm['match_number'] ?? 0);
+                $lm['round_label'] = getRoundLabel($lm['round_key'] ?? '');
 
                 // Winner determination
                 $winnerSide = null;
@@ -132,11 +132,32 @@ while (true) {
                 $lm['winner_side'] = $winnerSide;
                 $lm['winner_name'] = ($winnerSide === 'A') ? $lm['display_a'] : (($winnerSide === 'B') ? $lm['display_b'] : null);
 
-                // Games history
+                // Games history with winner details
                 $games = $gamesMap[$lm['id']] ?? [];
+                foreach ($games as &$g) {
+                    if (empty($g['winner_side'])) {
+                        $g['winner_side'] = ($g['score_a'] > $g['score_b']) ? 'A' : (($g['score_b'] > $g['score_a']) ? 'B' : null);
+                    }
+                    $g['winner_name'] = ($g['winner_side'] === 'A') ? $lm['display_a'] : (($g['winner_side'] === 'B') ? $lm['display_b'] : null);
+                }
+                unset($g);
                 $lm['games'] = $games;
                 $scoresArr = array_map(fn($g) => $g['score_a'] . '-' . $g['score_b'], $games);
                 $lm['score_breakdown'] = implode(', ', $scoresArr);
+
+                // Real-time AI Win Predictor / Momentum Calculation
+                $probs = calculateWinProbability(
+                    $lm['game_score_a'],
+                    $lm['game_score_b'],
+                    $lm['player_a_games_won'],
+                    $lm['player_b_games_won'],
+                    (int)($lm['points_per_game'] ?? 11),
+                    (int)($lm['best_of'] ?? 3),
+                    $lm['is_completed'],
+                    $lm['winner_side']
+                );
+                $lm['momentum_a'] = $probs['a'];
+                $lm['momentum_b'] = $probs['b'];
 
                 if ($lm['status'] === 'in_progress') {
                     $liveMatches[] = $lm;

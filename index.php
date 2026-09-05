@@ -258,8 +258,28 @@ include __DIR__ . '/includes/header.php';
                             </div>
                         </div>
                         
+                        <!-- Completed Sets Breakdown -->
+                        <div id="live-card-games-<?= $match['id'] ?>" class="<?= !empty($match['games']) ? 'flex' : 'hidden' ?> bg-slate-50 border-t border-slate-100 px-4 py-2 flex-wrap items-center gap-1.5 text-[11px]">
+                            <span class="text-[10px] font-black uppercase tracking-wider text-slate-400 mr-1">Previous Sets:</span>
+                            <div class="flex flex-wrap items-center gap-1.5" id="live-card-games-list-<?= $match['id'] ?>">
+                                <?php if (!empty($match['games'])): ?>
+                                    <?php foreach ($match['games'] as $g): 
+                                        $wSide = $g['winner_side'] ?? (($g['score_a'] > $g['score_b']) ? 'A' : 'B');
+                                        $wName = $g['winner_name'] ?? (($wSide === 'A') ? $pAName : $pBName);
+                                    ?>
+                                        <span class="inline-flex items-center gap-1 bg-white px-2 py-0.5 rounded-md border border-slate-200 text-slate-700 font-mono text-[10px] font-bold shadow-2xs">
+                                            <span>Set <?= $g['game_number'] ?>: <?= $g['score_a'] ?>-<?= $g['score_b'] ?></span>
+                                            <?php if ($wName): ?>
+                                                <span class="text-emerald-700 font-black">(<?= e($wName) ?>)</span>
+                                            <?php endif; ?>
+                                        </span>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+
                         <div class="bg-slate-50 border-t border-slate-100 px-4 py-2 flex items-center justify-between text-[11px] font-bold text-slate-500">
-                            <span class="uppercase tracking-wider"><?= getRoundLabel($match['round_key'] ?? 'r1') ?></span>
+                            <span class="uppercase tracking-wider">Match #<?= $match['match_number'] ?? '' ?> &bull; <?= getRoundLabel($match['round_key'] ?? 'r1') ?> &bull; Best of <?= $match['best_of'] ?? 3 ?></span>
                             <a href="<?= BASE_URL ?>/public/tournament.php?id=<?= $match['tournament_id'] ?>" class="text-blue-600 font-bold hover:underline">View Arena &rarr;</a>
                         </div>
                     </div>
