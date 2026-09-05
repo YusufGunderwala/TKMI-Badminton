@@ -158,7 +158,7 @@ function getLiveMatches(?int $tournamentId = null): array {
             LEFT JOIN teams ta ON m.team_a_id = ta.id
             LEFT JOIN teams tb ON m.team_b_id = tb.id
             WHERE m.status = ? ' . ($tournamentId ? 'AND m.tournament_id = ? ' : '') . '
-            ORDER BY m.started_at DESC';
+            ORDER BY m.tournament_id ASC, m.match_number ASC, m.id ASC';
     $stmt = db()->prepare($sql);
     $params = [MATCH_LIVE];
     if ($tournamentId) $params[] = $tournamentId;

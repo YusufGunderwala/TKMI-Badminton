@@ -452,7 +452,7 @@ include __DIR__ . '/../includes/header.php';
                             <!-- Top Live Badge & Match Header -->
                             <div class="flex items-center justify-between mb-5 border-b border-slate-100 pb-3">
                                 <div class="flex items-center gap-2">
-                                    <span class="px-3 py-1 rounded-full bg-red-500 text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm animate-pulse">
+                                    <span id="live-status-badge-<?= $matchId ?>" class="px-3 py-1 rounded-full bg-red-500 text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm animate-pulse transition-all duration-500">
                                         <span class="w-1.5 h-1.5 rounded-full bg-white"></span> LIVE COURT
                                     </span>
                                     <span class="text-xs font-bold text-slate-400">Match #<?= $m['match_number'] ?> &bull; <?= getRoundLabel($m['round_key']) ?></span>
@@ -1359,10 +1359,31 @@ function tournamentPublicManager(defaultTab, tournamentId) {
                     if (deuceEl) deuceEl.classList.add('hidden');
                     if (serverAEl) serverAEl.classList.add('hidden');
                     if (serverBEl) serverBEl.classList.add('hidden');
+                    
+                    const winnerName = m.winner_name || (m.score_a > m.score_b ? (m.display_a || m.player_a) : (m.display_b || m.player_b));
                     const badgeEl = document.getElementById('live-status-badge-' + matchId);
                     if (badgeEl) {
-                        badgeEl.innerText = 'FINAL';
-                        badgeEl.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200 uppercase tracking-wider';
+                        badgeEl.innerHTML = `<i class="ph-fill ph-trophy text-amber-300 text-xs"></i> <span>WINNER: ${winnerName || 'FINAL'}</span>`;
+                        badgeEl.className = 'px-3 py-1 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md animate-bounce';
+                    }
+
+                    const cardEl = document.getElementById('live-match-card-' + matchId);
+                    if (cardEl) {
+                        cardEl.classList.remove('border-red-400', 'ring-red-50');
+                        cardEl.classList.add('border-emerald-500', 'ring-emerald-100');
+                    }
+
+                    // Linger for 15 seconds before disappearing
+                    if (!window._completedMatchCards) window._completedMatchCards = {};
+                    if (!window._completedMatchCards[matchId]) {
+                        window._completedMatchCards[matchId] = setTimeout(() => {
+                            if (cardEl) {
+                                cardEl.style.transition = 'opacity 0.8s ease, transform 0.8s ease';
+                                cardEl.style.opacity = '0';
+                                cardEl.style.transform = 'scale(0.95)';
+                                setTimeout(() => cardEl.remove(), 800);
+                            }
+                        }, 15000);
                     }
                 }
             });

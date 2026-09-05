@@ -219,10 +219,10 @@ include __DIR__ . '/includes/header.php';
                     $pBName = $isDoubles ? ($match['tb_name'] ?: 'Team B') : ($match['pb_name'] ?: 'Player B');
                     $gamesToWin = 2;
                 ?>
-                    <div class="bg-white rounded-2xl shadow-md border border-slate-200 flex flex-col justify-between overflow-hidden hover-lift">
+                    <div class="bg-white rounded-2xl shadow-md border border-slate-200 flex flex-col justify-between overflow-hidden hover-lift transition-all duration-500" id="live-card-<?= $match['id'] ?>">
                         <!-- Live Header -->
-                        <div class="bg-gradient-to-r from-red-600 to-red-700 text-white text-[10px] font-black uppercase tracking-widest text-center py-2 px-4 flex items-center justify-between shadow-inner">
-                            <span class="flex items-center gap-1.5">
+                        <div id="live-card-header-<?= $match['id'] ?>" class="bg-gradient-to-r from-red-600 to-red-700 text-white text-[10px] font-black uppercase tracking-widest text-center py-2 px-4 flex items-center justify-between shadow-inner transition-colors duration-500">
+                            <span class="flex items-center gap-1.5" id="live-card-status-<?= $match['id'] ?>">
                                 <span class="w-2 h-2 bg-white rounded-full animate-ping"></span>
                                 <span>● LIVE ON COURT</span>
                             </span>

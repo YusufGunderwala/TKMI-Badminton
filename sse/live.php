@@ -81,11 +81,12 @@ while (true) {
                     WHERE (m.status = 'in_progress' OR (m.status IN ('completed', 'walkover', 'retired') AND m.ended_at >= NOW() - INTERVAL '2 hours'))
                 ";
                 if ($tournamentId) {
-                    $sql .= " AND m.tournament_id = ?";
+                    $sql .= " AND m.tournament_id = ? ORDER BY (CASE WHEN m.status = 'in_progress' THEN 0 ELSE 1 END), m.match_number ASC, m.id ASC";
                     $stmt = $db->prepare($sql);
                     $stmt->execute([$tournamentId]);
                     return $stmt->fetchAll(PDO::FETCH_ASSOC);
                 } else {
+                    $sql .= " ORDER BY (CASE WHEN m.status = 'in_progress' THEN 0 ELSE 1 END), m.tournament_id ASC, m.match_number ASC, m.id ASC";
                     return $db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
                 }
             });

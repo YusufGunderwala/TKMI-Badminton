@@ -89,7 +89,33 @@ document.addEventListener('DOMContentLoaded', () => {
         // 2. Update Live matches cards container
         if (!liveScoreContainer) return;
 
-        if (!matches || matches.length === 0) {
+        // Track completed matches so they linger for 15 seconds with celebration banner
+        const now = Date.now();
+        if (!window._completedMatchTimers) window._completedMatchTimers = {};
+
+        // Filter active matches: in_progress, OR completed within last 15s
+        const displayMatches = [];
+        const liveIds = new Set();
+
+        (matches || []).forEach(m => {
+            const isCompleted = m.status === 'completed' || m.status === 'walkover' || m.status === 'retired' || m.is_completed;
+            if (!isCompleted) {
+                displayMatches.push(m);
+                liveIds.add(m.id);
+            } else {
+                // If it just completed, record timestamp if not recorded yet
+                if (!window._completedMatchTimers[m.id]) {
+                    window._completedMatchTimers[m.id] = now;
+                }
+                const elapsed = now - window._completedMatchTimers[m.id];
+                if (elapsed < 15000) { // keep for 15 seconds
+                    displayMatches.push(m);
+                    liveIds.add(m.id);
+                }
+            }
+        });
+
+        if (displayMatches.length === 0) {
             liveScoreContainer.innerHTML = `
                 <div class="col-span-full py-16 text-center bg-white rounded-2xl border border-dashed border-slate-300 p-8 shadow-sm">
                     <div class="w-14 h-14 rounded-full bg-slate-50 flex items-center justify-center mx-auto mb-3 text-slate-400">
@@ -102,61 +128,142 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        let html = '';
-        matches.forEach(match => {
-            html += buildMatchCard(match);
+        // Clean up empty placeholder if exists
+        const placeholder = liveScoreContainer.querySelector('.border-dashed');
+        if (placeholder) placeholder.remove();
+
+        // IN-PLACE UPDATE / INSERT (preserves fixed positions!)
+        displayMatches.forEach(match => {
+            let card = document.getElementById('live-card-' + match.id);
+            if (!card) {
+                // Insert new match card at the end without rearranging existing ones
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = buildMatchCard(match);
+                card = tempDiv.firstElementChild;
+                liveScoreContainer.appendChild(card);
+            }
+
+            // Update scores in place
+            const sA = document.getElementById('score_a_' + match.id);
+            const sB = document.getElementById('score_b_' + match.id);
+            const scoreAVal = match.score_a ?? match.game_score_a ?? 0;
+            const scoreBVal = match.score_b ?? match.game_score_b ?? 0;
+
+            if (sA && sA.innerText != scoreAVal) {
+                sA.innerText = scoreAVal;
+                sA.classList.add('scale-125', 'text-amber-400');
+                setTimeout(() => sA.classList.remove('scale-125', 'text-amber-400'), 400);
+            }
+            if (sB && sB.innerText != scoreBVal) {
+                sB.innerText = scoreBVal;
+                sB.classList.add('scale-125', 'text-amber-400');
+                setTimeout(() => sB.classList.remove('scale-125', 'text-amber-400'), 400);
+            }
+
+            // Update games won dots in place
+            const dotsContainer = card.querySelector('.game-dots-' + match.id);
+            if (dotsContainer) {
+                const gamesToWin = Math.ceil((match.best_of || 3) / 2);
+                dotsContainer.innerHTML = buildGameDots(match.games_a || 0, gamesToWin);
+            }
+            const dotsContainerB = card.querySelector('.game-dots-b-' + match.id);
+            if (dotsContainerB) {
+                const gamesToWin = Math.ceil((match.best_of || 3) / 2);
+                dotsContainerB.innerHTML = buildGameDots(match.games_b || 0, gamesToWin);
+            }
+
+            // Check completion / Winner celebration banner
+            const isCompleted = match.status === 'completed' || match.status === 'walkover' || match.status === 'retired' || match.is_completed;
+            const headerEl = document.getElementById('live-card-header-' + match.id);
+            const statusEl = document.getElementById('live-card-status-' + match.id);
+
+            if (isCompleted && headerEl && statusEl) {
+                // Determine winner name
+                const winnerName = match.winner_name || (match.score_a > match.score_b ? (match.display_a || match.player_a) : (match.display_b || match.player_b));
+                headerEl.className = 'bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 text-white text-[11px] font-black uppercase tracking-widest text-center py-2 px-4 flex items-center justify-between shadow-md transition-all duration-500';
+                statusEl.innerHTML = `
+                    <span class="flex items-center gap-1.5 animate-bounce">
+                        <i class="ph-fill ph-trophy text-amber-300 text-sm"></i>
+                        <span>WINNER: ${escapeHtml(winnerName || 'VICTORY')}</span>
+                    </span>
+                `;
+                card.style.borderColor = '#10b981';
+                card.classList.add('ring-2', 'ring-emerald-300');
+            }
         });
 
-        liveScoreContainer.innerHTML = html;
+        // Remove cards that are no longer in displayMatches
+        Array.from(liveScoreContainer.children).forEach(child => {
+            const idMatch = child.id ? child.id.match(/^live-card-(\d+)$/) : null;
+            if (idMatch) {
+                const id = parseInt(idMatch[1]);
+                if (!liveIds.has(id)) {
+                    child.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+                    child.style.opacity = '0';
+                    child.style.transform = 'scale(0.95)';
+                    setTimeout(() => child.remove(), 600);
+                }
+            }
+        });
+    }
+
+    function buildGameDots(gamesWon, gamesToWin) {
+        let dots = '';
+        for (let i = 0; i < gamesToWin; i++) {
+            if (gamesWon > i) {
+                dots += `<div class="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#c9a84c] shadow-[0_0_8px_rgba(201,168,76,0.6)]"></div>`;
+            } else {
+                dots += `<div class="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-slate-200 border border-slate-300"></div>`;
+            }
+        }
+        return dots;
     }
 
     function buildMatchCard(match) {
         const gamesToWin = Math.ceil((match.best_of || 3) / 2);
-        
-        const buildGameDots = (gamesWon) => {
-            let dots = '';
-            for (let i = 0; i < gamesToWin; i++) {
-                if (gamesWon > i) {
-                    dots += `<div class="w-3 h-3 rounded-full bg-[#c9a84c] shadow-[0_0_8px_rgba(201,168,76,0.6)]"></div>`;
-                } else {
-                    dots += `<div class="w-3 h-3 rounded-full bg-slate-200 border border-slate-300"></div>`;
-                }
-            }
-            return `<div class="flex gap-1.5 justify-center mt-2.5">${dots}</div>`;
-        };
+        const isCompleted = match.status === 'completed' || match.status === 'walkover' || match.status === 'retired' || match.is_completed;
+        const winnerName = match.winner_name || (match.score_a > match.score_b ? (match.display_a || match.player_a) : (match.display_b || match.player_b));
+
+        const headerBg = isCompleted 
+            ? 'bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600' 
+            : 'bg-gradient-to-r from-red-600 to-red-700';
+
+        const statusHtml = isCompleted
+            ? `<span class="flex items-center gap-1.5 animate-bounce"><i class="ph-fill ph-trophy text-amber-300 text-sm"></i><span>WINNER: ${escapeHtml(winnerName || 'VICTORY')}</span></span>`
+            : `<span class="flex items-center gap-1.5"><span class="w-2 h-2 bg-white rounded-full animate-ping"></span><span>● LIVE ON COURT</span></span>`;
 
         return `
-            <div class="border-beam-container bg-white rounded-2xl shadow-md border border-slate-200 flex flex-col justify-between overflow-hidden hover-lift" style="--color-from:#ef4444; --color-to:#c9a84c;">
-                <div class="border-beam"></div>
-                
+            <div id="live-card-${match.id}" class="bg-white rounded-2xl shadow-md border ${isCompleted ? 'border-emerald-500 ring-2 ring-emerald-300' : 'border-slate-200'} flex flex-col justify-between overflow-hidden hover-lift transition-all duration-500">
                 <!-- Live Header -->
-                <div class="bg-gradient-to-r from-red-600 to-red-700 text-white text-[10px] font-black uppercase tracking-widest text-center py-2 px-4 flex items-center justify-between shadow-inner">
-                    <span class="flex items-center gap-1.5">
-                        <span class="w-2 h-2 bg-white rounded-full animate-ping"></span>
-                        <span>● LIVE ON COURT</span>
+                <div id="live-card-header-${match.id}" class="${headerBg} text-white text-[10px] font-black uppercase tracking-widest text-center py-2 px-4 flex items-center justify-between shadow-inner transition-colors duration-500">
+                    <span id="live-card-status-${match.id}">
+                        ${statusHtml}
                     </span>
                     <span class="opacity-90 font-mono text-[9px]">${escapeHtml(match.tournament_name || 'Tournament')}</span>
                 </div>
                 
-                <div class="p-6 grid grid-cols-[1fr_auto_1fr] items-center gap-4 flex-1 bg-white">
-                    
+                <div class="p-3 sm:p-6 grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-4 flex-1 bg-white">
                     <!-- Player A -->
                     <div class="text-center flex flex-col justify-center h-full">
-                        <div class="font-black text-slate-800 text-base leading-snug line-clamp-2" title="${escapeHtml(match.display_a || match.player_a || 'Player A')}">${escapeHtml(match.display_a || match.player_a || 'Player A')}</div>
-                        ${buildGameDots(match.games_a || 0)}
+                        <div class="font-black text-slate-800 text-sm sm:text-base leading-snug line-clamp-2" title="${escapeHtml(match.display_a || match.player_a || 'Player A')}">${escapeHtml(match.display_a || match.player_a || 'Player A')}</div>
+                        <div class="game-dots-${match.id} flex gap-1 sm:gap-1.5 justify-center mt-1.5 sm:mt-2.5">
+                            ${buildGameDots(match.games_a || 0, gamesToWin)}
+                        </div>
                     </div>
 
                     <!-- Live Scores -->
-                    <div class="flex items-center justify-center gap-3 bg-[#0f2044] text-white px-5 py-3 rounded-2xl shadow-lg border border-slate-700">
-                        <div class="text-3xl font-black w-10 text-center font-display text-white" id="score_a_${match.id}">${match.score_a ?? 0}</div>
-                        <div class="text-[#c9a84c] font-black text-xl mb-0.5">:</div>
-                        <div class="text-3xl font-black w-10 text-center font-display text-white" id="score_b_${match.id}">${match.score_b ?? 0}</div>
+                    <div class="flex items-center justify-center gap-1.5 sm:gap-3 bg-[#0f2044] text-white px-3 sm:px-5 py-2 sm:py-3 rounded-xl sm:rounded-2xl shadow-lg border border-slate-700">
+                        <div class="text-2xl sm:text-3xl font-black w-8 sm:w-10 text-center font-display text-white transition-all duration-300" id="score_a_${match.id}">${match.score_a ?? match.game_score_a ?? 0}</div>
+                        <div class="text-[#c9a84c] font-black text-lg sm:text-xl mb-0.5">:</div>
+                        <div class="text-2xl sm:text-3xl font-black w-8 sm:w-10 text-center font-display text-white transition-all duration-300" id="score_b_${match.id}">${match.score_b ?? match.game_score_b ?? 0}</div>
                     </div>
 
                     <!-- Player B -->
                     <div class="text-center flex flex-col justify-center h-full">
-                        <div class="font-black text-slate-800 text-base leading-snug line-clamp-2" title="${escapeHtml(match.display_b || match.player_b || 'Player B')}">${escapeHtml(match.display_b || match.player_b || 'Player B')}</div>
-                        ${buildGameDots(match.games_b || 0)}
+                        <div class="font-black text-slate-800 text-sm sm:text-base leading-snug line-clamp-2" title="${escapeHtml(match.display_b || match.player_b || 'Player B')}">${escapeHtml(match.display_b || match.player_b || 'Player B')}</div>
+                        <div class="game-dots-b-${match.id} flex gap-1 sm:gap-1.5 justify-center mt-1.5 sm:mt-2.5">
+                            ${buildGameDots(match.games_b || 0, gamesToWin)}
+                        </div>
                     </div>
                 </div>
                 

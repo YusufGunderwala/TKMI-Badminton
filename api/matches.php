@@ -54,7 +54,7 @@ try {
             LEFT JOIN teams ta ON m.team_a_id = ta.id
             LEFT JOIN teams tb ON m.team_b_id = tb.id
             WHERE (m.status = 'in_progress' OR (m.status IN ('completed', 'walkover', 'retired') AND m.ended_at >= NOW() - INTERVAL '2 hours'))
-            ORDER BY m.started_at DESC NULLS LAST, m.id DESC
+            ORDER BY (CASE WHEN m.status = 'in_progress' THEN 0 ELSE 1 END), m.tournament_id ASC, m.match_number ASC, m.id ASC
         ");
     }
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
