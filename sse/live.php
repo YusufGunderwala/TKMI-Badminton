@@ -2,6 +2,10 @@
 // ============================================================
 // Server-Sent Events (SSE) - Live Score Broadcaster
 // ============================================================
+// Disable error display so notices/warnings never corrupt the text/event-stream protocol
+@ini_set('display_errors', '0');
+error_reporting(0);
+
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../config/constants.php';
 require_once __DIR__ . '/../includes/functions.php';
@@ -24,6 +28,13 @@ header('Content-Type: text/event-stream');
 header('Cache-Control: no-cache, no-transform');
 header('Connection: keep-alive');
 header('X-Accel-Buffering: no'); // Disable buffering in Nginx
+
+// Instruct client EventSource to retry after 2s if connection drops
+echo "retry: 2000\n\n";
+if (ob_get_level() > 0) {
+    @ob_flush();
+}
+@flush();
 
 $pdo = db();
 
@@ -211,8 +222,10 @@ while (true) {
             ];
 
             echo "data: " . json_encode($payload) . "\n\n";
-            ob_flush();
-            flush();
+            if (ob_get_level() > 0) {
+                @ob_flush();
+            }
+            @flush();
         }
 
     } catch (Throwable $e) {
@@ -222,8 +235,10 @@ while (true) {
     // Ping every 15s to keep connection alive if no score changes
     if (time() % 15 === 0) {
         echo ": keep-alive\n\n";
-        ob_flush();
-        flush();
+        if (ob_get_level() > 0) {
+            @ob_flush();
+        }
+        @flush();
     }
 
     // Wait 250ms before checking again (low CPU usage, fast real-time response)

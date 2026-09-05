@@ -1519,9 +1519,13 @@ function tournamentPublicManager(defaultTab, tournamentId) {
                 };
 
                 this.evtSource.onerror = (err) => {
-                    console.warn('SSE reconnecting in 2s...', err);
-                    try { this.evtSource.close(); } catch(e) {}
-                    setTimeout(() => this.connectSSE(), 2000);
+                    // Browser EventSource automatically reconnects natively on network drops.
+                    // If readyState is completely CLOSED (2), manually re-instantiate after delay.
+                    if (this.evtSource && this.evtSource.readyState === EventSource.CLOSED) {
+                        console.warn('SSE stream closed, reconnecting...', err);
+                        try { this.evtSource.close(); } catch(e) {}
+                        setTimeout(() => this.connectSSE(), 2500);
+                    }
                 };
             } catch (err) {
                 console.log('SSE connection skipped:', err);
