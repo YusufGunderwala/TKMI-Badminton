@@ -58,6 +58,7 @@ define('MATCH_BYE',         'bye');
 define('ROUND_STAGE1_R1',       'r1');
 define('ROUND_STAGE1_R2',       'r2');
 define('ROUND_STAGE1_SURVIVAL', 'survival');
+define('ROUND_R32',             'r32');
 define('ROUND_R16',             'r16');
 define('ROUND_QF',              'qf');
 define('ROUND_SF',              'sf');
