@@ -19,6 +19,18 @@ $currentPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
     <link rel="icon" type="image/png" sizes="32x32" href="<?= BASE_URL ?>/assets/favicon.png">
     <link rel="apple-touch-icon" href="<?= BASE_URL ?>/assets/favicon.png">
     <link rel="shortcut icon" href="<?= BASE_URL ?>/assets/favicon.png">
+
+    <!-- Open Graph / WhatsApp Preview -->
+    <meta property="og:title" content="<?= htmlspecialchars($pageTitle ?? 'Admin Dashboard') ?> | TKMI Admin">
+    <meta property="og:description" content="Official TKMI Badminton Tournament Administration Portal">
+    <meta property="og:image" content="<?= BASE_URL ?>/assets/assets/Logo.png">
+    <meta property="og:image:secure_url" content="<?= BASE_URL ?>/assets/assets/Logo.png">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="<?= htmlspecialchars($pageTitle ?? 'Admin Dashboard') ?> | TKMI Admin">
+    <meta name="twitter:description" content="Official TKMI Badminton Tournament Administration Portal">
+    <meta name="twitter:image" content="<?= BASE_URL ?>/assets/assets/Logo.png">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

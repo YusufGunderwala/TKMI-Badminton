@@ -11,9 +11,15 @@
   <!-- OG Meta Tags -->
   <meta property="og:title"       content="<?= htmlspecialchars($ogTitle ?? APP_NAME) ?>">
   <meta property="og:description" content="<?= htmlspecialchars($ogDesc  ?? 'Official TKMI Badminton Tournament Platform') ?>">
-  <meta property="og:image"       content="<?= BASE_URL ?>/assets/img/og-cover.jpg">
+  <meta property="og:image"       content="<?= BASE_URL ?>/assets/assets/Logo.png">
+  <meta property="og:image:secure_url" content="<?= BASE_URL ?>/assets/assets/Logo.png">
+  <meta property="og:image:type"  content="image/png">
   <meta property="og:url"         content="<?= BASE_URL ?>">
   <meta property="og:type"        content="website">
+  <meta name="twitter:card"       content="summary_large_image">
+  <meta name="twitter:title"      content="<?= htmlspecialchars($ogTitle ?? APP_NAME) ?>">
+  <meta name="twitter:description" content="<?= htmlspecialchars($ogDesc ?? 'Official TKMI Badminton Tournament Platform') ?>">
+  <meta name="twitter:image"      content="<?= BASE_URL ?>/assets/assets/Logo.png">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
