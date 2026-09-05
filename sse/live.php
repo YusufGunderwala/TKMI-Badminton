@@ -241,7 +241,8 @@ while (true) {
         @flush();
     }
 
-    // Wait 250ms before checking again (low CPU usage, fast real-time response)
-    usleep(250000); 
+    // Wait 750ms before checking again — still feels real-time but cuts DB fingerprint
+    // queries by 3x per open connection compared to the previous 250ms interval
+    usleep(750000);
 }
 

@@ -1,7 +1,7 @@
 FROM php:8.2-apache
 
-# Enable Apache mod_rewrite
-RUN a2enmod rewrite
+# Enable Apache modules required by .htaccess (rewrite rules, cache/expires headers, compression)
+RUN a2enmod rewrite headers expires deflate
 
 # Install PostgreSQL PDO extension
 RUN apt-get update && apt-get install -y libpq-dev \

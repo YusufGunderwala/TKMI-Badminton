@@ -508,7 +508,7 @@ include __DIR__ . '/../includes/header.php';
                                         <!-- Avatar -->
                                         <div class="relative flex-shrink-0">
                                             <?php if (!empty($m['pa_photo'])): ?>
-                                                <img src="<?= BASE_URL ?>/uploads/players/<?= e($m['pa_photo']) ?>" alt="Photo" class="w-12 h-12 rounded-2xl object-cover shadow-sm border-2 border-cyan-400">
+                                                <img src="<?= BASE_URL ?>/uploads/players/<?= e($m['pa_photo']) ?>" alt="Photo" loading="lazy" class="w-12 h-12 rounded-2xl object-cover shadow-sm border-2 border-cyan-400">
                                             <?php else: ?>
                                                 <div class="w-12 h-12 rounded-2xl bg-blue-100 text-blue-800 flex items-center justify-center font-black text-base shadow-inner border border-blue-200">
                                                     <?= strtoupper(substr($m['display_a'], 0, 1)) ?>
@@ -561,7 +561,7 @@ include __DIR__ . '/../includes/header.php';
                                         <!-- Avatar -->
                                         <div class="relative flex-shrink-0">
                                             <?php if (!empty($m['pb_photo'])): ?>
-                                                <img src="<?= BASE_URL ?>/uploads/players/<?= e($m['pb_photo']) ?>" alt="Photo" class="w-12 h-12 rounded-2xl object-cover shadow-sm border-2 border-amber-400">
+                                                <img src="<?= BASE_URL ?>/uploads/players/<?= e($m['pb_photo']) ?>" alt="Photo" loading="lazy" class="w-12 h-12 rounded-2xl object-cover shadow-sm border-2 border-amber-400">
                                             <?php else: ?>
                                                 <div class="w-12 h-12 rounded-2xl bg-blue-100 text-blue-800 flex items-center justify-center font-black text-base shadow-inner border border-blue-200">
                                                     <?= strtoupper(substr($m['display_b'], 0, 1)) ?>
@@ -765,7 +765,7 @@ include __DIR__ . '/../includes/header.php';
                                 <td class="p-4">
                                     <div class="flex items-center gap-3">
                                         <?php if (!empty($s['photo_path'])): ?>
-                                            <img src="<?= BASE_URL ?>/uploads/players/<?= e($s['photo_path']) ?>" alt="Photo" class="w-9 h-9 rounded-xl object-cover shadow-xs border border-slate-200">
+                                            <img src="<?= BASE_URL ?>/uploads/players/<?= e($s['photo_path']) ?>" alt="Photo" loading="lazy" class="w-9 h-9 rounded-xl object-cover shadow-xs border border-slate-200">
                                         <?php else: ?>
                                             <div class="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 font-black text-xs border border-slate-200">
                                                 <?= strtoupper(substr($s['display_name'], 0, 1)) ?>
@@ -1100,7 +1100,7 @@ include __DIR__ . '/../includes/header.php';
                                 <td class="p-4">
                                     <div class="flex items-center gap-3">
                                         <?php if (!empty($s['photo_path'])): ?>
-                                            <img src="<?= BASE_URL ?>/uploads/players/<?= e($s['photo_path']) ?>" alt="Photo" class="w-9 h-9 rounded-xl object-cover shadow-xs border border-slate-200">
+                                            <img src="<?= BASE_URL ?>/uploads/players/<?= e($s['photo_path']) ?>" alt="Photo" loading="lazy" class="w-9 h-9 rounded-xl object-cover shadow-xs border border-slate-200">
                                         <?php else: ?>
                                             <div class="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 font-black text-xs border border-slate-200">
                                                 <?= strtoupper(substr($s['display_name'], 0, 1)) ?>

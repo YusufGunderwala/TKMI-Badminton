@@ -10,6 +10,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const heroScoreEl = document.getElementById('hero-match-score');
 
     let evtSource = null;
+    let sseConnected = false;
+    let lastSseMessageAt = 0;
 
     function getBaseUrl() {
         if (window.BASE_URL) return window.BASE_URL;
@@ -34,6 +36,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const url = getSseUrl();
             evtSource = new EventSource(url);
 
+            evtSource.onopen = function() {
+                sseConnected = true;
+            };
+
             evtSource.onmessage = function(event) {
                 try {
                     const data = JSON.parse(event.data);
@@ -41,22 +47,29 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (matches) {
                         updateLiveScores(matches);
                     }
+                    sseConnected = true;
+                    lastSseMessageAt = Date.now();
                 } catch (err) {
                     console.error("SSE parse error", err);
                 }
             };
 
             evtSource.onerror = function() {
+                sseConnected = false;
                 try { evtSource.close(); } catch(e) {}
                 setTimeout(connectSSE, 1500);
             };
         } catch(e) {
+            sseConnected = false;
             setTimeout(connectSSE, 2000);
         }
     }
 
-    // Fast HTTP poller backup — ensures live scores update even if SSE drops or proxy buffers
+    // HTTP poller — only used as a fallback when SSE is down or has gone quiet,
+    // so we don't double-query the DB while SSE is healthy
     async function pollLiveMatches() {
+        const sseStale = Date.now() - lastSseMessageAt > 8000;
+        if (sseConnected && !sseStale) return;
         try {
             const res = await fetch(getApiUrl(), { cache: 'no-store' });
             if (!res.ok) return;
@@ -329,7 +342,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Start SSE stream immediately
     connectSSE();
 
-    // Fast polling fallback every 2 seconds to guarantee zero lag
-    setInterval(pollLiveMatches, 2000);
+    // Watchdog: checks every 5s, but only actually hits the API when SSE is
+    // down or has gone quiet (see pollLiveMatches) — avoids double-polling the DB
+    setInterval(pollLiveMatches, 5000);
 });
 
