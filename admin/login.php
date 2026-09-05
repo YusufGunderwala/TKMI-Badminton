@@ -72,18 +72,21 @@ if (!empty($attempts['locked_until']) && time() < $attempts['locked_until']) {
   <link rel="apple-touch-icon" href="<?= BASE_URL ?>/assets/favicon.png">
   <link rel="shortcut icon" href="<?= BASE_URL ?>/assets/favicon.png">
 
-  <!-- Open Graph / WhatsApp Preview -->
+  <!-- Open Graph / WhatsApp Preview Banner -->
+  <meta property="og:site_name" content="TKMI Badminton">
   <meta property="og:title" content="Admin Portal | TKMI Badminton">
-  <meta property="og:description" content="Official TKMI Badminton Tournament Administration Portal">
-  <meta property="og:image" content="<?= BASE_URL ?>/assets/assets/Logo.png">
-  <meta property="og:image:secure_url" content="<?= BASE_URL ?>/assets/assets/Logo.png">
-  <meta property="og:image:type" content="image/png">
+  <meta property="og:description" content="Official TKMI Badminton Tournament Administration Portal — Live Scoring & Operations">
+  <meta property="og:image" content="<?= BASE_URL ?>/assets/img/og-banner.jpg">
+  <meta property="og:image:secure_url" content="<?= BASE_URL ?>/assets/img/og-banner.jpg">
+  <meta property="og:image:type" content="image/jpeg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="675">
   <meta property="og:type" content="website">
   <meta property="og:url" content="<?= BASE_URL ?>/admin/login.php">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Admin Portal | TKMI Badminton">
-  <meta name="twitter:description" content="Official TKMI Badminton Tournament Administration Portal">
-  <meta name="twitter:image" content="<?= BASE_URL ?>/assets/assets/Logo.png">
+  <meta name="twitter:description" content="Official TKMI Badminton Tournament Administration Portal — Live Scoring & Operations">
+  <meta name="twitter:image" content="<?= BASE_URL ?>/assets/img/og-banner.jpg">
   
   <script src="https://cdn.tailwindcss.com"></script>
   <script>

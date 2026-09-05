@@ -8,18 +8,21 @@
   <link rel="apple-touch-icon" href="<?= BASE_URL ?>/assets/favicon.png">
   <link rel="shortcut icon" href="<?= BASE_URL ?>/assets/favicon.png">
 
-  <!-- OG Meta Tags -->
+  <!-- OG Meta Tags / WhatsApp Preview Banner -->
+  <meta property="og:site_name"   content="TKMI Badminton">
   <meta property="og:title"       content="<?= htmlspecialchars($ogTitle ?? APP_NAME) ?>">
-  <meta property="og:description" content="<?= htmlspecialchars($ogDesc  ?? 'Official TKMI Badminton Tournament Platform') ?>">
-  <meta property="og:image"       content="<?= BASE_URL ?>/assets/assets/Logo.png">
-  <meta property="og:image:secure_url" content="<?= BASE_URL ?>/assets/assets/Logo.png">
-  <meta property="og:image:type"  content="image/png">
-  <meta property="og:url"         content="<?= BASE_URL ?>">
+  <meta property="og:description" content="<?= htmlspecialchars($ogDesc  ?? 'Official TKMI Badminton Tournament Platform — Live Scores, Matches & Standings') ?>">
+  <meta property="og:image"       content="<?= BASE_URL ?>/assets/img/og-banner.jpg">
+  <meta property="og:image:secure_url" content="<?= BASE_URL ?>/assets/img/og-banner.jpg">
+  <meta property="og:image:type"  content="image/jpeg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="675">
+  <meta property="og:url"         content="<?= htmlspecialchars($shareUrl ?? BASE_URL) ?>">
   <meta property="og:type"        content="website">
   <meta name="twitter:card"       content="summary_large_image">
   <meta name="twitter:title"      content="<?= htmlspecialchars($ogTitle ?? APP_NAME) ?>">
-  <meta name="twitter:description" content="<?= htmlspecialchars($ogDesc ?? 'Official TKMI Badminton Tournament Platform') ?>">
-  <meta name="twitter:image"      content="<?= BASE_URL ?>/assets/assets/Logo.png">
+  <meta name="twitter:description" content="<?= htmlspecialchars($ogDesc ?? 'Official TKMI Badminton Tournament Platform — Live Scores, Matches & Standings') ?>">
+  <meta name="twitter:image"      content="<?= BASE_URL ?>/assets/img/og-banner.jpg">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
