@@ -427,19 +427,16 @@ include __DIR__ . '/../includes/header.php';
     <!-- ============================================================ -->
     <div x-show="tab === 'live'" x-cloak class="space-y-10">
 
-        <!-- Case A: Active Live Matches -->
-        <?php if (!empty($liveMatches)): ?>
-            
-            <div>
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-3 border-b border-slate-200">
-                    <div class="flex items-center gap-3">
-                        <span class="w-3.5 h-3.5 rounded-full bg-red-500 animate-ping"></span>
-                        <h2 class="text-2xl font-black font-display text-[#0f2044]">Matches Currently On Court</h2>
-                    </div>
+        <div id="tournament-live-section" class="<?= empty($liveMatches) ? 'hidden' : '' ?>">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-3 border-b border-slate-200">
+                <div class="flex items-center gap-3">
+                    <span class="w-3.5 h-3.5 rounded-full bg-red-500 animate-ping"></span>
+                    <h2 class="text-2xl font-black font-display text-[#0f2044]">Matches Currently On Court</h2>
                 </div>
+            </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <?php foreach ($liveMatches as $m): 
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8" id="tournament-live-grid">
+                <?php foreach ($liveMatches as $m): 
                         $pA = $playerRanks[$m['participant_a_id']] ?? null;
                         $pB = $playerRanks[$m['participant_b_id']] ?? null;
                         $matchId = $m['id'];
@@ -635,30 +632,26 @@ include __DIR__ . '/../includes/header.php';
 
                         </div>
                     <?php endforeach; ?>
-                </div>
             </div>
+        </div>
 
-        <?php else: ?>
+        <!-- Case B: 0 Live Matches State -->
+        <div id="tournament-no-live-placeholder" class="<?= !empty($liveMatches) ? 'hidden' : '' ?> bg-white rounded-3xl p-12 text-center max-w-2xl mx-auto border border-slate-200 shadow-sm">
+            <div class="w-20 h-20 bg-slate-100 rounded-3xl flex items-center justify-center mx-auto mb-4 text-slate-400">
+                <i class="ph-fill ph-hourglass-medium text-4xl text-[#c9a84c]"></i>
+            </div>
+            <h3 class="text-2xl font-black font-display text-[#0f2044] mb-2">No Matches Currently On Court</h3>
+            <p class="text-slate-500 text-sm font-medium max-w-md mx-auto mb-6">All active games for this session have either concluded or the next round is being scheduled by the tournament desk.</p>
             
-            <!-- Case B: 0 Live Matches State -->
-            <div class="bg-white rounded-3xl p-12 text-center max-w-2xl mx-auto border border-slate-200 shadow-sm">
-                <div class="w-20 h-20 bg-slate-100 rounded-3xl flex items-center justify-center mx-auto mb-4 text-slate-400">
-                    <i class="ph-fill ph-hourglass-medium text-4xl text-[#c9a84c]"></i>
-                </div>
-                <h3 class="text-2xl font-black font-display text-[#0f2044] mb-2">No Matches Currently On Court</h3>
-                <p class="text-slate-500 text-sm font-medium max-w-md mx-auto mb-6">All active games for this session have either concluded or the next round is being scheduled by the tournament desk.</p>
-                
-                <div class="flex items-center justify-center gap-3">
-                    <button @click="tab = 'matches'" class="px-5 py-2.5 rounded-xl bg-[#0f2044] hover:bg-blue-900 text-white font-bold text-xs uppercase tracking-wider transition shadow-md">
-                        View Upcoming Fixtures &rarr;
-                    </button>
-                    <button @click="tab = 'standings'" class="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs uppercase tracking-wider transition">
-                        View Leaderboard &rarr;
-                    </button>
-                </div>
+            <div class="flex items-center justify-center gap-3">
+                <button @click="tab = 'matches'" class="px-5 py-2.5 rounded-xl bg-[#0f2044] hover:bg-blue-900 text-white font-bold text-xs uppercase tracking-wider transition shadow-md">
+                    View Upcoming Fixtures &rarr;
+                </button>
+                <button @click="tab = 'standings'" class="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs uppercase tracking-wider transition">
+                    View Leaderboard &rarr;
+                </button>
             </div>
-
-        <?php endif; ?>
+        </div>
 
         <!-- ============================================================ -->
         <!-- LIVE STANDINGS TABLE WITH ON-COURT ATHLETE HIGHLIGHTS        -->
@@ -1296,8 +1289,66 @@ function tournamentPublicManager(defaultTab, tournamentId) {
         },
 
         updateLiveScores(liveMatches) {
+            const liveGrid = document.getElementById('tournament-live-grid');
+            const liveSection = document.getElementById('tournament-live-section');
+            const noLivePlaceholder = document.getElementById('tournament-no-live-placeholder');
+
+            const activeMatches = (liveMatches || []).filter(m => m.status === 'in_progress' || (m.is_completed && window._completedMatchCards && window._completedMatchCards[m.id]));
+
+            if (activeMatches.length > 0) {
+                if (liveSection) liveSection.classList.remove('hidden');
+                if (noLivePlaceholder) noLivePlaceholder.classList.add('hidden');
+            }
+
             liveMatches.forEach(m => {
                 const matchId = m.id;
+                let cardEl = document.getElementById('live-match-card-' + matchId);
+
+                // If card does not exist in DOM yet (e.g. match started after page loaded), build and append it
+                if (!cardEl && liveGrid && (m.status === 'in_progress' || m.status === 'live')) {
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = `
+                        <div class="bg-white rounded-3xl p-6 sm:p-7 border-2 border-red-400 ring-4 ring-red-50 shadow-2xl relative overflow-hidden flex flex-col justify-between group bg-badminton-court transition-all duration-500"
+                             id="live-match-card-${matchId}">
+                            <div class="flex items-center justify-between mb-5 border-b border-slate-100 pb-3">
+                                <div class="flex items-center gap-2">
+                                    <span id="live-status-badge-${matchId}" class="px-3 py-1 rounded-full bg-red-500 text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm animate-pulse transition-all duration-500">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-white"></span> LIVE COURT
+                                    </span>
+                                    <span class="text-xs font-bold text-slate-400">Match #${m.match_number || matchId}</span>
+                                    <span id="deuce-badge-${matchId}" class="hidden px-2.5 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-black uppercase tracking-wider shadow-sm animate-bounce">
+                                        🔥 DEUCE
+                                    </span>
+                                </div>
+                                <div id="live-game-num-${matchId}" class="text-xs font-mono font-black text-red-600 bg-red-50 px-2.5 py-1 rounded-lg">
+                                    Game ${(m.games_a || 0) + (m.games_b || 0) + 1}
+                                </div>
+                            </div>
+                            <div class="space-y-3 my-2">
+                                <div class="p-4 rounded-2xl bg-slate-50/90 border border-slate-200 flex items-center justify-between transition-colors shadow-xs">
+                                    <div class="font-black text-base text-slate-900 truncate">${m.display_a || m.player_a || 'Player A'}</div>
+                                    <div id="live-score-a-${matchId}" class="text-3xl font-black font-display text-slate-900 bg-white border border-slate-200 px-4 py-2 rounded-xl shadow-xs min-w-[52px] text-center transition-all duration-300 bg-racket-strings">${m.score_a || 0}</div>
+                                </div>
+                                <div class="badminton-net-divider-h rounded-full my-1 opacity-75"></div>
+                                <div class="p-4 rounded-2xl bg-slate-50/90 border border-slate-200 flex items-center justify-between transition-colors shadow-xs">
+                                    <div class="font-black text-base text-slate-900 truncate">${m.display_b || m.player_b || 'Player B'}</div>
+                                    <div id="live-score-b-${matchId}" class="text-3xl font-black font-display text-slate-900 bg-white border border-slate-200 px-4 py-2 rounded-xl shadow-xs min-w-[52px] text-center transition-all duration-300 bg-racket-strings">${m.score_b || 0}</div>
+                                </div>
+                            </div>
+                            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-500">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[10px] uppercase tracking-wider text-slate-400">Games Won:</span>
+                                    <span class="font-black text-slate-800">
+                                        <span id="live-games-a-${matchId}">${m.games_a || 0}</span> - <span id="live-games-b-${matchId}">${m.games_b || 0}</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    cardEl = tempDiv.firstElementChild;
+                    liveGrid.appendChild(cardEl);
+                }
+
                 const scoreAEl = document.getElementById('live-score-a-' + matchId);
                 const scoreBEl = document.getElementById('live-score-b-' + matchId);
                 const gameAEl = document.getElementById('live-games-a-' + matchId);
@@ -1367,7 +1418,6 @@ function tournamentPublicManager(defaultTab, tournamentId) {
                         badgeEl.className = 'px-3 py-1 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md animate-bounce';
                     }
 
-                    const cardEl = document.getElementById('live-match-card-' + matchId);
                     if (cardEl) {
                         cardEl.classList.remove('border-red-400', 'ring-red-50');
                         cardEl.classList.add('border-emerald-500', 'ring-emerald-100');
@@ -1381,7 +1431,13 @@ function tournamentPublicManager(defaultTab, tournamentId) {
                                 cardEl.style.transition = 'opacity 0.8s ease, transform 0.8s ease';
                                 cardEl.style.opacity = '0';
                                 cardEl.style.transform = 'scale(0.95)';
-                                setTimeout(() => cardEl.remove(), 800);
+                                setTimeout(() => {
+                                    cardEl.remove();
+                                    if (liveGrid && liveGrid.children.length === 0) {
+                                        if (liveSection) liveSection.classList.add('hidden');
+                                        if (noLivePlaceholder) noLivePlaceholder.classList.remove('hidden');
+                                    }
+                                }, 800);
                             }
                         }, 15000);
                     }
