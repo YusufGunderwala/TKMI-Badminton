@@ -157,7 +157,7 @@ foreach ($allMatches as $m) {
         $upcomingMatches[] = $m;
     }
 
-    if ($m['stage'] === 'stage2') {
+    if ($m['stage'] === 'stage2' || in_array($m['round_key'], [ROUND_R16, ROUND_QF, ROUND_SF, ROUND_FINAL, ROUND_3RD_PLACE])) {
         if ($m['round_key'] === ROUND_R16) $bracket['r16'][] = $m;
         if ($m['round_key'] === ROUND_QF) $bracket['qf'][] = $m;
         if ($m['round_key'] === ROUND_SF) $bracket['sf'][] = $m;
@@ -166,6 +166,10 @@ foreach ($allMatches as $m) {
     }
     $listMatchesByRound[$m['round_key']][] = $m;
 }
+
+usort($bracket['r16'], fn($a, $b) => ((int)($a['match_number'] ?? 0)) <=> ((int)($b['match_number'] ?? 0)));
+usort($bracket['qf'], fn($a, $b) => ((int)($a['match_number'] ?? 0)) <=> ((int)($b['match_number'] ?? 0)));
+usort($bracket['sf'], fn($a, $b) => ((int)($a['match_number'] ?? 0)) <=> ((int)($b['match_number'] ?? 0)));
 
     $podium = Matchmaker::getPodiumWinners($id);
 
@@ -1160,117 +1164,295 @@ include __DIR__ . '/../includes/header.php';
                 <p class="text-slate-500 text-sm mt-1">Stage 2 Single Elimination bracket tree unlocks once preliminary qualifying rounds conclude.</p>
             </div>
         <?php else: ?>
-            <!-- Mobile Swipe Hint -->
-            <div class="md:hidden flex items-center justify-center gap-1.5 text-[11px] font-bold text-slate-500 bg-white border border-slate-200 py-2 px-4 rounded-2xl shadow-xs mx-auto mb-3 w-fit">
-                <i class="ph-bold ph-arrows-left-right text-xs text-[#c9a84c]"></i>
-                <span>Swipe left/right to browse tournament bracket</span>
+            <?php
+            // Reusable Bracket Card Renderer
+            $renderBracketCard = function($m, $customTitle = '', $isFinal = false, $isBronze = false) {
+                if (!$m) {
+                    return '
+                    <div class="w-52 sm:w-60 lg:w-64 bg-slate-100/70 border border-dashed border-slate-300 rounded-2xl p-3 flex flex-col justify-center items-center text-center min-h-[96px]">
+                        <span class="text-[11px] font-bold text-slate-400">Awaiting Matchup</span>
+                    </div>';
+                }
+
+                $isLive = in_array($m['status'] ?? '', [MATCH_LIVE, 'in_progress', 'live']);
+                $isCompleted = in_array($m['status'] ?? '', [MATCH_COMPLETED, MATCH_WALKOVER, MATCH_RETIRED]);
+                $winnerId = $m['winner_player_id'] ?? $m['winner_team_id'] ?? null;
+                $pAId = $m['participant_a_id'] ?? $m['team_a_id'] ?? null;
+                $pBId = $m['participant_b_id'] ?? $m['team_b_id'] ?? null;
+
+                $aWon = $isCompleted && $winnerId && ((string)$winnerId === (string)$pAId);
+                $bWon = $isCompleted && $winnerId && ((string)$winnerId === (string)$pBId);
+
+                // Fallback by games won if winner id not directly present
+                if ($isCompleted && !$aWon && !$bWon) {
+                    if (($m['games_a'] ?? 0) > ($m['games_b'] ?? 0)) $aWon = true;
+                    elseif (($m['games_b'] ?? 0) > ($m['games_a'] ?? 0)) $bWon = true;
+                }
+
+                $borderClasses = 'border-slate-200 hover:border-slate-300 bg-white';
+                if ($isFinal) {
+                    $borderClasses = 'border-[#c9a84c] shadow-lg bg-gradient-to-br from-amber-50/40 via-white to-amber-50/20';
+                } elseif ($isLive) {
+                    $borderClasses = 'border-red-400 ring-2 ring-red-400/20 shadow-md bg-white';
+                } elseif ($isCompleted) {
+                    $borderClasses = 'border-slate-200/90 shadow-sm bg-white';
+                }
+
+                $label = $customTitle ?: ('M#' . ($m['match_number'] ?? ''));
+                $badgeHtml = '';
+                if ($isLive) {
+                    $badgeHtml = '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-600 text-white text-[9px] font-black uppercase tracking-wider animate-pulse"><span class="w-1.5 h-1.5 rounded-full bg-white"></span> LIVE</span>';
+                } elseif ($isCompleted) {
+                    $badgeHtml = '<span class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-slate-100 text-slate-500 text-[9px] font-bold uppercase">FT</span>';
+                }
+
+                ob_start();
+                ?>
+                <div class="w-52 sm:w-60 lg:w-64 border rounded-2xl p-3 sm:p-3.5 transition-all relative z-10 select-none <?= $borderClasses ?>">
+                    <!-- Card Top Meta -->
+                    <div class="flex items-center justify-between gap-2 mb-2 pb-1.5 border-b border-slate-100 text-[10px]">
+                        <span class="font-extrabold tracking-wider uppercase <?= $isFinal ? 'text-[#c9a84c]' : ($isBronze ? 'text-amber-700' : 'text-slate-400') ?>">
+                            <?= e($label) ?>
+                        </span>
+                        <?= $badgeHtml ?>
+                    </div>
+
+                    <!-- Participant A Row -->
+                    <div class="flex items-center justify-between gap-2 py-1 px-1.5 rounded-lg transition-colors <?= $aWon ? 'bg-emerald-50/80 font-black text-emerald-950' : ($bWon ? 'text-slate-400 font-medium opacity-75' : 'text-slate-800 font-bold') ?>">
+                        <div class="flex items-center gap-1.5 min-w-0">
+                            <?php if ($aWon): ?>
+                                <i class="ph-fill ph-trophy text-amber-500 text-xs shrink-0"></i>
+                            <?php endif; ?>
+                            <span class="text-xs sm:text-[13px] truncate"><?= e($m['display_a'] ?? 'TBD') ?></span>
+                        </div>
+                        <span class="text-xs sm:text-sm font-mono shrink-0 <?= $aWon ? 'text-emerald-700 font-black' : ($bWon ? 'text-slate-400' : 'text-slate-700 font-bold') ?>">
+                            <?= $m['games_a'] ?? 0 ?>
+                        </span>
+                    </div>
+
+                    <!-- Participant B Row -->
+                    <div class="flex items-center justify-between gap-2 py-1 px-1.5 rounded-lg mt-0.5 transition-colors <?= $bWon ? 'bg-emerald-50/80 font-black text-emerald-950' : ($aWon ? 'text-slate-400 font-medium opacity-75' : 'text-slate-800 font-bold') ?>">
+                        <div class="flex items-center gap-1.5 min-w-0">
+                            <?php if ($bWon): ?>
+                                <i class="ph-fill ph-trophy text-amber-500 text-xs shrink-0"></i>
+                            <?php endif; ?>
+                            <span class="text-xs sm:text-[13px] truncate"><?= e($m['display_b'] ?? 'TBD') ?></span>
+                        </div>
+                        <span class="text-xs sm:text-sm font-mono shrink-0 <?= $bWon ? 'text-emerald-700 font-black' : ($aWon ? 'text-slate-400' : 'text-slate-700 font-bold') ?>">
+                            <?= $m['games_b'] ?? 0 ?>
+                        </span>
+                    </div>
+                </div>
+                <?php
+                return ob_get_clean();
+            };
+
+            // Reusable SVG Connector Column Renderer
+            // Connects two vertical child cards (at 25% and 75% height) to one output parent stem (at 50% height)
+            $renderBracketConnector = function() {
+                return '
+                <div class="w-6 sm:w-8 lg:w-10 h-full flex items-center justify-center pointer-events-none">
+                    <svg class="w-full h-full text-slate-300" viewBox="0 0 32 100" preserveAspectRatio="none" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <!-- Top branch enters at 25% -->
+                        <path d="M 0 25 H 16 V 75 H 0" vector-effect="non-scaling-stroke" />
+                        <!-- Centered exit stem at 50% -->
+                        <line x1="16" y1="50" x2="32" y2="50" vector-effect="non-scaling-stroke" stroke-width="2" />
+                    </svg>
+                </div>';
+            };
+            ?>
+
+            <!-- Mobile / Tablet Quick Navigation Tabs -->
+            <div class="flex flex-wrap items-center justify-between gap-3 bg-white p-2.5 sm:p-3 rounded-2xl border border-slate-200 shadow-xs">
+                <div class="flex items-center gap-1.5 text-xs font-black text-slate-600 pl-1">
+                    <i class="ph-bold ph-git-fork text-[#c9a84c]"></i>
+                    <span>Knockout Tree</span>
+                </div>
+                <div class="flex items-center gap-1 sm:gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+                    <button type="button" @click="scrollBracket('all')" class="px-3 py-1.5 rounded-xl text-xs font-extrabold bg-slate-100 hover:bg-slate-200 text-slate-700 transition">
+                        Full
+                    </button>
+                    <?php if (!empty($bracket['r16'])): ?>
+                    <button type="button" @click="scrollBracket('r16')" class="px-3 py-1.5 rounded-xl text-xs font-extrabold bg-slate-100 hover:bg-slate-200 text-slate-700 transition">
+                        R16
+                    </button>
+                    <?php endif; ?>
+                    <?php if (!empty($bracket['qf'])): ?>
+                    <button type="button" @click="scrollBracket('qf')" class="px-3 py-1.5 rounded-xl text-xs font-extrabold bg-slate-100 hover:bg-slate-200 text-slate-700 transition">
+                        QF
+                    </button>
+                    <?php endif; ?>
+                    <?php if (!empty($bracket['sf'])): ?>
+                    <button type="button" @click="scrollBracket('sf')" class="px-3 py-1.5 rounded-xl text-xs font-extrabold bg-slate-100 hover:bg-slate-200 text-slate-700 transition">
+                        SF
+                    </button>
+                    <?php endif; ?>
+                    <?php if (!empty($bracket['final'])): ?>
+                    <button type="button" @click="scrollBracket('final')" class="px-3 py-1.5 rounded-xl text-xs font-extrabold bg-[#0f2044] text-[#c9a84c] hover:bg-[#183163] transition shadow-xs">
+                        Finals 🏆
+                    </button>
+                    <?php endif; ?>
+                </div>
             </div>
 
-            <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-4 sm:p-6 overflow-x-auto custom-scrollbar">
-                <div class="flex items-stretch gap-6 sm:gap-8 min-w-[950px] p-3 sm:p-4 bg-slate-50/60 rounded-2xl border border-slate-200/80">
+            <!-- Mobile Swipe Hint -->
+            <div class="lg:hidden flex items-center justify-center gap-1.5 text-[11px] font-bold text-slate-500 bg-white border border-slate-200 py-1.5 px-3.5 rounded-xl shadow-2xs mx-auto w-fit">
+                <i class="ph-bold ph-arrows-left-right text-xs text-[#c9a84c]"></i>
+                <span>Swipe horizontally or use round buttons above to navigate</span>
+            </div>
+
+            <!-- Main Scrollable Tournament Bracket Canvas -->
+            <div id="bracket-scroll-container" class="bg-white rounded-3xl border border-slate-200 shadow-sm p-4 sm:p-6 overflow-x-auto custom-scrollbar scroll-smooth">
+                <div class="flex items-stretch min-w-max p-4 sm:p-6 bg-slate-50/70 rounded-2xl border border-slate-200/70">
                     
-                    <!-- R16 -->
+                    <!-- 1. ROUND OF 16 (8 Matches in 4 Pairs) -->
                     <?php if (!empty($bracket['r16'])): ?>
-                    <div class="flex flex-col justify-around gap-6 w-64">
-                        <h4 class="text-center font-black text-slate-400 text-[10px] tracking-widest uppercase mb-1">Round of 16</h4>
-                        <?php foreach ($bracket['r16'] as $m): ?>
-                            <div class="bg-white border border-slate-200 rounded-2xl p-3.5 shadow-sm hover:border-[#0f2044] transition-all">
-                                <div class="text-[9px] text-slate-400 font-bold uppercase mb-1.5">M#<?= $m['match_number'] ?></div>
-                                <div class="flex justify-between items-center mb-1.5 border-b border-slate-50 pb-1.5">
-                                    <span class="text-xs font-black text-slate-800 truncate"><?= e($m['display_a']) ?></span>
-                                    <span class="text-[#0f2044] font-black text-sm"><?= $m['games_a'] ?></span>
+                    <div id="bracket-col-r16" class="flex flex-col">
+                        <div class="h-8 mb-4 flex items-center justify-center">
+                            <span class="font-black text-slate-500 text-xs tracking-wider uppercase bg-white px-3 py-1 rounded-full border border-slate-200 shadow-2xs">
+                                Round of 16
+                            </span>
+                        </div>
+                        <div class="flex-1 flex flex-col justify-between gap-8">
+                            <?php 
+                            $r16Matches = array_values($bracket['r16']);
+                            for ($pairIdx = 0; $pairIdx < 4; $pairIdx++):
+                                $mTop = $r16Matches[$pairIdx * 2] ?? null;
+                                $mBot = $r16Matches[$pairIdx * 2 + 1] ?? null;
+                            ?>
+                                <div class="flex flex-col justify-around gap-4 h-56">
+                                    <?= $renderBracketCard($mTop) ?>
+                                    <?= $renderBracketCard($mBot) ?>
                                 </div>
-                                <div class="flex justify-between items-center">
-                                    <span class="text-xs font-bold text-slate-500 truncate"><?= e($m['display_b']) ?></span>
-                                    <span class="text-slate-400 font-black text-sm"><?= $m['games_b'] ?></span>
+                            <?php endfor; ?>
+                        </div>
+                    </div>
+
+                    <!-- Connectors R16 -> QF -->
+                    <div class="flex flex-col pt-12">
+                        <div class="flex-1 flex flex-col justify-between gap-8">
+                            <?php for ($c = 0; $c < 4; $c++): ?>
+                                <div class="h-56 flex items-center">
+                                    <?= $renderBracketConnector() ?>
                                 </div>
-                            </div>
-                        <?php endforeach; ?>
+                            <?php endfor; ?>
+                        </div>
                     </div>
                     <?php endif; ?>
 
-                    <!-- QF -->
+                    <!-- 2. QUARTER FINALS (4 Matches in 2 Pairs) -->
                     <?php if (!empty($bracket['qf'])): ?>
-                    <div class="flex flex-col justify-around gap-8 w-64">
-                        <h4 class="text-center font-black text-slate-400 text-[10px] tracking-widest uppercase mb-1">Quarter Finals</h4>
-                        <?php foreach ($bracket['qf'] as $m): ?>
-                            <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm hover:border-[#0f2044] transition-all">
-                                <div class="text-[9px] text-slate-400 font-bold uppercase mb-1.5">QF #<?= $m['match_number'] ?></div>
-                                <div class="flex justify-between items-center mb-1.5 border-b border-slate-50 pb-1.5">
-                                    <span class="text-xs font-black text-slate-800 truncate"><?= e($m['display_a']) ?></span>
-                                    <span class="text-[#0f2044] font-black text-sm"><?= $m['games_a'] ?></span>
+                    <div id="bracket-col-qf" class="flex flex-col">
+                        <div class="h-8 mb-4 flex items-center justify-center">
+                            <span class="font-black text-slate-600 text-xs tracking-wider uppercase bg-white px-3 py-1 rounded-full border border-slate-200 shadow-2xs">
+                                Quarter Finals
+                            </span>
+                        </div>
+                        <div class="flex-1 flex flex-col justify-between gap-8">
+                            <?php 
+                            $qfMatches = array_values($bracket['qf']);
+                            // When R16 exists, each QF pair occupies the vertical space of 2 R16 pairs (2 * 56 + gap) = 120 (h-[29rem])
+                            // When R16 is absent, standard h-56
+                            $hasR16 = !empty($bracket['r16']);
+                            $pairHeightClass = $hasR16 ? 'h-[29rem]' : 'h-56';
+                            for ($pairIdx = 0; $pairIdx < 2; $pairIdx++):
+                                $mTop = $qfMatches[$pairIdx * 2] ?? null;
+                                $mBot = $qfMatches[$pairIdx * 2 + 1] ?? null;
+                            ?>
+                                <div class="flex flex-col justify-around gap-4 <?= $pairHeightClass ?>">
+                                    <?= $renderBracketCard($mTop, 'QF #' . ($mTop['match_number'] ?? ($pairIdx*2+1))) ?>
+                                    <?= $renderBracketCard($mBot, 'QF #' . ($mBot['match_number'] ?? ($pairIdx*2+2))) ?>
                                 </div>
-                                <div class="flex justify-between items-center">
-                                    <span class="text-xs font-bold text-slate-500 truncate"><?= e($m['display_b']) ?></span>
-                                    <span class="text-slate-400 font-black text-sm"><?= $m['games_b'] ?></span>
+                            <?php endfor; ?>
+                        </div>
+                    </div>
+
+                    <!-- Connectors QF -> SF -->
+                    <div class="flex flex-col pt-12">
+                        <div class="flex-1 flex flex-col justify-between gap-8">
+                            <?php 
+                            $hasR16 = !empty($bracket['r16']);
+                            $pairHeightClass = $hasR16 ? 'h-[29rem]' : 'h-56';
+                            for ($c = 0; $c < 2; $c++): ?>
+                                <div class="<?= $pairHeightClass ?> flex items-center">
+                                    <?= $renderBracketConnector() ?>
                                 </div>
-                            </div>
-                        <?php endforeach; ?>
+                            <?php endfor; ?>
+                        </div>
                     </div>
                     <?php endif; ?>
 
-                    <!-- SF -->
+                    <!-- 3. SEMI FINALS (2 Matches in 1 Pair) -->
                     <?php if (!empty($bracket['sf'])): ?>
-                    <div class="flex flex-col justify-around gap-16 w-64">
-                        <h4 class="text-center font-black text-slate-400 text-[10px] tracking-widest uppercase mb-1">Semi Finals</h4>
-                        <?php foreach ($bracket['sf'] as $m): ?>
-                            <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm hover:border-[#0f2044] transition-all">
-                                <div class="text-[9px] text-slate-400 font-bold uppercase mb-1.5">SF #<?= $m['match_number'] ?></div>
-                                <div class="flex justify-between items-center mb-1.5 border-b border-slate-50 pb-1.5">
-                                    <span class="text-xs font-black text-slate-800 truncate"><?= e($m['display_a']) ?></span>
-                                    <span class="text-[#0f2044] font-black text-sm"><?= $m['games_a'] ?></span>
-                                </div>
-                                <div class="flex justify-between items-center">
-                                    <span class="text-xs font-bold text-slate-600 truncate"><?= e($m['display_b']) ?></span>
-                                    <span class="text-slate-400 font-black text-sm"><?= $m['games_b'] ?></span>
-                                </div>
+                    <div id="bracket-col-sf" class="flex flex-col">
+                        <div class="h-8 mb-4 flex items-center justify-center">
+                            <span class="font-black text-slate-700 text-xs tracking-wider uppercase bg-white px-3 py-1 rounded-full border border-slate-200 shadow-2xs">
+                                Semi Finals
+                            </span>
+                        </div>
+                        <div class="flex-1 flex flex-col justify-around">
+                            <?php 
+                            $sfMatches = array_values($bracket['sf']);
+                            $mTop = $sfMatches[0] ?? null;
+                            $mBot = $sfMatches[1] ?? null;
+                            // Match height to fill previous column height
+                            $hasR16 = !empty($bracket['r16']);
+                            $sfHeightClass = $hasR16 ? 'h-[60rem]' : 'h-[29rem]';
+                            ?>
+                            <div class="flex flex-col justify-around gap-4 <?= $sfHeightClass ?>">
+                                <?= $renderBracketCard($mTop, 'SF #' . ($mTop['match_number'] ?? 1)) ?>
+                                <?= $renderBracketCard($mBot, 'SF #' . ($mBot['match_number'] ?? 2)) ?>
                             </div>
-                        <?php endforeach; ?>
+                        </div>
+                    </div>
+
+                    <!-- Connectors SF -> FINAL -->
+                    <div class="flex flex-col pt-12">
+                        <div class="flex-1 flex flex-col justify-around">
+                            <?php 
+                            $hasR16 = !empty($bracket['r16']);
+                            $sfHeightClass = $hasR16 ? 'h-[60rem]' : 'h-[29rem]';
+                            ?>
+                            <div class="<?= $sfHeightClass ?> flex items-center">
+                                <?= $renderBracketConnector() ?>
+                            </div>
+                        </div>
                     </div>
                     <?php endif; ?>
 
-                    <!-- Final & 3rd Place -->
+                    <!-- 4. GRAND FINAL & 3RD PLACE -->
                     <?php if (!empty($bracket['final']) || !empty($bracket['3rd'])): ?>
-                    <div class="flex flex-col justify-center gap-8 w-72 relative">
-                        <?php if (!empty($bracket['final'])): ?>
-                            <div>
-                                <h4 class="text-center font-black text-[#c9a84c] text-xs tracking-widest uppercase mb-3 flex items-center justify-center gap-1.5">
-                                    <i class="ph-fill ph-trophy text-amber-500 text-lg"></i> Grand Final
-                                </h4>
-                                <?php foreach ($bracket['final'] as $m): ?>
-                                    <div class="bg-white border-2 border-[#c9a84c] rounded-3xl p-5 shadow-xl relative">
-                                        <div class="flex justify-between items-center mb-2 border-b border-slate-100 pb-2">
-                                            <span class="text-sm font-black text-slate-900 truncate"><?= e($m['display_a']) ?></span>
-                                            <span class="text-[#c9a84c] font-black text-2xl"><?= $m['games_a'] ?></span>
-                                        </div>
-                                        <div class="flex justify-between items-center">
-                                            <span class="text-sm font-bold text-slate-600 truncate"><?= e($m['display_b']) ?></span>
-                                            <span class="text-slate-400 font-black text-2xl"><?= $m['games_b'] ?></span>
-                                        </div>
+                    <div id="bracket-col-final" class="flex flex-col">
+                        <div class="h-8 mb-4 flex items-center justify-center">
+                            <span class="font-black text-[#c9a84c] text-xs tracking-wider uppercase bg-white px-3.5 py-1 rounded-full border border-[#c9a84c]/40 shadow-xs flex items-center gap-1.5">
+                                <i class="ph-fill ph-trophy text-amber-500"></i> Championship
+                            </span>
+                        </div>
+                        <div class="flex-1 flex flex-col justify-center gap-8">
+                            <!-- Grand Final Card -->
+                            <?php if (!empty($bracket['final'])): ?>
+                                <div class="flex flex-col items-center">
+                                    <div class="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-2 flex items-center gap-1">
+                                        <i class="ph-fill ph-crown text-amber-500"></i> Grand Final
                                     </div>
-                                <?php endforeach; ?>
-                            </div>
-                        <?php endif; ?>
+                                    <?php foreach ($bracket['final'] as $m): ?>
+                                        <?= $renderBracketCard($m, 'Final 🏆', true, false) ?>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
 
-                        <?php if (!empty($bracket['3rd'])): ?>
-                            <div>
-                                <h4 class="text-center font-black text-slate-500 text-[10px] tracking-widest uppercase mb-2 flex items-center justify-center gap-1">
-                                    <i class="ph-fill ph-medal text-amber-700"></i> 3rd Place Match
-                                </h4>
-                                <?php foreach ($bracket['3rd'] as $m): ?>
-                                    <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm relative">
-                                        <div class="flex justify-between items-center mb-1.5 border-b border-slate-50 pb-1.5">
-                                            <span class="text-xs font-bold text-slate-700 truncate"><?= e($m['display_a']) ?></span>
-                                            <span class="text-[#0f2044] font-bold"><?= $m['games_a'] ?></span>
-                                        </div>
-                                        <div class="flex justify-between items-center">
-                                            <span class="text-xs font-bold text-slate-500 truncate"><?= e($m['display_b']) ?></span>
-                                            <span class="text-slate-400 font-bold"><?= $m['games_b'] ?></span>
-                                        </div>
+                            <!-- 3rd Place Match Card -->
+                            <?php if (!empty($bracket['3rd'])): ?>
+                                <div class="flex flex-col items-center mt-2 pt-6 border-t border-slate-200/80">
+                                    <div class="text-[10px] font-black text-amber-800 uppercase tracking-widest mb-2 flex items-center gap-1">
+                                        <i class="ph-fill ph-medal text-amber-700"></i> 3rd Place Playoff
                                     </div>
-                                <?php endforeach; ?>
-                            </div>
-                        <?php endif; ?>
+                                    <?php foreach ($bracket['3rd'] as $m): ?>
+                                        <?= $renderBracketCard($m, 'Bronze 🥉', false, true) ?>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
                     </div>
                     <?php endif; ?>
 
@@ -1284,47 +1466,77 @@ include __DIR__ . '/../includes/header.php';
 
 <!-- Alpine Public View Manager with Live SSE -->
 <script>
+function escapeHtml(unsafe) {
+    if (!unsafe) return '';
+    return String(unsafe)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
 function tournamentPublicManager(defaultTab, tournamentId) {
     return {
         tab: defaultTab,
+        evtSource: null,
+        
+        escapeHtml(unsafe) {
+            return escapeHtml(unsafe);
+        },
         
         init() {
+            // Immediate sync to ensure fresh data right away without waiting
+            this.fetchLatestMatches();
+
             // 1. Connect to real-time Server-Sent Events (SSE) stream
-            if (typeof EventSource !== 'undefined') {
-                try {
-                    const evtSource = new EventSource('<?= BASE_URL ?>/sse/live.php?tournament_id=' + tournamentId);
-                    
-                    evtSource.onmessage = (e) => {
-                        try {
-                            const data = JSON.parse(e.data);
-                            const matches = data ? (data.matches || data.live_matches) : null;
-                            if (matches) {
-                                this.updateLiveScores(matches);
-                            }
-                        } catch (parseErr) {
-                            console.error('SSE JSON Error:', parseErr);
-                        }
-                    };
+            this.connectSSE();
 
-                    evtSource.onerror = (err) => {
-                        console.warn('SSE reconnecting...', err);
-                    };
-                } catch (err) {
-                    console.log('SSE connection skipped:', err);
+            // 2. High-speed HTTP fallback poller (every 1.5s) to guarantee zero lag under all network conditions
+            setInterval(() => {
+                this.fetchLatestMatches();
+            }, 1500);
+        },
+
+        connectSSE() {
+            if (typeof EventSource === 'undefined') return;
+            try {
+                if (this.evtSource) {
+                    try { this.evtSource.close(); } catch(e) {}
                 }
-            }
-
-            // 2. High-speed HTTP fallback poller (every 2.5s) to guarantee zero lag under all network conditions
-            setInterval(async () => {
-                try {
-                    const res = await fetch('<?= BASE_URL ?>/api/matches.php?tournament_id=' + tournamentId, { cache: 'no-store' });
-                    if (!res.ok) return;
-                    const data = await res.json();
-                    if (data && data.success && data.matches) {
-                        this.updateLiveScores(data.matches);
+                this.evtSource = new EventSource('<?= BASE_URL ?>/sse/live.php?tournament_id=' + tournamentId);
+                
+                this.evtSource.onmessage = (e) => {
+                    try {
+                        const data = JSON.parse(e.data);
+                        const matches = data ? (data.matches || data.live_matches) : null;
+                        if (matches && Array.isArray(matches)) {
+                            this.updateLiveScores(matches);
+                        }
+                    } catch (parseErr) {
+                        console.error('SSE JSON Error:', parseErr);
                     }
-                } catch(e) {}
-            }, 2500);
+                };
+
+                this.evtSource.onerror = (err) => {
+                    console.warn('SSE reconnecting in 2s...', err);
+                    try { this.evtSource.close(); } catch(e) {}
+                    setTimeout(() => this.connectSSE(), 2000);
+                };
+            } catch (err) {
+                console.log('SSE connection skipped:', err);
+            }
+        },
+
+        async fetchLatestMatches() {
+            try {
+                const res = await fetch('<?= BASE_URL ?>/api/matches.php?tournament_id=' + tournamentId, { cache: 'no-store' });
+                if (!res.ok) return;
+                const data = await res.json();
+                if (data && data.success && data.matches) {
+                    this.updateLiveScores(data.matches);
+                }
+            } catch(e) {}
         },
 
         calculateWinProbJS(scoreA, scoreB, gamesA, gamesB, targetPoints = 11, bestOf = 3, isCompleted = false, winnerSide = null) {
@@ -1360,281 +1572,322 @@ function tournamentPublicManager(defaultTab, tournamentId) {
         },
 
         updateLiveScores(liveMatches) {
+            if (!liveMatches || !Array.isArray(liveMatches)) return;
+
             const liveGrid = document.getElementById('tournament-live-grid');
             const liveSection = document.getElementById('tournament-live-section');
             const noLivePlaceholder = document.getElementById('tournament-no-live-placeholder');
 
-            const activeMatches = (liveMatches || []).filter(m => m.status === 'in_progress' || (m.is_completed && window._completedMatchCards && window._completedMatchCards[m.id]));
+            const activeMatches = liveMatches.filter(m => m.status === 'in_progress' || (m.is_completed && window._completedMatchCards && window._completedMatchCards[m.id]));
 
             if (activeMatches.length > 0) {
                 if (liveSection) liveSection.classList.remove('hidden');
                 if (noLivePlaceholder) noLivePlaceholder.classList.add('hidden');
+            } else if (!window._completedMatchCards || Object.keys(window._completedMatchCards).length === 0) {
+                if (liveGrid && liveGrid.querySelectorAll('[id^="live-match-card-"]').length === 0) {
+                    if (liveSection) liveSection.classList.add('hidden');
+                    if (noLivePlaceholder) noLivePlaceholder.classList.remove('hidden');
+                }
             }
 
             liveMatches.forEach(m => {
-                const matchId = m.id;
-                let cardEl = document.getElementById('live-match-card-' + matchId);
+                try {
+                    const matchId = m.id;
+                    let cardEl = document.getElementById('live-match-card-' + matchId);
 
-                const scoreA = (m.score_a !== undefined) ? parseInt(m.score_a) : parseInt(m.game_score_a ?? 0);
-                const scoreB = (m.score_b !== undefined) ? parseInt(m.score_b) : parseInt(m.game_score_b ?? 0);
-                const gamesA = (m.games_a !== undefined) ? parseInt(m.games_a) : parseInt(m.player_a_games_won ?? 0);
-                const gamesB = (m.games_b !== undefined) ? parseInt(m.games_b) : parseInt(m.player_b_games_won ?? 0);
-                const bestOf = parseInt(m.best_of || 3);
-                const targetPoints = parseInt(m.points_per_game || 11);
-                const curGame = m.current_game_number || ((gamesA + gamesB) + 1);
+                    const scoreA = (m.score_a !== undefined) ? parseInt(m.score_a) : parseInt(m.game_score_a ?? 0);
+                    const scoreB = (m.score_b !== undefined) ? parseInt(m.score_b) : parseInt(m.game_score_b ?? 0);
+                    const gamesA = (m.games_a !== undefined) ? parseInt(m.games_a) : parseInt(m.player_a_games_won ?? 0);
+                    const gamesB = (m.games_b !== undefined) ? parseInt(m.games_b) : parseInt(m.player_b_games_won ?? 0);
+                    const bestOf = parseInt(m.best_of || 3);
+                    const targetPoints = parseInt(m.points_per_game || 11);
+                    const curGame = m.current_game_number || ((gamesA + gamesB) + 1);
 
-                // Calculate or take momentum
-                let momA = (m.momentum_a !== undefined) ? m.momentum_a : null;
-                let momB = (m.momentum_b !== undefined) ? m.momentum_b : null;
-                if (momA === null || momB === null) {
-                    const probs = this.calculateWinProbJS(scoreA, scoreB, gamesA, gamesB, targetPoints, bestOf, m.is_completed, m.winner_side);
-                    momA = probs.a;
-                    momB = probs.b;
-                }
+                    // Calculate or take momentum
+                    let momA = (m.momentum_a !== undefined) ? m.momentum_a : null;
+                    let momB = (m.momentum_b !== undefined) ? m.momentum_b : null;
+                    if (momA === null || momB === null) {
+                        const probs = this.calculateWinProbJS(scoreA, scoreB, gamesA, gamesB, targetPoints, bestOf, m.is_completed, m.winner_side);
+                        momA = probs.a;
+                        momB = probs.b;
+                    }
 
-                // If card does not exist in DOM yet (e.g. match started after page loaded), build and append it
-                if (!cardEl && liveGrid && (m.status === 'in_progress' || m.status === 'live')) {
-                    const tempDiv = document.createElement('div');
-                    tempDiv.innerHTML = `
-                        <div class="bg-white rounded-3xl p-6 sm:p-7 border-2 border-red-400 ring-4 ring-red-50 shadow-2xl relative overflow-hidden flex flex-col justify-between group bg-badminton-court transition-all duration-500"
-                             id="live-match-card-${matchId}">
-                            
-                            <!-- Top Live Badge & Match Header -->
-                            <div class="flex items-center justify-between mb-5 border-b border-slate-100 pb-3 flex-wrap gap-2">
-                                <div class="flex items-center gap-2 flex-wrap">
-                                    <span id="live-status-badge-${matchId}" class="px-3 py-1 rounded-full bg-red-500 text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm animate-pulse transition-all duration-500">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-white"></span> LIVE COURT
-                                    </span>
-                                    <span class="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200" id="live-match-header-${matchId}">
-                                        Match #${m.match_number || matchId} &bull; ${m.round_label || 'Match'}
-                                    </span>
-                                    <span class="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
-                                        Best of ${bestOf} Sets
-                                    </span>
-                                    <span id="deuce-badge-${matchId}" class="hidden px-2.5 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-black uppercase tracking-wider shadow-sm animate-bounce">
-                                        🔥 DEUCE
-                                    </span>
-                                </div>
-                                <div id="live-game-num-${matchId}" class="text-xs font-mono font-black text-red-600 bg-red-50 border border-red-200 px-3 py-1 rounded-lg shadow-2xs">
-                                    Set ${curGame} of ${bestOf}
-                                </div>
-                            </div>
-
-                            <!-- Competitors Arena with Live Scores and Net Divider -->
-                            <div class="space-y-3 my-2">
-                                <!-- Competitor A -->
-                                <div class="p-4 rounded-2xl bg-slate-50/90 border border-slate-200 flex items-center justify-between transition-colors shadow-xs">
-                                    <div class="flex items-center gap-3.5 min-w-0 pr-2">
-                                        <div class="font-black text-base text-slate-900 truncate">${m.display_a || m.player_a || 'Player A'}</div>
-                                        <span id="live-games-badge-a-${matchId}" class="px-2 py-0.5 rounded-full text-[10px] font-black ${gamesA > 0 ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-slate-100 text-slate-500 border border-slate-200'}">
-                                            <span id="live-games-won-count-a-${matchId}">${gamesA}</span> Set${gamesA === 1 ? '' : 's'} Won
+                    // If card does not exist in DOM yet (e.g. match started after page loaded), build and append it
+                    if (!cardEl && liveGrid && (m.status === 'in_progress' || m.status === 'live')) {
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = `
+                            <div class="bg-white rounded-3xl p-6 sm:p-7 border-2 border-red-400 ring-4 ring-red-50 shadow-2xl relative overflow-hidden flex flex-col justify-between group bg-badminton-court transition-all duration-500"
+                                 id="live-match-card-${matchId}">
+                                
+                                <!-- Top Live Badge & Match Header -->
+                                <div class="flex items-center justify-between mb-5 border-b border-slate-100 pb-3 flex-wrap gap-2">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span id="live-status-badge-${matchId}" class="px-3 py-1 rounded-full bg-red-500 text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm animate-pulse transition-all duration-500">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-white"></span> LIVE COURT
+                                        </span>
+                                        <span class="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200" id="live-match-header-${matchId}">
+                                            Match #${m.match_number || matchId} &bull; ${m.round_label || 'Match'}
+                                        </span>
+                                        <span class="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
+                                            Best of ${bestOf} Sets
+                                        </span>
+                                        <span id="deuce-badge-${matchId}" class="hidden px-2.5 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-black uppercase tracking-wider shadow-sm animate-bounce">
+                                            🔥 DEUCE
                                         </span>
                                     </div>
-                                    <div id="live-score-a-${matchId}" class="text-3xl font-black font-display text-slate-900 bg-white border border-slate-200 px-4 py-2 rounded-xl shadow-xs min-w-[52px] text-center transition-all duration-300 bg-racket-strings">${scoreA}</div>
-                                </div>
-
-                                <div class="badminton-net-divider-h rounded-full my-1 opacity-75"></div>
-
-                                <!-- Competitor B -->
-                                <div class="p-4 rounded-2xl bg-slate-50/90 border border-slate-200 flex items-center justify-between transition-colors shadow-xs">
-                                    <div class="flex items-center gap-3.5 min-w-0 pr-2">
-                                        <div class="font-black text-base text-slate-900 truncate">${m.display_b || m.player_b || 'Player B'}</div>
-                                        <span id="live-games-badge-b-${matchId}" class="px-2 py-0.5 rounded-full text-[10px] font-black ${gamesB > 0 ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-slate-100 text-slate-500 border border-slate-200'}">
-                                            <span id="live-games-won-count-b-${matchId}">${gamesB}</span> Set${gamesB === 1 ? '' : 's'} Won
-                                        </span>
-                                    </div>
-                                    <div id="live-score-b-${matchId}" class="text-3xl font-black font-display text-slate-900 bg-white border border-slate-200 px-4 py-2 rounded-xl shadow-xs min-w-[52px] text-center transition-all duration-300 bg-racket-strings">${scoreB}</div>
-                                </div>
-                            </div>
-
-                            <!-- Live AI Win Predictor -->
-                            <div class="mt-4 pt-3 pb-2 border-t border-slate-100" id="live-mom-container-${matchId}">
-                                <div class="flex items-center justify-between text-[11px] font-black mb-1.5">
-                                    <span class="text-blue-700 flex items-center gap-1">
-                                        <i class="ph-fill ph-lightning text-[#c9a84c]"></i>
-                                        <span>${m.display_a || m.player_a || 'Player A'}</span>: <strong id="momentum-val-a-${matchId}">${momA}%</strong>
-                                    </span>
-                                    <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">AI Win Predictor</span>
-                                    <span class="text-indigo-800 flex items-center gap-1">
-                                        <strong id="momentum-val-b-${matchId}">${momB}%</strong>: <span>${m.display_b || m.player_b || 'Player B'}</span>
-                                    </span>
-                                </div>
-                                <div class="w-full h-2.5 rounded-full bg-slate-200 overflow-hidden flex shadow-inner">
-                                    <div id="momentum-bar-a-${matchId}" class="h-full bg-gradient-to-r from-blue-600 to-cyan-500 transition-all duration-700" style="width: ${momA}%"></div>
-                                    <div id="momentum-bar-b-${matchId}" class="h-full bg-gradient-to-r from-indigo-500 to-purple-600 transition-all duration-700" style="width: ${momB}%"></div>
-                                </div>
-                            </div>
-
-                            <!-- Sets Score & Completed Sets Breakdown -->
-                            <div id="live-games-history-${matchId}" class="mt-4 pt-3 border-t border-slate-100 space-y-2">
-                                <div class="flex items-center justify-between text-xs font-bold text-slate-500">
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-[10px] uppercase tracking-wider text-slate-400">Sets Score:</span>
-                                        <span class="font-black text-slate-900 bg-slate-100 px-2.5 py-0.5 rounded-md border border-slate-200 font-mono">
-                                            <span id="live-games-a-${matchId}">${gamesA}</span> - <span id="live-games-b-${matchId}">${gamesB}</span>
-                                        </span>
-                                        <span class="text-[10px] text-slate-400 font-medium">
-                                            (Target: ${Math.ceil(bestOf / 2)} to win)
-                                        </span>
+                                    <div id="live-game-num-${matchId}" class="text-xs font-mono font-black text-red-600 bg-red-50 border border-red-200 px-3 py-1 rounded-lg shadow-2xs">
+                                        Set ${curGame} of ${bestOf}
                                     </div>
                                 </div>
-                                <div id="live-completed-sets-${matchId}" class="hidden flex-wrap items-center gap-2 pt-1">
-                                    <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">Previous Sets:</span>
-                                    <div id="live-completed-sets-list-${matchId}" class="flex flex-wrap items-center gap-2"></div>
+
+                                <!-- Competitors Arena with Live Scores and Net Divider -->
+                                <div class="space-y-3 my-2">
+                                    <!-- Competitor A -->
+                                    <div class="p-4 rounded-2xl bg-slate-50/90 border border-slate-200 flex items-center justify-between transition-colors shadow-xs">
+                                        <div class="flex items-center gap-3.5 min-w-0 pr-2">
+                                            <div class="font-black text-base text-slate-900 truncate">${escapeHtml(m.display_a || m.player_a || 'Player A')}</div>
+                                            <span id="live-games-badge-a-${matchId}" class="px-2 py-0.5 rounded-full text-[10px] font-black ${gamesA > 0 ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-slate-100 text-slate-500 border border-slate-200'}">
+                                                <span id="live-games-won-count-a-${matchId}">${gamesA}</span> Set${gamesA === 1 ? '' : 's'} Won
+                                            </span>
+                                        </div>
+                                        <div id="live-score-a-${matchId}" class="text-3xl font-black font-display text-slate-900 bg-white border border-slate-200 px-4 py-2 rounded-xl shadow-xs min-w-[52px] text-center transition-all duration-300 bg-racket-strings">${scoreA}</div>
+                                    </div>
+
+                                    <div class="badminton-net-divider-h rounded-full my-1 opacity-75"></div>
+
+                                    <!-- Competitor B -->
+                                    <div class="p-4 rounded-2xl bg-slate-50/90 border border-slate-200 flex items-center justify-between transition-colors shadow-xs">
+                                        <div class="flex items-center gap-3.5 min-w-0 pr-2">
+                                            <div class="font-black text-base text-slate-900 truncate">${escapeHtml(m.display_b || m.player_b || 'Player B')}</div>
+                                            <span id="live-games-badge-b-${matchId}" class="px-2 py-0.5 rounded-full text-[10px] font-black ${gamesB > 0 ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-slate-100 text-slate-500 border border-slate-200'}">
+                                                <span id="live-games-won-count-b-${matchId}">${gamesB}</span> Set${gamesB === 1 ? '' : 's'} Won
+                                            </span>
+                                        </div>
+                                        <div id="live-score-b-${matchId}" class="text-3xl font-black font-display text-slate-900 bg-white border border-slate-200 px-4 py-2 rounded-xl shadow-xs min-w-[52px] text-center transition-all duration-300 bg-racket-strings">${scoreB}</div>
+                                    </div>
+                                </div>
+
+                                <!-- Live AI Win Predictor -->
+                                <div class="mt-4 pt-3 pb-2 border-t border-slate-100" id="live-mom-container-${matchId}">
+                                    <div class="flex items-center justify-between text-[11px] font-black mb-1.5">
+                                        <span class="text-blue-700 flex items-center gap-1">
+                                            <i class="ph-fill ph-lightning text-[#c9a84c]"></i>
+                                            <span>${escapeHtml(m.display_a || m.player_a || 'Player A')}</span>: <strong id="momentum-val-a-${matchId}">${momA}%</strong>
+                                        </span>
+                                        <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">AI Win Predictor</span>
+                                        <span class="text-indigo-800 flex items-center gap-1">
+                                            <strong id="momentum-val-b-${matchId}">${momB}%</strong>: <span>${escapeHtml(m.display_b || m.player_b || 'Player B')}</span>
+                                        </span>
+                                    </div>
+                                    <div class="w-full h-2.5 rounded-full bg-slate-200 overflow-hidden flex shadow-inner">
+                                        <div id="momentum-bar-a-${matchId}" class="h-full bg-gradient-to-r from-blue-600 to-cyan-500 transition-all duration-700" style="width: ${momA}%"></div>
+                                        <div id="momentum-bar-b-${matchId}" class="h-full bg-gradient-to-r from-indigo-500 to-purple-600 transition-all duration-700" style="width: ${momB}%"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Sets Score & Completed Sets Breakdown -->
+                                <div id="live-games-history-${matchId}" class="mt-4 pt-3 border-t border-slate-100 space-y-2">
+                                    <div class="flex items-center justify-between text-xs font-bold text-slate-500">
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-[10px] uppercase tracking-wider text-slate-400">Sets Score:</span>
+                                            <span class="font-black text-slate-900 bg-slate-100 px-2.5 py-0.5 rounded-md border border-slate-200 font-mono">
+                                                <span id="live-games-a-${matchId}">${gamesA}</span> - <span id="live-games-b-${matchId}">${gamesB}</span>
+                                            </span>
+                                            <span class="text-[10px] text-slate-400 font-medium">
+                                                (Target: ${Math.ceil(bestOf / 2)} to win)
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div id="live-completed-sets-${matchId}" class="hidden flex-wrap items-center gap-2 pt-1">
+                                        <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">Previous Sets:</span>
+                                        <div id="live-completed-sets-list-${matchId}" class="flex flex-wrap items-center gap-2"></div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    `;
-                    cardEl = tempDiv.firstElementChild;
-                    liveGrid.appendChild(cardEl);
-                }
+                        `;
+                        cardEl = tempDiv.firstElementChild;
+                        liveGrid.appendChild(cardEl);
+                    }
 
-                // Update scores in place
-                const scoreAEl = document.getElementById('live-score-a-' + matchId);
-                const scoreBEl = document.getElementById('live-score-b-' + matchId);
-                const gameAEl = document.getElementById('live-games-a-' + matchId);
-                const gameBEl = document.getElementById('live-games-b-' + matchId);
-                const countAEl = document.getElementById('live-games-won-count-a-' + matchId);
-                const countBEl = document.getElementById('live-games-won-count-b-' + matchId);
-                const badgeAEl = document.getElementById('live-games-badge-a-' + matchId);
-                const badgeBEl = document.getElementById('live-games-badge-b-' + matchId);
-                const serverAEl = document.getElementById('server-indicator-a-' + matchId);
-                const serverBEl = document.getElementById('server-indicator-b-' + matchId);
-                const gameNumEl = document.getElementById('live-game-num-' + matchId);
-                const momBarAEl = document.getElementById('momentum-bar-a-' + matchId);
-                const momBarBEl = document.getElementById('momentum-bar-b-' + matchId);
-                const momValAEl = document.getElementById('momentum-val-a-' + matchId);
-                const momValBEl = document.getElementById('momentum-val-b-' + matchId);
+                    // Update scores in place
+                    const scoreAEl = document.getElementById('live-score-a-' + matchId);
+                    const scoreBEl = document.getElementById('live-score-b-' + matchId);
+                    const gameAEl = document.getElementById('live-games-a-' + matchId);
+                    const gameBEl = document.getElementById('live-games-b-' + matchId);
+                    const countAEl = document.getElementById('live-games-won-count-a-' + matchId);
+                    const countBEl = document.getElementById('live-games-won-count-b-' + matchId);
+                    const badgeAEl = document.getElementById('live-games-badge-a-' + matchId);
+                    const badgeBEl = document.getElementById('live-games-badge-b-' + matchId);
+                    const serverAEl = document.getElementById('server-indicator-a-' + matchId);
+                    const serverBEl = document.getElementById('server-indicator-b-' + matchId);
+                    const gameNumEl = document.getElementById('live-game-num-' + matchId);
+                    const momBarAEl = document.getElementById('momentum-bar-a-' + matchId);
+                    const momBarBEl = document.getElementById('momentum-bar-b-' + matchId);
+                    const momValAEl = document.getElementById('momentum-val-a-' + matchId);
+                    const momValBEl = document.getElementById('momentum-val-b-' + matchId);
 
-                if (scoreAEl) scoreAEl.innerText = scoreA;
-                if (scoreBEl) scoreBEl.innerText = scoreB;
-                if (gameAEl) gameAEl.innerText = gamesA;
-                if (gameBEl) gameBEl.innerText = gamesB;
-                if (countAEl) countAEl.innerText = gamesA;
-                if (countBEl) countBEl.innerText = gamesB;
+                    if (scoreAEl) {
+                        if (scoreAEl.innerText != scoreA) {
+                            scoreAEl.innerText = scoreA;
+                            scoreAEl.classList.add('scale-110', 'text-amber-600');
+                            setTimeout(() => scoreAEl.classList.remove('scale-110', 'text-amber-600'), 400);
+                        }
+                    }
+                    if (scoreBEl) {
+                        if (scoreBEl.innerText != scoreB) {
+                            scoreBEl.innerText = scoreB;
+                            scoreBEl.classList.add('scale-110', 'text-amber-600');
+                            setTimeout(() => scoreBEl.classList.remove('scale-110', 'text-amber-600'), 400);
+                        }
+                    }
+                    if (gameAEl) gameAEl.innerText = gamesA;
+                    if (gameBEl) gameBEl.innerText = gamesB;
+                    if (countAEl) countAEl.innerText = gamesA;
+                    if (countBEl) countBEl.innerText = gamesB;
 
-                if (badgeAEl) {
-                    badgeAEl.className = gamesA > 0 
-                        ? 'px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-800 border border-amber-300' 
-                        : 'px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-500 border border-slate-200';
-                }
-                if (badgeBEl) {
-                    badgeBEl.className = gamesB > 0 
-                        ? 'px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-800 border border-amber-300' 
-                        : 'px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-500 border border-slate-200';
-                }
+                    if (badgeAEl) {
+                        badgeAEl.className = gamesA > 0 
+                            ? 'px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-800 border border-amber-300' 
+                            : 'px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-500 border border-slate-200';
+                    }
+                    if (badgeBEl) {
+                        badgeBEl.className = gamesB > 0 
+                            ? 'px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-800 border border-amber-300' 
+                            : 'px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-500 border border-slate-200';
+                    }
 
-                if (gameNumEl) {
+                    if (gameNumEl) {
+                        if (m.is_completed) {
+                            gameNumEl.innerText = 'Match Finished';
+                            gameNumEl.className = 'text-xs font-mono font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-lg';
+                        } else {
+                            gameNumEl.innerText = 'Set ' + curGame + ' of ' + bestOf;
+                            gameNumEl.className = 'text-xs font-mono font-black text-red-600 bg-red-50 border border-red-200 px-3 py-1 rounded-lg shadow-2xs';
+                        }
+                    }
+
+                    // Deuce indicator
+                    const deuceEl = document.getElementById('deuce-badge-' + matchId);
+                    if (deuceEl) {
+                        const isDeuce = m.deuce_enabled && parseInt(scoreA) >= parseInt(m.deuce_trigger) && parseInt(scoreB) >= parseInt(m.deuce_trigger);
+                        if (isDeuce && !m.is_completed) {
+                            deuceEl.classList.remove('hidden');
+                        } else {
+                            deuceEl.classList.add('hidden');
+                        }
+                    }
+
+                    // Server indicators
+                    const srv = m.current_server || 'player_a';
+                    if (serverAEl) {
+                        if (srv === 'player_a' && !m.is_completed) {
+                            serverAEl.classList.remove('hidden');
+                        } else {
+                            serverAEl.classList.add('hidden');
+                        }
+                    }
+
+                    if (serverBEl) {
+                        if (srv === 'player_b' && !m.is_completed) {
+                            serverBEl.classList.remove('hidden');
+                        } else {
+                            serverBEl.classList.add('hidden');
+                        }
+                    }
+
+                    // AI Win Predictor Update
+                    if (momValAEl && momValBEl) {
+                        momValAEl.innerText = momA + '%';
+                        momValBEl.innerText = momB + '%';
+                        if (momBarAEl) momBarAEl.style.width = momA + '%';
+                        if (momBarBEl) momBarBEl.style.width = momB + '%';
+                    }
+
+                    // Completed Sets Breakdown Update
+                    const setsContainer = document.getElementById('live-completed-sets-' + matchId);
+                    const setsList = document.getElementById('live-completed-sets-list-' + matchId);
+                    if (setsContainer && setsList) {
+                        if (m.games && m.games.length > 0) {
+                            setsContainer.classList.remove('hidden');
+                            setsContainer.classList.add('flex');
+                            setsList.innerHTML = m.games.map(g => {
+                                const wSide = g.winner_side || (parseInt(g.score_a) > parseInt(g.score_b) ? 'A' : (parseInt(g.score_b) > parseInt(g.score_a) ? 'B' : null));
+                                const wName = g.winner_name || (wSide === 'A' ? (m.display_a || m.player_a) : (wSide === 'B' ? (m.display_b || m.player_b) : ''));
+                                return `
+                                    <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-50 border border-slate-200 text-xs shadow-2xs">
+                                        <span class="font-bold text-slate-500">Set ${g.game_number}:</span>
+                                        <span class="font-mono font-black text-slate-800">${g.score_a} - ${g.score_b}</span>
+                                        ${wName ? `
+                                            <span class="inline-flex items-center gap-1 font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200 text-[10px]">
+                                                <i class="ph-fill ph-trophy text-amber-500 text-xs"></i> ${escapeHtml(wName)}
+                                            </span>
+                                        ` : ''}
+                                    </div>
+                                `;
+                            }).join('');
+                        } else {
+                            setsContainer.classList.add('hidden');
+                            setsContainer.classList.remove('flex');
+                            setsList.innerHTML = '';
+                        }
+                    }
+
                     if (m.is_completed) {
-                        gameNumEl.innerText = 'Match Finished';
-                        gameNumEl.className = 'text-xs font-mono font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-lg';
-                    } else {
-                        gameNumEl.innerText = 'Set ' + curGame + ' of ' + bestOf;
-                        gameNumEl.className = 'text-xs font-mono font-black text-red-600 bg-red-50 border border-red-200 px-3 py-1 rounded-lg shadow-2xs';
-                    }
-                }
+                        if (deuceEl) deuceEl.classList.add('hidden');
+                        if (serverAEl) serverAEl.classList.add('hidden');
+                        if (serverBEl) serverBEl.classList.add('hidden');
+                        
+                        const winnerName = m.winner_name || (scoreA > scoreB ? (m.display_a || m.player_a) : (m.display_b || m.player_b));
+                        const badgeEl = document.getElementById('live-status-badge-' + matchId);
+                        if (badgeEl) {
+                            badgeEl.innerHTML = `<i class="ph-fill ph-trophy text-amber-300 text-xs"></i> <span>WINNER: ${escapeHtml(winnerName || 'FINAL')}</span>`;
+                            badgeEl.className = 'px-3 py-1 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md animate-bounce';
+                        }
 
-                // Deuce indicator
-                const deuceEl = document.getElementById('deuce-badge-' + matchId);
-                if (deuceEl) {
-                    const isDeuce = m.deuce_enabled && parseInt(scoreA) >= parseInt(m.deuce_trigger) && parseInt(scoreB) >= parseInt(m.deuce_trigger);
-                    if (isDeuce && !m.is_completed) {
-                        deuceEl.classList.remove('hidden');
-                    } else {
-                        deuceEl.classList.add('hidden');
-                    }
-                }
+                        if (cardEl) {
+                            cardEl.classList.remove('border-red-400', 'ring-red-50');
+                            cardEl.classList.add('border-emerald-500', 'ring-emerald-100');
+                        }
 
-                if (serverAEl) {
-                    if (m.current_server === 'player_a' && !m.is_completed) {
-                        serverAEl.classList.remove('hidden');
-                    } else {
-                        serverAEl.classList.add('hidden');
+                        // Linger for 15 seconds before disappearing
+                        if (!window._completedMatchCards) window._completedMatchCards = {};
+                        if (!window._completedMatchCards[matchId]) {
+                            window._completedMatchCards[matchId] = setTimeout(() => {
+                                if (cardEl) {
+                                    cardEl.style.transition = 'opacity 0.8s ease, transform 0.8s ease';
+                                    cardEl.style.opacity = '0';
+                                    cardEl.style.transform = 'scale(0.95)';
+                                    setTimeout(() => {
+                                        cardEl.remove();
+                                        if (liveGrid && liveGrid.children.length === 0) {
+                                            if (liveSection) liveSection.classList.add('hidden');
+                                            if (noLivePlaceholder) noLivePlaceholder.classList.remove('hidden');
+                                        }
+                                    }, 800);
+                                }
+                            }, 15000);
+                        }
                     }
-                }
-
-                if (serverBEl) {
-                    if (m.current_server === 'player_b' && !m.is_completed) {
-                        serverBEl.classList.remove('hidden');
-                    } else {
-                        serverBEl.classList.add('hidden');
-                    }
-                }
-
-                // AI Win Predictor Update
-                if (momValAEl && momValBEl) {
-                    momValAEl.innerText = momA + '%';
-                    momValBEl.innerText = momB + '%';
-                    if (momBarAEl) momBarAEl.style.width = momA + '%';
-                    if (momBarBEl) momBarBEl.style.width = momB + '%';
-                }
-
-                // Completed Sets Breakdown Update
-                const setsContainer = document.getElementById('live-completed-sets-' + matchId);
-                const setsList = document.getElementById('live-completed-sets-list-' + matchId);
-                if (setsContainer && setsList) {
-                    if (m.games && m.games.length > 0) {
-                        setsContainer.classList.remove('hidden');
-                        setsContainer.classList.add('flex');
-                        setsList.innerHTML = m.games.map(g => {
-                            const wSide = g.winner_side || (g.score_a > g.score_b ? 'A' : (g.score_b > g.score_a ? 'B' : null));
-                            const wName = g.winner_name || (wSide === 'A' ? (m.display_a || m.player_a) : (wSide === 'B' ? (m.display_b || m.player_b) : ''));
-                            return `
-                                <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-50 border border-slate-200 text-xs shadow-2xs">
-                                    <span class="font-bold text-slate-500">Set ${g.game_number}:</span>
-                                    <span class="font-mono font-black text-slate-800">${g.score_a} - ${g.score_b}</span>
-                                    ${wName ? `
-                                        <span class="inline-flex items-center gap-1 font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200 text-[10px]">
-                                            <i class="ph-fill ph-trophy text-amber-500 text-xs"></i> ${this.escapeHtml(wName)}
-                                        </span>
-                                    ` : ''}
-                                </div>
-                            `;
-                        }).join('');
-                    } else {
-                        setsContainer.classList.add('hidden');
-                        setsContainer.classList.remove('flex');
-                        setsList.innerHTML = '';
-                    }
-                }
-
-                if (m.is_completed) {
-                    if (deuceEl) deuceEl.classList.add('hidden');
-                    if (serverAEl) serverAEl.classList.add('hidden');
-                    if (serverBEl) serverBEl.classList.add('hidden');
-                    
-                    const winnerName = m.winner_name || (m.score_a > m.score_b ? (m.display_a || m.player_a) : (m.display_b || m.player_b));
-                    const badgeEl = document.getElementById('live-status-badge-' + matchId);
-                    if (badgeEl) {
-                        badgeEl.innerHTML = `<i class="ph-fill ph-trophy text-amber-300 text-xs"></i> <span>WINNER: ${winnerName || 'FINAL'}</span>`;
-                        badgeEl.className = 'px-3 py-1 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md animate-bounce';
-                    }
-
-                    if (cardEl) {
-                        cardEl.classList.remove('border-red-400', 'ring-red-50');
-                        cardEl.classList.add('border-emerald-500', 'ring-emerald-100');
-                    }
-
-                    // Linger for 15 seconds before disappearing
-                    if (!window._completedMatchCards) window._completedMatchCards = {};
-                    if (!window._completedMatchCards[matchId]) {
-                        window._completedMatchCards[matchId] = setTimeout(() => {
-                            if (cardEl) {
-                                cardEl.style.transition = 'opacity 0.8s ease, transform 0.8s ease';
-                                cardEl.style.opacity = '0';
-                                cardEl.style.transform = 'scale(0.95)';
-                                setTimeout(() => {
-                                    cardEl.remove();
-                                    if (liveGrid && liveGrid.children.length === 0) {
-                                        if (liveSection) liveSection.classList.add('hidden');
-                                        if (noLivePlaceholder) noLivePlaceholder.classList.remove('hidden');
-                                    }
-                                }, 800);
-                            }
-                        }, 15000);
-                    }
+                } catch (cardErr) {
+                    console.error('Error updating live card for match ' + m.id, cardErr);
                 }
             });
+        },
+
+        scrollBracket(roundKey) {
+            const container = document.getElementById('bracket-scroll-container');
+            if (!container) return;
+
+            if (roundKey === 'all') {
+                container.scrollTo({ left: 0, behavior: 'smooth' });
+                return;
+            }
+
+            const targetEl = document.getElementById('bracket-col-' + roundKey);
+            if (targetEl) {
+                const scrollOffset = targetEl.offsetLeft - container.offsetLeft - 16;
+                container.scrollTo({ left: Math.max(0, scrollOffset), behavior: 'smooth' });
+            }
         }
     };
 }

@@ -4,13 +4,24 @@
 // ============================================================
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../config/constants.php';
+require_once __DIR__ . '/../includes/functions.php';
 
 // Prevent PHP from stopping script when client disconnects (we handle it manually via connection_aborted)
 ignore_user_abort(true);
 
+// Disable Apache gzip and PHP output buffering so packets stream instantly
+if (function_exists('apache_setenv')) {
+    @apache_setenv('no-gzip', '1');
+}
+@ini_set('zlib.output_compression', '0');
+@ini_set('implicit_flush', '1');
+while (ob_get_level() > 0) {
+    @ob_end_flush();
+}
+
 // Set SSE headers
 header('Content-Type: text/event-stream');
-header('Cache-Control: no-cache');
+header('Cache-Control: no-cache, no-transform');
 header('Connection: keep-alive');
 header('X-Accel-Buffering: no'); // Disable buffering in Nginx
 
@@ -23,8 +34,8 @@ $tournamentId = isset($_GET['tournament_id']) ? (int)$_GET['tournament_id'] : nu
 $startTime = time();
 $maxExecutionTime = 60; 
 
-// Initial state
-$lastEventId = -1;
+// Initial state fingerprint
+$lastFingerprint = null;
 
 while (true) {
     // 1. Break if client disconnected or timeout reached
@@ -33,36 +44,46 @@ while (true) {
     }
 
     try {
-        // 2. Ultra-lightweight check: Has score, games, event, or status changed?
-        $currentMax = (int)db_retry(function($db) use ($tournamentId) {
+        // 2. Ultra-reliable state fingerprint: captures points, undos, game changes, and status shifts
+        $currentFingerprint = db_retry(function($db) use ($tournamentId) {
             if ($tournamentId) {
                 $stmt = $db->prepare('
-                    SELECT COALESCE(MAX(se.id), 0) + 
-                           COALESCE(SUM(m.score_a * 100 + m.score_b + m.games_a * 1000 + m.games_b * 10000), 0) +
-                           COALESCE(COUNT(CASE WHEN m.status = \'in_progress\' THEN 1 END) * 77, 0) +
-                           COALESCE(COUNT(CASE WHEN m.status IN (\'completed\',\'walkover\',\'retired\') THEN 1 END) * 999, 0)
-                    FROM matches m 
-                    LEFT JOIN score_events se ON se.match_id = m.id 
-                    WHERE m.tournament_id = ?
+                    SELECT 
+                        (SELECT COALESCE(MAX(id), 0) FROM score_events WHERE match_id IN (SELECT id FROM matches WHERE tournament_id = ?)) as max_se,
+                        (SELECT COUNT(id) FROM score_events WHERE match_id IN (SELECT id FROM matches WHERE tournament_id = ?)) as count_se,
+                        COALESCE(SUM(score_a), 0) as sum_a,
+                        COALESCE(SUM(score_b), 0) as sum_b,
+                        COALESCE(SUM(games_a), 0) as sum_ga,
+                        COALESCE(SUM(games_b), 0) as sum_gb,
+                        COUNT(CASE WHEN status = \'in_progress\' THEN 1 END) as in_prog,
+                        COUNT(CASE WHEN status IN (\'completed\',\'walkover\',\'retired\') THEN 1 END) as comp
+                    FROM matches
+                    WHERE tournament_id = ?
                 ');
-                $stmt->execute([$tournamentId]);
-                return (int)$stmt->fetchColumn();
+                $stmt->execute([$tournamentId, $tournamentId, $tournamentId]);
+                $r = $stmt->fetch(PDO::FETCH_NUM);
+                return $r ? implode(':', $r) : '';
             } else {
                 $stmt = $db->query('
-                    SELECT COALESCE(MAX(se.id), 0) + 
-                           COALESCE(SUM(m.score_a * 100 + m.score_b + m.games_a * 1000 + m.games_b * 10000), 0) +
-                           COALESCE(COUNT(CASE WHEN m.status = \'in_progress\' THEN 1 END) * 77, 0) +
-                           COALESCE(COUNT(CASE WHEN m.status IN (\'completed\',\'walkover\',\'retired\') THEN 1 END) * 999, 0)
-                    FROM matches m 
-                    LEFT JOIN score_events se ON se.match_id = m.id
+                    SELECT 
+                        (SELECT COALESCE(MAX(id), 0) FROM score_events) as max_se,
+                        (SELECT COUNT(id) FROM score_events) as count_se,
+                        COALESCE(SUM(score_a), 0) as sum_a,
+                        COALESCE(SUM(score_b), 0) as sum_b,
+                        COALESCE(SUM(games_a), 0) as sum_ga,
+                        COALESCE(SUM(games_b), 0) as sum_gb,
+                        COUNT(CASE WHEN status = \'in_progress\' THEN 1 END) as in_prog,
+                        COUNT(CASE WHEN status IN (\'completed\',\'walkover\',\'retired\') THEN 1 END) as comp
+                    FROM matches
                 ');
-                return (int)$stmt->fetchColumn();
+                $r = $stmt->fetch(PDO::FETCH_NUM);
+                return $r ? implode(':', $r) : '';
             }
         });
 
-        // 3. If there is new data (or it's the very first loop), fetch active and recently updated matches
-        if ($currentMax > $lastEventId) {
-            $lastEventId = $currentMax;
+        // 3. If fingerprint changed (or initial connection frame), broadcast immediately
+        if ($currentFingerprint !== $lastFingerprint) {
+            $lastFingerprint = $currentFingerprint;
 
             $matchesRows = db_retry(function($db) use ($tournamentId) {
                 $sql = "
@@ -91,9 +112,10 @@ while (true) {
                 }
             });
 
-            // Fetch games breakdown for returned matches
+            // Fetch games breakdown and serving indicator for returned matches
             $matchIds = array_column($matchesRows, 'id');
             $gamesMap = [];
+            $serverMap = [];
             if (!empty($matchIds)) {
                 $in = implode(',', array_map('intval', $matchIds));
                 $gRows = db_retry(function($db) use ($in) {
@@ -101,6 +123,18 @@ while (true) {
                 });
                 foreach ($gRows as $gr) {
                     $gamesMap[$gr['match_id']][] = $gr;
+                }
+
+                $sRows = db_retry(function($db) use ($in) {
+                    return $db->query("
+                        SELECT DISTINCT ON (match_id) match_id, side
+                        FROM score_events
+                        WHERE match_id IN ($in) AND is_undone = FALSE AND side IS NOT NULL
+                        ORDER BY match_id, sequence_no DESC, id DESC
+                    ")->fetchAll(PDO::FETCH_ASSOC);
+                });
+                foreach ($sRows as $sr) {
+                    $serverMap[$sr['match_id']] = ($sr['side'] === 'B') ? 'player_b' : 'player_a';
                 }
             }
 
@@ -117,6 +151,7 @@ while (true) {
                 $lm['player_b_games_won'] = (int)$lm['games_b'];
                 $lm['current_game_number'] = ((int)($lm['games_a'] ?? 0) + (int)($lm['games_b'] ?? 0)) + 1;
                 $lm['current_game'] = $lm['current_game_number'];
+                $lm['current_server'] = $serverMap[$lm['id']] ?? 'player_a';
                 $lm['deuce_enabled'] = (bool)$lm['deuce_enabled'];
                 $lm['is_completed'] = in_array($lm['status'], ['completed', 'walkover', 'retired']);
                 $lm['match_number'] = (int)($lm['match_number'] ?? 0);
@@ -180,7 +215,7 @@ while (true) {
             flush();
         }
 
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         // Silently swallow DB transient errors; will retry next tick
     }
 

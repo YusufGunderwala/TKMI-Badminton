@@ -6,6 +6,7 @@
 // ============================================================
 require_once __DIR__ . '/../config/constants.php';
 require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../includes/functions.php';
 
 header('Content-Type: application/json');
 header('Cache-Control: no-cache, no-store, must-revalidate');
@@ -62,11 +63,22 @@ try {
     // Fetch games for breakdown
     $matchIds = array_column($rows, 'id');
     $gamesMap = [];
+    $serverMap = [];
     if (!empty($matchIds)) {
         $in = implode(',', array_map('intval', $matchIds));
         $gStmt = $pdo->query("SELECT match_id, game_number, score_a, score_b, winner_side FROM games WHERE match_id IN ($in) ORDER BY match_id, game_number ASC");
         foreach ($gStmt->fetchAll(PDO::FETCH_ASSOC) as $g) {
             $gamesMap[$g['match_id']][] = $g;
+        }
+
+        $sStmt = $pdo->query("
+            SELECT DISTINCT ON (match_id) match_id, side
+            FROM score_events
+            WHERE match_id IN ($in) AND is_undone = FALSE AND side IS NOT NULL
+            ORDER BY match_id, sequence_no DESC, id DESC
+        ");
+        foreach ($sStmt->fetchAll(PDO::FETCH_ASSOC) as $sr) {
+            $serverMap[$sr['match_id']] = ($sr['side'] === 'B') ? 'player_b' : 'player_a';
         }
     }
 
@@ -138,6 +150,7 @@ try {
             'score_breakdown'     => $scoreBreakdown,
             'momentum_a'          => $probs['a'],
             'momentum_b'          => $probs['b'],
+            'current_server'      => $serverMap[$m['id']] ?? 'player_a',
             'walkover_reason'     => $m['walkover_reason'] ?? null,
             'current_game_number' => ((int)$m['games_a'] + (int)$m['games_b']) + 1,
         ];
