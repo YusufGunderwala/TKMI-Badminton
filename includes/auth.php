@@ -10,8 +10,12 @@ require_once __DIR__ . '/../config/constants.php';
  */
 function sessionStart(): void {
     if (session_status() === PHP_SESSION_NONE) {
-        session_name('TKMI_SESSION');
-        session_start();
+        if (!headers_sent()) {
+            session_name('TKMI_SESSION');
+            @session_start();
+        } else {
+            @session_start();
+        }
     }
 }
 

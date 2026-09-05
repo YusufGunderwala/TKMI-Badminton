@@ -9,6 +9,9 @@ require_once __DIR__ . '/cache.php';
 
 require_once __DIR__ . '/auth.php';
 
+// Start session early before any HTML output headers are sent
+sessionStart();
+
 // ---- Security -----------------------------------------------
 
 function e(?string $str): string {
